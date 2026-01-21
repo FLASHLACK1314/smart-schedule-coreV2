@@ -21,22 +21,5 @@ spring:
           max-idle: 8        # 最大空闲连接数
           min-idle: 0        # 最小空闲连接数
         shutdown-timeout: 100ms  # 关闭超时时间
-  mail:
-    username:
-    password:
-    host:
-    port: 25
-    protocol: smtp
-    default-encoding: UTF-8
-    properties:
-      mail:
-        smtp:
-          auth: true
-          starttls:
-            enable: true
-            required: true
-          connectiontimeout: 5000
-          timeout: 5000
-          writetimeout: 5000
   jackson:
     property-naming-strategy: SNAKE_CASE
