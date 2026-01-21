@@ -23,3 +23,41 @@ spring:
         shutdown-timeout: 100ms  # 关闭超时时间
   jackson:
     property-naming-strategy: SNAKE_CASE
+
+# ⚠️ 警告：数据库自动初始化配置（仅开发环境使用）
+# enabled: true 时会检查并初始化数据库表，生产环境必须设置为 false！
+database:
+  init:
+    enabled: false
+    drop-and-create: false          # 是否强制删除所有表重建（慎用！）
+    drop-all-on-missing: true       # 缺失表时是否删除所有表重建
+    fail-fast: true                 # 初始化失败时是否终止应用启动
+    # tables 和 sqlFiles 可选配置，不填则使用默认的表依赖顺序
+    tables:
+#      - sc_department
+#      - sc_building
+#      - sc_semester
+#      - sc_teacher
+#      - sc_course
+#      - sc_major
+#      - sc_classroom
+#      - sc_academic_admin
+#      - sc_class
+#      - sc_student
+#      - sc_teaching_class
+#      - sc_schedule
+#      - sc_schedule_conflict
+    sqlFiles:
+#      - classpath:sql/sc_department.sql
+#      - classpath:sql/sc_building.sql
+#      - classpath:sql/sc_semester.sql
+#      - classpath:sql/sc_teacher.sql
+#      - classpath:sql/sc_course.sql
+#      - classpath:sql/sc_major.sql
+#      - classpath:sql/sc_classroom.sql
+#      - classpath:sql/sc_academic_admin.sql
+#      - classpath:sql/sc_class.sql
+#      - classpath:sql/sc_student.sql
+#      - classpath:sql/sc_teaching_class.sql
+#      - classpath:sql/sc_schedule.sql
+#      - classpath:sql/sc_schedule_conflict.sql
