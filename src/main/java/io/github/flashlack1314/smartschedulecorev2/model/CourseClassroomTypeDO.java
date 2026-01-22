@@ -7,38 +7,25 @@ import lombok.Data;
 import lombok.experimental.Accessors;
 
 /**
- * 教室DO
+ * 课程类型-教室类型关联DO
  *
  * @author flash
  */
 @Data
 @Accessors(chain = true)
-@TableName("sc_classroom")
-public class ClassroomDO {
-
+@TableName("sc_course_classroom_type")
+public class CourseClassroomTypeDO {
     /**
-     * 教室UUID
+     * 关联关系UUID
      */
     @TableId
-    private String classroomUuid;
+    private String relationUuid;
 
     /**
-     * 教学楼UUID
+     * 课程类型UUID
      */
-    @TableField("building_uuid")
-    private String buildingUuid;
-
-    /**
-     * 教室名称
-     */
-    @TableField("classroom_name")
-    private String classroomName;
-
-    /**
-     * 教室容量
-     */
-    @TableField("classroom_capacity")
-    private Integer classroomCapacity;
+    @TableField("course_type_uuid")
+    private String courseTypeUuid;
 
     /**
      * 教室类型UUID

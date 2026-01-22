@@ -31,6 +31,7 @@ public class DatabaseInitializationConfig {
 
     private final JdbcTemplate jdbcTemplate;
     private final DatabaseInitProperties properties;
+    private final InitializeDatabase initializeDatabase;
 
     @Bean
     @Order(1)
@@ -41,39 +42,35 @@ public class DatabaseInitializationConfig {
                 log.info("数据库初始化功能已禁用");
                 return;
             }
-
-            log.info("========================================");
             log.info("开始检查数据库表结构...");
-            log.info("========================================");
-
             try {
                 // 检查表是否完整
-                List<String> missingTables = checkTables();
-
+                List<String> missingTables = this.checkTables();
                 // 场景1: 配置强制重建
                 if (properties.isDropAndCreate()) {
                     log.warn("强制重新创建模式：将删除所有表后重新创建");
-                    dropAllTables();
-                    createAllTables();
+                    this.dropAllTables();
+                    this.createAllTables();
                     log.info("强制重新创建模式完成");
+                    log.info("初始化数据库数据");
+                    initializeDatabase.initializeDatabase();
                     return;
                 }
-
                 // 场景2: 表都存在
                 if (missingTables.isEmpty()) {
                     log.info("数据库表结构检查通过，所有必需的表都存在");
                     log.info("========================================");
                     return;
                 }
-
                 // 场景3: 表不完整
                 log.warn("发现缺失的表: {}", missingTables);
                 if (properties.isDropAllOnMissing()) {
                     log.warn("drop-all-on-missing模式：删除所有表后重新创建");
-                    dropAllTables();
-                    createAllTables();
+                    this.dropAllTables();
+                    this.createAllTables();
+                    initializeDatabase.initializeDatabase();
                 } else {
-                    createMissingTables(missingTables);
+                    this.createMissingTables(missingTables);
                 }
                 log.info("表结构修复完成");
                 log.info("========================================");
@@ -155,7 +152,7 @@ public class DatabaseInitializationConfig {
             String sqlFile = properties.getSqlFiles().get(i);
 
             log.info("正在创建表: {} ({}/{})", tableName, i + 1, properties.getTables().size());
-            executeSqlFile(sqlFile);
+            this.executeSqlFile(sqlFile);
             log.info("✓ 创建表成功: {}", tableName);
         }
         log.info("所有表创建完成");
@@ -172,7 +169,7 @@ public class DatabaseInitializationConfig {
 
             if (missingTables.contains(tableName)) {
                 log.info("正在创建缺失的表: {}", tableName);
-                executeSqlFile(sqlFile);
+                this.executeSqlFile(sqlFile);
                 log.info("✓ 创建表成功: {}", tableName);
             }
         }
@@ -227,7 +224,7 @@ public class DatabaseInitializationConfig {
                 continue;
             }
 
-            executeSql(sql);
+            this.executeSql(sql);
             statementCount++;
         }
 

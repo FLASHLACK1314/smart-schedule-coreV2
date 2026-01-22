@@ -37,10 +37,10 @@ public class CourseDO {
     private String courseName;
 
     /**
-     * 课程种类 (后端枚举标识)
+     * 课程类型UUID
      */
-    @TableField("course_type")
-    private String courseType;
+    @TableField("course_type_uuid")
+    private String courseTypeUuid;
 
     /**
      * 课程学分 (支持半分)

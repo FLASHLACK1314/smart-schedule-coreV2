@@ -75,24 +75,29 @@ public class DatabaseInitProperties {
         tables.add("sc_department");
         tables.add("sc_building");
         tables.add("sc_semester");
+        tables.add("sc_course_type");
+        tables.add("sc_classroom_type");
         tables.add("sc_teacher");
-        tables.add("sc_course");
         tables.add("sc_system_admin");
 
         // 二级依赖
         tables.add("sc_major");
-        tables.add("sc_classroom");
         tables.add("sc_academic_admin");
 
-        // 三级依赖
+        // 三级依赖（包含外键关联）
+        tables.add("sc_course_classroom_type");
+        tables.add("sc_course");
+        tables.add("sc_classroom");
+
+        // 四级依赖
         tables.add("sc_class");
         tables.add("sc_student");
 
-        // 四级依赖
+        // 五级依赖
         tables.add("sc_teaching_class");
         tables.add("sc_schedule");
 
-        // 五级依赖
+        // 六级依赖
         tables.add("sc_schedule_conflict");
 
         // 初始化SQL文件路径
