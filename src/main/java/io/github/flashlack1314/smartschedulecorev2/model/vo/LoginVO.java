@@ -1,5 +1,6 @@
 package io.github.flashlack1314.smartschedulecorev2.model.vo;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 import lombok.experimental.Accessors;
 
@@ -13,11 +14,13 @@ public class LoginVO {
     /**
      * 用户类型（STUDENT, TEACHER, ACADEMIC_ADMIN, SYSTEM_ADMIN）
      */
+    @JsonProperty("user_type")
     private String userType;
 
     /**
      * 用户名
      */
+    @JsonProperty("user_name")
     private String userName;
 
     /**
