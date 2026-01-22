@@ -77,6 +77,7 @@ public class DatabaseInitProperties {
         tables.add("sc_semester");
         tables.add("sc_teacher");
         tables.add("sc_course");
+        tables.add("sc_system_admin");
 
         // 二级依赖
         tables.add("sc_major");
