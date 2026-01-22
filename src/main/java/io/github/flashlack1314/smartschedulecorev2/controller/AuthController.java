@@ -9,10 +9,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 /**
  * 认证控制器
@@ -39,5 +36,18 @@ public class AuthController {
         GetUserLoginDTO result = authService.login(
                 getData.getUserType(), getData.getUserName(), getData.getPassword());
         return ResultUtil.success("登录成功", result);
+    }
+
+    /**
+     * 用户登出
+     * @param token  Token
+     * @return 登出结果
+     */
+    @DeleteMapping("/logout")
+    public ResponseEntity<BaseResponse<Void>> userLogout(
+            @RequestHeader("Authorization") String token
+    ){
+        authService.logout(token);
+        return ResultUtil.success("登出成功");
     }
 }
