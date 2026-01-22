@@ -142,22 +142,72 @@
 | building_uuid | varchar(32) | FOREIGN KEY → sc_building | 教学楼UUID |
 | classroom_name | varchar | NOT NULL | 教室名称 |
 | classroom_capacity | integer | NOT NULL | 教室容量 |
-| classroom_type | varchar(32) | NOT NULL | 教室种类（后端枚举） |
+| classroom_type_uuid | varchar(32) | FOREIGN KEY → sc_classroom_type | 教室类型UUID |
 
 **关系**:
 - 位于某个教学楼（`building_uuid`）
+- 属于某种教室类型（`classroom_type_uuid`）
 
 **特色字段**:
 - `classroom_capacity`: 用于匹配课程班级规模
-- `classroom_type`: 支持不同类型教室（普通教室、实验室、多媒体教室等）
+- `classroom_type_uuid`: 关联教室类型表，定义教室的用途分类
 
 **用途**: 管理教室资源，是排课的空间维度约束。
 
 ---
 
+### 3.3 sc_classroom_type（教室类型表）
+**文件**: `sc_classroom_type.sql`
+
+| 字段名 | 类型 | 约束 | 说明 |
+|--------|------|------|------|
+| classroom_type_uuid | varchar(32) | PRIMARY KEY | 教室类型UUID |
+| type_name | varchar(32) | NOT NULL | 类型名称 |
+| type_description | varchar(255) | | 类型描述 |
+
+**用途**: 管理教室类型（如普通教室、多媒体教室、计算机实验室等），支持动态扩展。
+
+---
+
 ### 4. 课程与教学组织表
 
-#### 4.1 sc_class（行政班级表）
+#### 4.1 sc_course_type（课程类型表）
+**文件**: `sc_course_type.sql`
+
+| 字段名 | 类型 | 约束 | 说明 |
+|--------|------|------|------|
+| course_type_uuid | varchar(32) | PRIMARY KEY | 课程类型UUID |
+| type_name | varchar(32) | NOT NULL | 类型名称 |
+| type_description | varchar(255) | | 类型描述 |
+
+**用途**: 管理课程类型（如理论课、实验课、研讨课等），支持动态扩展。
+
+---
+
+#### 4.2 sc_course_classroom_type（课程类型-教室类型关联表）
+**文件**: `sc_course_classroom_type.sql`
+
+| 字段名 | 类型 | 约束 | 说明 |
+|--------|------|------|------|
+| relation_uuid | varchar(32) | PRIMARY KEY | 关联关系UUID |
+| course_type_uuid | varchar(32) | FOREIGN KEY → sc_course_type | 课程类型UUID |
+| classroom_type_uuid | varchar(32) | FOREIGN KEY → sc_classroom_type | 教室类型UUID |
+
+**关系**:
+- 关联课程类型（`course_type_uuid`）
+- 关联教室类型（`classroom_type_uuid`）
+- 唯一约束：`(course_type_uuid, classroom_type_uuid)`
+
+**用途**: 定义哪些课程类型可以使用哪些类型的教室，是排课算法的重要约束条件。
+
+**示例关联**：
+- 理论课 → 普通教室、多媒体教室、阶梯教室
+- 实验课 → 计算机实验室、理科实验室
+- 语言课 → 语音教室
+
+---
+
+#### 4.3 sc_class（行政班级表）
 **文件**: `sc_class.sql`
 
 | 字段名 | 类型 | 约束 | 说明 |
@@ -175,7 +225,7 @@
 
 ---
 
-#### 4.2 sc_course（课程主表）
+#### 4.4 sc_course（课程主表）
 **文件**: `sc_course.sql`
 
 | 字段名 | 类型 | 约束 | 说明 |
@@ -183,19 +233,23 @@
 | course_uuid | varchar(32) | PRIMARY KEY | 课程UUID |
 | course_num | varchar(32) | UNIQUE, NOT NULL | 课程编号（唯一编码） |
 | course_name | varchar(64) | NOT NULL | 课程名称 |
-| course_type | varchar(32) | NOT NULL | 课程种类（后端枚举标识） |
+| course_type_uuid | varchar(32) | FOREIGN KEY → sc_course_type | 课程类型UUID |
 | course_credit | numeric | NOT NULL | 课程学分（支持半分） |
 | qualified_teacher_uuids | jsonb | NOT NULL, DEFAULT '[]'::jsonb | 具有教授资格的老师UUID列表 |
+
+**关系**:
+- 属于某种课程类型（`course_type_uuid`）
 
 **特色字段**:
 - `qualified_teacher_uuids`: JSONB数组存储可以讲授该课程的教师列表
 - `course_credit`: 支持半学分（如1.5学分）
+- `course_type_uuid`: 关联课程类型表，用于匹配合适的教室
 
 **用途**: 课程主数据，定义课程基本信息和授课资格。
 
 ---
 
-#### 4.3 sc_teaching_class（教学班表）
+#### 4.5 sc_teaching_class（教学班表）
 **文件**: `sc_teaching_class.sql`
 
 | 字段名 | 类型 | 约束 | 说明 |
@@ -346,7 +400,7 @@ sc_schedule_conflict（冲突记录）
    - 教师时间偏好（`sc_teacher.like_time`）
    - 教师最大课时（`sc_teacher.max_hours_per_week`）
    - 教室容量匹配（`sc_classroom.classroom_capacity`）
-   - 教室类型匹配（`sc_classroom.classroom_type`）
+   - 教室类型匹配（通过 `sc_course.course_type_uuid` → `sc_course_classroom_type` → `sc_classroom_type`）
 3. 生成排课记录（`sc_schedule`）
 4. 检测冲突并记录（`sc_schedule_conflict`）
 
@@ -406,11 +460,12 @@ sc_schedule_conflict（冲突记录）
 
 ## 设计优势
 
-1. **灵活性**: JSONB字段支持复杂关系，无需额外的关联表
+1. **灵活性**: JSONB字段支持复杂关系，类型表支持动态扩展
 2. **性能**: 冗余字段减少JOIN操作，提升查询性能
-3. **扩展性**: 枚举类型由后端定义，数据库只存储字符串
+3. **扩展性**: 类型系统完全由数据库管理，无需修改代码即可添加新类型
 4. **完整性**: 严格的外键约束保证数据一致性
 5. **可维护性**: 详细的中文注释降低维护成本
+6. **灵活性**: 课程类型和教室类型通过关联表灵活配置，支持复杂匹配规则
 
 ## 后续优化建议
 
