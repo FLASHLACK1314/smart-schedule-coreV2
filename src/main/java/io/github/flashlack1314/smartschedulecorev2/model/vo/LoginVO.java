@@ -18,7 +18,7 @@ public class LoginVO {
     /**
      * 用户名
      */
-    private Integer userName;
+    private String userName;
 
     /**
      * 登录密码
