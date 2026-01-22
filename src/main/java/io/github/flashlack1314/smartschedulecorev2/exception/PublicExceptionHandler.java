@@ -1,4 +1,4 @@
-package io.github.flashlack1314.smartschedulecorev2.expection;
+package io.github.flashlack1314.smartschedulecorev2.exception;
 
 import com.xlf.utility.exception.PublicExceptionHandlerAbstract;
 import org.springframework.web.bind.annotation.ControllerAdvice;
