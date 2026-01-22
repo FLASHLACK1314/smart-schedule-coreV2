@@ -1,4 +1,4 @@
-package io.github.flashlack1314.smartschedulecorev2.model.dto;
+package io.github.flashlack1314.smartschedulecorev2.model.dto.base;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

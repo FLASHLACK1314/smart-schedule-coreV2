@@ -3,7 +3,7 @@ package io.github.flashlack1314.smartschedulecorev2.config;
 import com.xlf.utility.util.PasswordUtil;
 import com.xlf.utility.util.UuidUtil;
 import io.github.flashlack1314.smartschedulecorev2.dao.*;
-import io.github.flashlack1314.smartschedulecorev2.model.*;
+import io.github.flashlack1314.smartschedulecorev2.model.entity.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;

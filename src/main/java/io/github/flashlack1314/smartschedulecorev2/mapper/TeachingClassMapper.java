@@ -1,7 +1,7 @@
 package io.github.flashlack1314.smartschedulecorev2.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import io.github.flashlack1314.smartschedulecorev2.model.TeachingClassDO;
+import io.github.flashlack1314.smartschedulecorev2.model.entity.TeachingClassDO;
 import org.apache.ibatis.annotations.Mapper;
 
 /**

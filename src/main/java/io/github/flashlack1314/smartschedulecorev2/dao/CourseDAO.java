@@ -3,7 +3,7 @@ package io.github.flashlack1314.smartschedulecorev2.dao;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import io.github.flashlack1314.smartschedulecorev2.mapper.CourseMapper;
-import io.github.flashlack1314.smartschedulecorev2.model.CourseDO;
+import io.github.flashlack1314.smartschedulecorev2.model.entity.CourseDO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Repository;
 

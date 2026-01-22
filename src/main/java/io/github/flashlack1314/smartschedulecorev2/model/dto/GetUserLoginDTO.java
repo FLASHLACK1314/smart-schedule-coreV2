@@ -1,5 +1,9 @@
 package io.github.flashlack1314.smartschedulecorev2.model.dto;
 
+import io.github.flashlack1314.smartschedulecorev2.model.dto.base.AcademicAdminUserInfoDTO;
+import io.github.flashlack1314.smartschedulecorev2.model.dto.base.StudentUserInfoDTO;
+import io.github.flashlack1314.smartschedulecorev2.model.dto.base.SystemAdminUserInfoDTO;
+import io.github.flashlack1314.smartschedulecorev2.model.dto.base.TeacherUserInfoDTO;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;

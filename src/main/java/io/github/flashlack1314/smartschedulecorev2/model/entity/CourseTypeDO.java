@@ -1,4 +1,4 @@
-package io.github.flashlack1314.smartschedulecorev2.model;
+package io.github.flashlack1314.smartschedulecorev2.model.entity;
 
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;

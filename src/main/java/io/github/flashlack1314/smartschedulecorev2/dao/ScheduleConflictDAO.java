@@ -3,7 +3,7 @@ package io.github.flashlack1314.smartschedulecorev2.dao;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import io.github.flashlack1314.smartschedulecorev2.mapper.ScheduleConflictMapper;
-import io.github.flashlack1314.smartschedulecorev2.model.ScheduleConflictDO;
+import io.github.flashlack1314.smartschedulecorev2.model.entity.ScheduleConflictDO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Repository;
 
