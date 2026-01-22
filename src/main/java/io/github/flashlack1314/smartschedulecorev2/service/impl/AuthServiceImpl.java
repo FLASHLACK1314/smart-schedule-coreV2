@@ -1,0 +1,241 @@
+package io.github.flashlack1314.smartschedulecorev2.service.impl;
+
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.xlf.utility.exception.BusinessException;
+import com.xlf.utility.ErrorCode;
+import com.xlf.utility.util.PasswordUtil;
+import io.github.flashlack1314.smartschedulecorev2.dao.*;
+import io.github.flashlack1314.smartschedulecorev2.enums.UserType;
+import io.github.flashlack1314.smartschedulecorev2.model.dto.GetUserLoginDTO;
+import io.github.flashlack1314.smartschedulecorev2.model.dto.base.*;
+import io.github.flashlack1314.smartschedulecorev2.model.entity.*;
+import io.github.flashlack1314.smartschedulecorev2.service.AuthService;
+import io.github.flashlack1314.smartschedulecorev2.service.TokenService;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+
+/**
+ * 认证服务实现
+ *
+ * @author flash
+ */
+@Slf4j
+@Service
+@RequiredArgsConstructor
+public class AuthServiceImpl implements AuthService {
+
+    private final TokenService tokenService;
+    private final StudentDAO studentDAO;
+    private final TeacherDAO teacherDAO;
+    private final AcademicAdminDAO academicAdminDAO;
+    private final SystemAdminDAO systemAdminDAO;
+
+    @Override
+    public GetUserLoginDTO login(String userType, String userName, String password) {
+        UserType type = UserType.fromString(userType);
+        String userUuid;
+        GetUserLoginDTO result = new GetUserLoginDTO();
+        result.setUserType(type.name());
+
+        switch (type) {
+            case STUDENT:
+                StudentDO student = authenticateStudent(userName, password);
+                userUuid = student.getStudentUuid();
+                result.setStudentInfo(buildStudentInfo(student));
+                break;
+
+            case TEACHER:
+                TeacherDO teacher = authenticateTeacher(userName, password);
+                userUuid = teacher.getTeacherUuid();
+                result.setTeacherInfo(buildTeacherInfo(teacher));
+                break;
+
+            case ACADEMIC_ADMIN:
+                AcademicAdminDO academicAdmin = authenticateAcademicAdmin(userName, password);
+                userUuid = academicAdmin.getAcademicUuid();
+                result.setAcademicAdminInfo(buildAcademicAdminInfo(academicAdmin));
+                break;
+
+            case SYSTEM_ADMIN:
+                SystemAdminDO systemAdmin = authenticateSystemAdmin(userName, password);
+                userUuid = systemAdmin.getAdminUuid();
+                result.setSystemAdminInfo(buildSystemAdminInfo(systemAdmin));
+                break;
+
+            default:
+                throw new BusinessException("不支持的用户类型", ErrorCode.PARAMETER_INVALID);
+        }
+
+        // 生成Token
+        String token = tokenService.generateToken(userUuid, type);
+        result.setToken(token);
+
+        log.info("用户登录成功 - 类型: {}, 用户名: {}, UUID: {}", type, userName, userUuid);
+
+        return result;
+    }
+
+    @Override
+    public void logout(String token) {
+        tokenService.deleteToken(token);
+        log.info("用户退出登录成功");
+    }
+
+    /**
+     * 验证学生身份
+     *
+     * @param studentId 学号
+     * @param password  密码
+     * @return 学生信息
+     */
+    private StudentDO authenticateStudent(String studentId, String password) {
+        LambdaQueryWrapper<StudentDO> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(StudentDO::getStudentId, studentId);
+        StudentDO student = studentDAO.getOne(wrapper);
+
+        if (student == null) {
+            throw new BusinessException("学号或密码错误", ErrorCode.OPERATION_FAILED);
+        }
+
+        if (!PasswordUtil.verify(password, student.getStudentPassword())) {
+            throw new BusinessException("学号或密码错误", ErrorCode.OPERATION_FAILED);
+        }
+
+        return student;
+    }
+
+    /**
+     * 验证教师身份
+     *
+     * @param teacherNum 教师工号
+     * @param password   密码
+     * @return 教师信息
+     */
+    private TeacherDO authenticateTeacher(String teacherNum, String password) {
+        LambdaQueryWrapper<TeacherDO> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(TeacherDO::getTeacherNum, teacherNum);
+        TeacherDO teacher = teacherDAO.getOne(wrapper);
+
+        if (teacher == null) {
+            throw new BusinessException("工号或密码错误", ErrorCode.OPERATION_FAILED);
+        }
+
+        if (!PasswordUtil.verify(password, teacher.getTeacherPassword())) {
+            throw new BusinessException("工号或密码错误", ErrorCode.OPERATION_FAILED);
+        }
+
+        if (!teacher.getIsActive()) {
+            throw new BusinessException("该教师账号已被禁用", ErrorCode.OPERATION_DENIED);
+        }
+
+        return teacher;
+    }
+
+    /**
+     * 验证教务管理员身份
+     *
+     * @param academicNum 教务工号
+     * @param password    密码
+     * @return 教务管理员信息
+     */
+    private AcademicAdminDO authenticateAcademicAdmin(String academicNum, String password) {
+        LambdaQueryWrapper<AcademicAdminDO> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(AcademicAdminDO::getAcademicNum, academicNum);
+        AcademicAdminDO academicAdmin = academicAdminDAO.getOne(wrapper);
+
+        if (academicAdmin == null) {
+            throw new BusinessException("工号或密码错误", ErrorCode.OPERATION_FAILED);
+        }
+
+        if (!PasswordUtil.verify(password, academicAdmin.getAcademicPassword())) {
+            throw new BusinessException("工号或密码错误", ErrorCode.OPERATION_FAILED);
+        }
+
+        return academicAdmin;
+    }
+
+    /**
+     * 验证系统管理员身份
+     *
+     * @param username 用户名
+     * @param password 密码
+     * @return 系统管理员信息
+     */
+    private SystemAdminDO authenticateSystemAdmin(String username, String password) {
+        LambdaQueryWrapper<SystemAdminDO> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(SystemAdminDO::getAdminUsername, username);
+        SystemAdminDO systemAdmin = systemAdminDAO.getOne(wrapper);
+
+        if (systemAdmin == null) {
+            throw new BusinessException("用户名或密码错误", ErrorCode.OPERATION_FAILED);
+        }
+
+        if (!PasswordUtil.verify(password, systemAdmin.getAdminPassword())) {
+            throw new BusinessException("用户名或密码错误", ErrorCode.OPERATION_FAILED);
+        }
+
+        return systemAdmin;
+    }
+
+    /**
+     * 构建学生信息DTO
+     *
+     * @param student 学生实体
+     * @return 学生信息DTO
+     */
+    private StudentUserInfoDTO buildStudentInfo(StudentDO student) {
+        return new StudentUserInfoDTO(
+                student.getStudentUuid(),
+                student.getStudentId(),
+                student.getStudentName(),
+                student.getClassUuid()
+        );
+    }
+
+    /**
+     * 构建教师信息DTO
+     *
+     * @param teacher 教师实体
+     * @return 教师信息DTO
+     */
+    private TeacherUserInfoDTO buildTeacherInfo(TeacherDO teacher) {
+        return new TeacherUserInfoDTO(
+                teacher.getTeacherUuid(),
+                teacher.getTeacherNum(),
+                teacher.getTeacherName(),
+                teacher.getTitle(),
+                teacher.getMaxHoursPerWeek(),
+                teacher.getIsActive(),
+                teacher.getLikeTime()
+        );
+    }
+
+    /**
+     * 构建教务管理员信息DTO
+     *
+     * @param admin 教务管理员实体
+     * @return 教务管理员信息DTO
+     */
+    private AcademicAdminUserInfoDTO buildAcademicAdminInfo(AcademicAdminDO admin) {
+        return new AcademicAdminUserInfoDTO(
+                admin.getAcademicUuid(),
+                admin.getDepartmentUuid(),
+                admin.getAcademicNum(),
+                admin.getAcademicName()
+        );
+    }
+
+    /**
+     * 构建系统管理员信息DTO
+     *
+     * @param admin 系统管理员实体
+     * @return 系统管理员信息DTO
+     */
+    private SystemAdminUserInfoDTO buildSystemAdminInfo(SystemAdminDO admin) {
+        return new SystemAdminUserInfoDTO(
+                admin.getAdminUuid(),
+                admin.getAdminUsername()
+        );
+    }
+}
