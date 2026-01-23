@@ -47,10 +47,4 @@ public class CourseDO {
      */
     @TableField("course_credit")
     private BigDecimal courseCredit;
-
-    /**
-     * 具有教授资格的老师UUID列表 (JSONB 数组通用存放)
-     */
-    @TableField(value = "qualified_teacher_uuids")
-    private String qualifiedTeacherUuids;
 }

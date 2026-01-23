@@ -32,6 +32,14 @@ public class InitializeDatabase {
     private final MajorDAO majorDAO;
     private final ClassroomDAO classroomDAO;
     private final ClassDAO classDAO;
+    private final TeacherDAO teacherDAO;
+    private final AcademicAdminDAO academicAdminDAO;
+    private final CourseDAO courseDAO;
+    private final CourseQualificationDAO courseQualificationDAO;
+    private final StudentDAO studentDAO;
+    private final TeachingClassDAO teachingClassDAO;
+    private final ScheduleDAO scheduleDAO;
+    private final ScheduleConflictDAO scheduleConflictDAO;
 
     // 保存创建的UUID，供后续使用
     private final List<String> departmentUuids = new ArrayList<>();
@@ -39,6 +47,8 @@ public class InitializeDatabase {
     private final List<String> buildingNums = new ArrayList<>();
     private final List<String> courseTypeUuids = new ArrayList<>();
     private final List<String> classroomTypeUuids = new ArrayList<>();
+    private final List<String> teacherUuids = new ArrayList<>();
+    private final List<String> courseUuids = new ArrayList<>();
 
     /**
      * 初始化数据库数据
@@ -55,16 +65,28 @@ public class InitializeDatabase {
         this.createBuilding();
         this.createCourseType();
         this.createClassroomType();
+        this.createTeacher();
 
         // 二级依赖（类型关联）
         this.createCourseClassroomTypeRelation();
+        this.createAcademicAdmin();
 
         // 三级依赖
         this.createMajor();
         this.createClassroom();
+        this.createCourse();
+        this.createCourseQualificationRelation();
 
         // 四级依赖
         this.createClass();
+        this.createStudent();
+
+        // 五级依赖
+        this.createTeachingClass();
+        this.createSchedule();
+
+        // 六级依赖
+        this.createScheduleConflict();
 
         log.info("数据库基础数据初始化完成");
     }
@@ -155,7 +177,8 @@ public class InitializeDatabase {
                     .setBuildingName(buildingNames[i]);
             buildingDAO.save(buildingDO);
             buildingUuids.add(uuid);
-            this.buildingNums.add(buildingNums[i]); // 保存教学楼编号
+            // 保存教学楼编号
+            this.buildingNums.add(buildingNums[i]);
             log.info("创建教学楼: {} - {}", buildingNums[i], buildingNames[i]);
         }
 
@@ -327,7 +350,8 @@ public class InitializeDatabase {
         // 为每个教学楼创建教室
         for (int i = 0; i < buildingUuids.size(); i++) {
             String buildingUuid = buildingUuids.get(i);
-            String buildingNum = this.buildingNums.get(i); // 获取教学楼编号
+            // 获取教学楼编号
+            String buildingNum = this.buildingNums.get(i);
 
             // 每个教学楼创建：2个普通教室 + 1个多媒体教室 + 1个阶梯教室
             // 普通教室 (索引0)
@@ -339,7 +363,8 @@ public class InitializeDatabase {
                         .setBuildingUuid(buildingUuid)
                         .setClassroomName(classroomName)
                         .setClassroomCapacity(40)
-                        .setClassroomTypeUuid(classroomTypeUuids.get(0)); // 普通教室
+                        // 普通教室
+                        .setClassroomTypeUuid(classroomTypeUuids.get(0));
                 classroomDAO.save(classroomDO);
                 log.info("创建教室: {} (普通教室, 容量40人)", classroomName);
                 classroomCount++;
@@ -353,7 +378,8 @@ public class InitializeDatabase {
                     .setBuildingUuid(buildingUuid)
                     .setClassroomName(multimediaName)
                     .setClassroomCapacity(60)
-                    .setClassroomTypeUuid(classroomTypeUuids.get(1)); // 多媒体教室
+                    // 多媒体教室
+                    .setClassroomTypeUuid(classroomTypeUuids.get(1));
             classroomDAO.save(multimediaRoom);
             log.info("创建教室: {} (多媒体教室, 容量60人)", multimediaName);
             classroomCount++;
@@ -366,7 +392,8 @@ public class InitializeDatabase {
                     .setBuildingUuid(buildingUuid)
                     .setClassroomName(lectureHallName)
                     .setClassroomCapacity(120)
-                    .setClassroomTypeUuid(classroomTypeUuids.get(3)); // 阶梯教室
+                    // 阶梯教室
+                    .setClassroomTypeUuid(classroomTypeUuids.get(3));
             classroomDAO.save(lectureHall);
             log.info("创建教室: {} (阶梯教室, 容量120人)", lectureHallName);
             classroomCount++;
@@ -381,5 +408,69 @@ public class InitializeDatabase {
     private void createClass() {
         // TODO: 实现行政班级初始化
         log.info("行政班级初始化暂未实现");
+    }
+
+    /**
+     * 创建默认教师
+     */
+    private void createTeacher() {
+        // TODO: 实现教师初始化
+        log.info("教师初始化暂未实现");
+    }
+
+    /**
+     * 创建默认教务管理员
+     */
+    private void createAcademicAdmin() {
+        // TODO: 实现教务管理员初始化
+        log.info("教务管理员初始化暂未实现");
+    }
+
+    /**
+     * 创建默认课程
+     */
+    private void createCourse() {
+        // TODO: 实现课程初始化
+        log.info("课程初始化暂未实现");
+    }
+
+    /**
+     * 创建课程-教师资格关联关系
+     */
+    private void createCourseQualificationRelation() {
+        // TODO: 实现课程教师资格关联初始化
+        log.info("课程教师资格关联初始化暂未实现");
+    }
+
+    /**
+     * 创建默认学生
+     */
+    private void createStudent() {
+        // TODO: 实现学生初始化
+        log.info("学生初始化暂未实现");
+    }
+
+    /**
+     * 创建默认教学班
+     */
+    private void createTeachingClass() {
+        // TODO: 实现教学班初始化
+        log.info("教学班初始化暂未实现");
+    }
+
+    /**
+     * 创建默认排课记录
+     */
+    private void createSchedule() {
+        // TODO: 实现排课记录初始化
+        log.info("排课记录初始化暂未实现");
+    }
+
+    /**
+     * 创建默认排课冲突记录
+     */
+    private void createScheduleConflict() {
+        // TODO: 实现排课冲突记录初始化
+        log.info("排课冲突记录初始化暂未实现");
     }
 }

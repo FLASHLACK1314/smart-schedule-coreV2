@@ -87,6 +87,7 @@ public class DatabaseInitProperties {
         // 三级依赖（包含外键关联）
         tables.add("sc_course_classroom_type");
         tables.add("sc_course");
+        tables.add("sc_course_qualification");
         tables.add("sc_classroom");
 
         // 四级依赖
