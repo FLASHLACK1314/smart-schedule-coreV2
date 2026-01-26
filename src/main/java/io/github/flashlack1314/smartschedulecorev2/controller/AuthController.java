@@ -63,8 +63,9 @@ public class AuthController {
     @PostMapping("/change-password")
     @RequireRole({UserType.ACADEMIC_ADMIN,UserType.TEACHER,UserType.STUDENT})
     public ResponseEntity<BaseResponse<Void>> changePassword(
-            @RequestBody ChangePasswordVO getData,
-            @RequestHeader("Authorization") String token
+            @RequestHeader("Authorization") String token,
+            @RequestBody ChangePasswordVO getData
+
     ){
         authService.changePassword(getData,token);
         return ResultUtil.success("修改密码成功");
