@@ -2,8 +2,10 @@ package io.github.flashlack1314.smartschedulecorev2.controller;
 
 import io.github.flashlack1314.smartschedulecorev2.service.AuthService;
 import io.github.flashlack1314.smartschedulecorev2.service.UserService;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
