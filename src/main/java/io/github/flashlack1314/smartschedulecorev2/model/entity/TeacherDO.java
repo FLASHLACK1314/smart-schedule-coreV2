@@ -53,7 +53,7 @@ public class TeacherDO {
     private Integer maxHoursPerWeek;
 
     /**
-     * 喜欢时间 (JSONB 格式)
+     * 喜欢时间 (字符串格式)
      */
     @TableField(value = "like_time")
     private String likeTime;
