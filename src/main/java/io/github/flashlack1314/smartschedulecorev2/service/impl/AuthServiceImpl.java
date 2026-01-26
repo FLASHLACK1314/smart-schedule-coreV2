@@ -7,8 +7,10 @@ import com.xlf.utility.util.PasswordUtil;
 import io.github.flashlack1314.smartschedulecorev2.dao.*;
 import io.github.flashlack1314.smartschedulecorev2.enums.UserType;
 import io.github.flashlack1314.smartschedulecorev2.model.dto.GetUserLoginDTO;
+import io.github.flashlack1314.smartschedulecorev2.model.dto.TokenInfoDTO;
 import io.github.flashlack1314.smartschedulecorev2.model.dto.base.*;
 import io.github.flashlack1314.smartschedulecorev2.model.entity.*;
+import io.github.flashlack1314.smartschedulecorev2.model.vo.ChangePasswordVO;
 import io.github.flashlack1314.smartschedulecorev2.service.AuthService;
 import io.github.flashlack1314.smartschedulecorev2.service.TokenService;
 import lombok.RequiredArgsConstructor;
@@ -80,6 +82,44 @@ public class AuthServiceImpl implements AuthService {
     public void logout(String token) {
         tokenService.deleteToken(token);
         log.info("用户退出登录成功");
+    }
+
+    @Override
+    public void changePassword(ChangePasswordVO getData, String token) {
+        // 验证新密码和确认密码是否一致
+        if (!getData.getNewPassword().equals(getData.getConfirmPassword())) {
+            throw new BusinessException("新密码和确认密码不一致", ErrorCode.PARAMETER_INVALID);
+        }
+
+        // 从 Token 中获取用户信息
+        TokenInfoDTO tokenInfoDTO = tokenService.getTokenInfo(token);
+        String userUuid = tokenInfoDTO.getUserUuid();
+        UserType userType = tokenInfoDTO.getUserType();
+
+        // 系统管理员不允许修改密码
+        if (userType == UserType.SYSTEM_ADMIN) {
+            throw new BusinessException("系统管理员不允许修改密码", ErrorCode.OPERATION_DENIED);
+        }
+
+        // 根据用户类型修改密码
+        switch (userType) {
+            case STUDENT:
+                this.changeStudentPassword(userUuid, getData.getNewPassword());
+                break;
+
+            case TEACHER:
+                changeTeacherPassword(userUuid, getData.getNewPassword());
+                break;
+
+            case ACADEMIC_ADMIN:
+                changeAcademicAdminPassword(userUuid, getData.getNewPassword());
+                break;
+
+            default:
+                throw new BusinessException("不支持的用户类型", ErrorCode.PARAMETER_INVALID);
+        }
+
+        log.info("用户密码修改成功 - 类型: {}, UUID: {}", userType, userUuid);
     }
 
     /**
@@ -237,5 +277,59 @@ public class AuthServiceImpl implements AuthService {
                 admin.getAdminUuid(),
                 admin.getAdminUsername()
         );
+    }
+
+    /**
+     * 修改学生密码
+     *
+     * @param studentUuid 学生UUID
+     * @param newPassword  新密码
+     */
+    private void changeStudentPassword(String studentUuid, String newPassword) {
+        StudentDO student = studentDAO.getById(studentUuid);
+        if (student == null) {
+            throw new BusinessException("学生不存在", ErrorCode.OPERATION_FAILED);
+        }
+
+        student.setStudentPassword(PasswordUtil.encrypt(newPassword));
+        studentDAO.updateById(student);
+
+        log.info("学生密码修改成功 - UUID: {}, 学号: {}", studentUuid, student.getStudentId());
+    }
+
+    /**
+     * 修改教师密码
+     *
+     * @param teacherUuid 教师UUID
+     * @param newPassword  新密码
+     */
+    private void changeTeacherPassword(String teacherUuid, String newPassword) {
+        TeacherDO teacher = teacherDAO.getById(teacherUuid);
+        if (teacher == null) {
+            throw new BusinessException("教师不存在", ErrorCode.OPERATION_FAILED);
+        }
+
+        teacher.setTeacherPassword(PasswordUtil.encrypt(newPassword));
+        teacherDAO.updateById(teacher);
+
+        log.info("教师密码修改成功 - UUID: {}, 工号: {}", teacherUuid, teacher.getTeacherNum());
+    }
+
+    /**
+     * 修改教务管理员密码
+     *
+     * @param academicUuid 教务管理员UUID
+     * @param newPassword   新密码
+     */
+    private void changeAcademicAdminPassword(String academicUuid, String newPassword) {
+        AcademicAdminDO admin = academicAdminDAO.getById(academicUuid);
+        if (admin == null) {
+            throw new BusinessException("教务管理员不存在", ErrorCode.OPERATION_FAILED);
+        }
+
+        admin.setAcademicPassword(PasswordUtil.encrypt(newPassword));
+        academicAdminDAO.updateById(admin);
+
+        log.info("教务管理员密码修改成功 - UUID: {}, 工号: {}", academicUuid, admin.getAcademicNum());
     }
 }

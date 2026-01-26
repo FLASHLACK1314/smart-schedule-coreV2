@@ -2,7 +2,10 @@ package io.github.flashlack1314.smartschedulecorev2.controller;
 
 import com.xlf.utility.BaseResponse;
 import com.xlf.utility.ResultUtil;
+import io.github.flashlack1314.smartschedulecorev2.annotation.RequireRole;
+import io.github.flashlack1314.smartschedulecorev2.enums.UserType;
 import io.github.flashlack1314.smartschedulecorev2.model.dto.GetUserLoginDTO;
+import io.github.flashlack1314.smartschedulecorev2.model.vo.ChangePasswordVO;
 import io.github.flashlack1314.smartschedulecorev2.model.vo.LoginVO;
 import io.github.flashlack1314.smartschedulecorev2.service.AuthService;
 import jakarta.validation.Valid;
@@ -49,5 +52,21 @@ public class AuthController {
     ){
         authService.logout(token);
         return ResultUtil.success("登出成功");
+    }
+
+    /**
+     * 修改密码
+     * @param getData 修改密码信息
+     * @param token Token
+     * @return 修改密码结果
+     */
+    @PostMapping("/change-password")
+    @RequireRole({UserType.ACADEMIC_ADMIN,UserType.TEACHER,UserType.STUDENT})
+    public ResponseEntity<BaseResponse<Void>> changePassword(
+            @RequestBody ChangePasswordVO getData,
+            @RequestHeader("Authorization") String token
+    ){
+        authService.changePassword(getData,token);
+        return ResultUtil.success("修改密码成功");
     }
 }

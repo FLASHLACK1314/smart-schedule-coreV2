@@ -1,6 +1,7 @@
 package io.github.flashlack1314.smartschedulecorev2.service;
 
 import io.github.flashlack1314.smartschedulecorev2.model.dto.GetUserLoginDTO;
+import io.github.flashlack1314.smartschedulecorev2.model.vo.ChangePasswordVO;
 
 /**
  * 认证服务接口
@@ -25,4 +26,13 @@ public interface AuthService {
      * @param token Token
      */
     void logout(String token);
+
+    /**
+     * 修改密码
+     * @param getData 修改密码信息
+     *  
+     */
+    void changePassword(
+            ChangePasswordVO getData,
+            String token);
 }
