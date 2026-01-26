@@ -41,12 +41,6 @@ public class TeachingClassDO {
     private String semesterUuid;
 
     /**
-     * 关联的行政班级UUID列表 (JSONB存储，如 ["class_uuid1", "class_uuid2"])
-     */
-    @TableField(value = "class_uuids")
-    private String classUuids;
-
-    /**
      * 教学班名称
      */
     @TableField("teaching_class_name")

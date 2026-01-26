@@ -1,4 +1,4 @@
-package io.github.flashlack1314.smartschedulecorev2.config;
+package io.github.flashlack1314.smartschedulecorev2.config.database;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -94,8 +94,9 @@ public class DatabaseInitProperties {
         tables.add("sc_class");
         tables.add("sc_student");
 
-        // 五级依赖
+        // 五级依赖（教学班表必须在其关联表之前创建）
         tables.add("sc_teaching_class");
+        tables.add("sc_teaching_class_class");
         tables.add("sc_schedule");
 
         // 六级依赖

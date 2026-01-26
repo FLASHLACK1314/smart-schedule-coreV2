@@ -1,4 +1,4 @@
-package io.github.flashlack1314.smartschedulecorev2.config;
+package io.github.flashlack1314.smartschedulecorev2.config.database;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
