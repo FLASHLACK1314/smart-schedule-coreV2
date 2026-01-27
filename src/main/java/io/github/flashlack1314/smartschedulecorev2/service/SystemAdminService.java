@@ -2,7 +2,6 @@ package io.github.flashlack1314.smartschedulecorev2.service;
 
 import io.github.flashlack1314.smartschedulecorev2.model.dto.PageDTO;
 import io.github.flashlack1314.smartschedulecorev2.model.dto.UserInfoDTO;
-import io.github.flashlack1314.smartschedulecorev2.model.dto.base.AcademicAdminUserInfoDTO;
 
 /**
  * 系统管理员服务接口
@@ -10,18 +9,6 @@ import io.github.flashlack1314.smartschedulecorev2.model.dto.base.AcademicAdminU
  * @author flash
  */
 public interface SystemAdminService {
-    /**
-     * 获取教务管理员
-     *
-     * @param page     页码
-     * @param size     每页数量
-     * @param userName 用户名
-     * @return 教务管理员列表
-     */
-    PageDTO<AcademicAdminUserInfoDTO> getAcademicAdmin(
-            int page,
-            int size,
-            String userName);
 
     /**
      * 根据用户类型获取用户信息
@@ -37,4 +24,17 @@ public interface SystemAdminService {
             int size,
             String userType,
             String userName);
+
+    /**
+     * 更新密码
+     *
+     * @param userUuid    用户UUID
+     * @param userType    用户类型
+     * @param newPassword 新密码
+     */
+    void updatePassword(
+            String userUuid,
+            String userType,
+            String newPassword
+    );
 }

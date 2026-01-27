@@ -10,10 +10,7 @@ import io.github.flashlack1314.smartschedulecorev2.service.SystemAdminService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 /**
  * 系统管理员控制器
@@ -48,6 +45,25 @@ public class SystemAdminController {
         PageDTO<UserInfoDTO> result =
                 systemAdminService.getUserInfoPageByType(page, size, userType, userName);
         return ResultUtil.success("获取用户信息成功", result);
+    }
+
+    /**
+     * 修改密码
+     *
+     * @param userUuid    用户uuid
+     * @param userType    用户类型
+     * @param newPassword 新密码
+     * @return
+     */
+    @PutMapping("/update-password")
+    @RequireRole({UserType.SYSTEM_ADMIN})
+    public ResponseEntity<BaseResponse<Void>> updatePassword(
+            @RequestParam("user_uuid") String userUuid,
+            @RequestParam("user_type") String userType,
+            @RequestParam("new_password") String newPassword
+    ) {
+        systemAdminService.updatePassword(userUuid, userType, newPassword);
+        return ResultUtil.success("修改密码成功");
     }
 
 

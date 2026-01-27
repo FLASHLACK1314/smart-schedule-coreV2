@@ -44,34 +44,6 @@ public class SystemAdminImpl implements SystemAdminService {
     private final TeacherDAO teacherDAO;
     private final SystemAdminDAO systemAdminDAO;
 
-    @Override
-    public PageDTO<AcademicAdminUserInfoDTO> getAcademicAdmin(int page, int size, String userName) {
-        // 构建查询条件
-        LambdaQueryWrapper<AcademicAdminDO> queryWrapper = new LambdaQueryWrapper<>();
-        if (userName != null && !userName.trim().isEmpty()) {
-            queryWrapper.like(AcademicAdminDO::getAcademicName, userName);
-        }
-
-        // 分页查询
-        IPage<AcademicAdminDO> pageResult = academicAdminDAO.page(
-                new Page<>(page, size),
-                queryWrapper
-        );
-
-        // 转换为 DTO
-        List<AcademicAdminUserInfoDTO> dtoList = pageResult.getRecords().stream()
-                .map(this::convertToAcademicAdminDTO)
-                .collect(Collectors.toList());
-
-        // 构建返回结果
-        PageDTO<AcademicAdminUserInfoDTO> pageDTO = new PageDTO<>();
-        pageDTO.setPage(page);
-        pageDTO.setSize(size);
-        pageDTO.setTotal((int) pageResult.getTotal());
-        pageDTO.setRecords(dtoList);
-
-        return pageDTO;
-    }
 
     @Override
     public PageDTO<UserInfoDTO> getUserInfoPageByType(int page, int size, String userType, String userName) {
@@ -94,11 +66,69 @@ public class SystemAdminImpl implements SystemAdminService {
             case TEACHER -> getTeacherPage(page, size, userName);
             case ACADEMIC_ADMIN -> getAcademicAdminPage(page, size, userName);
             case SYSTEM_ADMIN -> getSystemAdminPage(page, size, userName);
-            default -> createEmptyPage(page, size);
         };
 
         log.info("查询结果 - 总数: {}", result.getTotal());
         return result;
+    }
+
+    @Override
+    public void updatePassword(String userUuid, String userType, String newPassword) {
+        log.info("修改密码 - userUuid: {}, userType: {}", userUuid, userType);
+
+        // 解析用户类型
+        UserType type = UserType.fromString(userType);
+
+        // 系统管理员不允许修改密码
+        if (type == UserType.SYSTEM_ADMIN) {
+            throw new IllegalArgumentException("系统管理员密码不允许通过此接口修改");
+        }
+
+        // 根据用户类型更新密码
+        switch (type) {
+            case STUDENT -> updateStudentPassword(userUuid, newPassword);
+            case TEACHER -> updateTeacherPassword(userUuid, newPassword);
+            case ACADEMIC_ADMIN -> updateAcademicAdminPassword(userUuid, newPassword);
+            default -> throw new IllegalArgumentException("不支持的用户类型: " + userType);
+        }
+
+        log.info("密码修改成功 - userUuid: {}, userType: {}", userUuid, userType);
+    }
+
+    /**
+     * 更新学生密码
+     */
+    private void updateStudentPassword(String studentUuid, String newPassword) {
+        StudentDO student = studentDAO.getById(studentUuid);
+        if (student == null) {
+            throw new IllegalArgumentException("学生不存在: " + studentUuid);
+        }
+        student.setStudentPassword(newPassword);
+        studentDAO.updateById(student);
+    }
+
+    /**
+     * 更新教师密码
+     */
+    private void updateTeacherPassword(String teacherUuid, String newPassword) {
+        TeacherDO teacher = teacherDAO.getById(teacherUuid);
+        if (teacher == null) {
+            throw new IllegalArgumentException("教师不存在: " + teacherUuid);
+        }
+        teacher.setTeacherPassword(newPassword);
+        teacherDAO.updateById(teacher);
+    }
+
+    /**
+     * 更新教务管理员密码
+     */
+    private void updateAcademicAdminPassword(String academicUuid, String newPassword) {
+        AcademicAdminDO academicAdmin = academicAdminDAO.getById(academicUuid);
+        if (academicAdmin == null) {
+            throw new IllegalArgumentException("教务管理员不存在: " + academicUuid);
+        }
+        academicAdmin.setAcademicPassword(newPassword);
+        academicAdminDAO.updateById(academicAdmin);
     }
 
     /**
