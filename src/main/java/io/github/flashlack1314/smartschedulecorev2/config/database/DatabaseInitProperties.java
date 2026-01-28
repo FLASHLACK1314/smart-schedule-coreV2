@@ -1,12 +1,12 @@
 package io.github.flashlack1314.smartschedulecorev2.config.database;
 
+import jakarta.annotation.PostConstruct;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
-import jakarta.annotation.PostConstruct;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -77,12 +77,13 @@ public class DatabaseInitProperties {
         tables.add("sc_semester");
         tables.add("sc_course_type");
         tables.add("sc_classroom_type");
-        tables.add("sc_teacher");
+        // sc_teacher 已移除 - 现在依赖 sc_department
         tables.add("sc_system_admin");
 
         // 二级依赖
         tables.add("sc_major");
         tables.add("sc_academic_admin");
+        tables.add("sc_teacher");        // 移动到这里: teacher 依赖 department
 
         // 三级依赖（包含外键关联）
         tables.add("sc_course_classroom_type");

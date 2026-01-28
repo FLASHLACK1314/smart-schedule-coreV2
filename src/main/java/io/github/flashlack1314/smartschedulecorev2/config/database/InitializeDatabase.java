@@ -62,7 +62,7 @@ public class InitializeDatabase {
         List<CourseDO> courses = this.initializeCourses(courseTypes);
         List<ClassroomDO> classrooms = this.initializeClassrooms(buildings, classroomTypes);
         List<ClassDO> classes = this.initializeClasses(majors);
-        List<TeacherDO> teachers = this.initializeTeachers();
+        List<TeacherDO> teachers = this.initializeTeachers(departments);
         List<StudentDO> students = this.initializeStudents(classes);
 
         // 第四层：关联数据
@@ -544,16 +544,20 @@ public class InitializeDatabase {
     /**
      * 初始化教师数据
      */
-    private List<TeacherDO> initializeTeachers() {
+    private List<TeacherDO> initializeTeachers(List<DepartmentDO> departments) {
         log.info("正在初始化教师数据...");
 
         List<TeacherDO> teachers = new ArrayList<>();
+
+        // 获取计算机科学与技术学院的 UUID (第一个学院)
+        String csDepartmentUuid = departments.get(0).getDepartmentUuid();
 
         TeacherDO teacher1 = new TeacherDO();
         teacher1.setTeacherUuid(UuidUtil.generateUuidNoDash())
                 .setTeacherNum("T1001")
                 .setTeacherName("张教授")
                 .setTitle("教授")
+                .setDepartmentUuid(csDepartmentUuid)
                 .setTeacherPassword(PasswordUtil.encrypt("qwer1234"))
                 .setMaxHoursPerWeek(20)
                 .setLikeTime("周一、周二、周三的第1-2节和第3-4节")
@@ -565,6 +569,7 @@ public class InitializeDatabase {
                 .setTeacherNum("T1002")
                 .setTeacherName("王副教授")
                 .setTitle("副教授")
+                .setDepartmentUuid(csDepartmentUuid)
                 .setTeacherPassword(PasswordUtil.encrypt("qwer1234"))
                 .setMaxHoursPerWeek(18)
                 .setLikeTime("周二、周四的第5-6节和第7-8节")
@@ -576,6 +581,7 @@ public class InitializeDatabase {
                 .setTeacherNum("T1003")
                 .setTeacherName("李讲师")
                 .setTitle("讲师")
+                .setDepartmentUuid(csDepartmentUuid)
                 .setTeacherPassword(PasswordUtil.encrypt("qwer1234"))
                 .setMaxHoursPerWeek(16)
                 .setLikeTime("周三、周五的第1-2节")
@@ -587,6 +593,7 @@ public class InitializeDatabase {
                 .setTeacherNum("T1004")
                 .setTeacherName("赵老师")
                 .setTitle("助教")
+                .setDepartmentUuid(csDepartmentUuid)
                 .setTeacherPassword(PasswordUtil.encrypt("qwer1234"))
                 .setMaxHoursPerWeek(12)
                 .setLikeTime("周一、周四的第3-4节")

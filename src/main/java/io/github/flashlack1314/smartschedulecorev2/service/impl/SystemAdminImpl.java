@@ -274,6 +274,18 @@ public class SystemAdminImpl implements SystemAdminService {
     private TeacherUserInfoDTO convertToTeacherDTO(TeacherDO DO) {
         TeacherUserInfoDTO dto = new TeacherUserInfoDTO();
         BeanUtils.copyProperties(DO, dto);
+
+        // 填充 departmentName
+        if (DO.getDepartmentUuid() != null) {
+            DepartmentDO departmentDO = departmentDAO.getById(DO.getDepartmentUuid());
+            if (departmentDO != null) {
+                dto.setDepartmentName(departmentDO.getDepartmentName());
+            } else {
+                log.warn("教师关联的学院不存在 - 教师UUID: {}, 学院UUID: {}",
+                        DO.getTeacherUuid(), DO.getDepartmentUuid());
+            }
+        }
+
         return dto;
     }
 

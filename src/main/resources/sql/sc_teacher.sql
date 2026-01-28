@@ -8,10 +8,14 @@ create table public.sc_teacher
             unique,
     teacher_name       varchar(32)          not null,
     title              varchar(32)          not null,
+    department_uuid varchar(32), -- 所属学院UUID(外键)
     teacher_password   varchar              not null,
     max_hours_per_week integer              not null,
     like_time          varchar              not null,
-    is_active          boolean default true not null
+    is_active       boolean default true not null,
+    constraint sc_teacher_sc_department_department_uuid_fk
+        foreign key (department_uuid)
+            references public.sc_department (department_uuid)
 );
 
 comment on table public.sc_teacher is '教师表';
@@ -23,6 +27,9 @@ comment on column public.sc_teacher.teacher_num is '教师编号（唯一工号�
 comment on column public.sc_teacher.teacher_name is '教师名称';
 
 comment on column public.sc_teacher.title is '职称';
+
+comment
+on column public.sc_teacher.department_uuid is '所属学院UUID';
 
 comment on column public.sc_teacher.teacher_password is '密码';
 

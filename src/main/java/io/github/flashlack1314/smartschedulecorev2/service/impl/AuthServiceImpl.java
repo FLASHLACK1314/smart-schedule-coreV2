@@ -258,11 +258,25 @@ public class AuthServiceImpl implements AuthService {
      * @return 教师信息DTO
      */
     private TeacherUserInfoDTO buildTeacherInfo(TeacherDO teacher) {
+        // 查询学院名称
+        String departmentName = null;
+        if (teacher.getDepartmentUuid() != null) {
+            DepartmentDO departmentDO = departmentDAO.getById(teacher.getDepartmentUuid());
+            if (departmentDO != null) {
+                departmentName = departmentDO.getDepartmentName();
+            } else {
+                log.warn("教师关联的学院不存在 - 教师UUID: {}, 学院UUID: {}",
+                        teacher.getTeacherUuid(), teacher.getDepartmentUuid());
+            }
+        }
+
         return new TeacherUserInfoDTO(
                 teacher.getTeacherUuid(),
                 teacher.getTeacherNum(),
                 teacher.getTeacherName(),
                 teacher.getTitle(),
+                teacher.getDepartmentUuid(),
+                departmentName,
                 teacher.getMaxHoursPerWeek(),
                 teacher.getIsActive(),
                 teacher.getLikeTime()

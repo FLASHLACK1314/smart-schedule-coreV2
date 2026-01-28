@@ -13,7 +13,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class TeacherUserInfoDTO {
-
     /**
      * 教师UUID
      */
@@ -34,6 +33,15 @@ public class TeacherUserInfoDTO {
      */
     private String title;
 
+    /**
+     * 所属学院UUID
+     */
+    private String departmentUuid;
+
+    /**
+     * 学院名称
+     */
+    private String departmentName;
     /**
      * 每周最高授课时长
      */

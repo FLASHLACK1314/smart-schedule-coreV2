@@ -41,6 +41,12 @@ public class TeacherDO {
     private String title;
 
     /**
+     * 所属学院UUID(外键)
+     */
+    @TableField("department_uuid")
+    private String departmentUuid;
+
+    /**
      * 密码
      */
     @TableField("teacher_password")
