@@ -58,6 +58,7 @@ public class SystemAdminController {
     @PutMapping("/update-password")
     @RequireRole({UserType.SYSTEM_ADMIN})
     public ResponseEntity<BaseResponse<Void>> updatePassword(
+            @RequestHeader("Authorization") String token,
             @RequestParam("user_uuid") String userUuid,
             @RequestParam("user_type") String userType,
             @RequestParam("new_password") String newPassword
