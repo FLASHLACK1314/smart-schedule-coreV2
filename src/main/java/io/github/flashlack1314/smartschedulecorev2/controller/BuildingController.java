@@ -102,6 +102,13 @@ public class BuildingController {
         return ResultUtil.success("获取教学楼信息成功", result);
     }
 
+    /**
+     * 删除教学楼
+     *
+     * @param token        Token
+     * @param buildingUuid 教学楼uuid
+     * @return 删除教学楼成功信息
+     */
     @DeleteMapping("/delete")
     @RequireRole({UserType.SYSTEM_ADMIN, UserType.ACADEMIC_ADMIN})
     public ResponseEntity<BaseResponse<Void>> deleteBuilding(
