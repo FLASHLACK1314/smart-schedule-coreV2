@@ -54,4 +54,11 @@ public interface BuildingService {
      */
     BuildingInfoDTO getBuilding(
             String buildingUuid);
+
+    /**
+     * 删除教学楼
+     *
+     * @param buildingUuid 教学楼UUID
+     */
+    void deleteBuilding(String buildingUuid);
 }

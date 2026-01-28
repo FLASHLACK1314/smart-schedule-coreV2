@@ -5,6 +5,7 @@ import com.xlf.utility.ErrorCode;
 import com.xlf.utility.exception.BusinessException;
 import com.xlf.utility.util.UuidUtil;
 import io.github.flashlack1314.smartschedulecorev2.dao.BuildingDAO;
+import io.github.flashlack1314.smartschedulecorev2.dao.ClassroomDAO;
 import io.github.flashlack1314.smartschedulecorev2.model.dto.PageDTO;
 import io.github.flashlack1314.smartschedulecorev2.model.dto.base.BuildingInfoDTO;
 import io.github.flashlack1314.smartschedulecorev2.model.entity.BuildingDO;
@@ -27,6 +28,7 @@ import java.util.stream.Collectors;
 public class BuildingServiceImpl implements BuildingService {
 
     private final BuildingDAO buildingDAO;
+    private final ClassroomDAO classroomDAO;
 
     @Override
     public void addBuilding(String buildingNum, String buildingName) {
@@ -122,6 +124,33 @@ public class BuildingServiceImpl implements BuildingService {
                 buildingUuid, building.getBuildingNum(), building.getBuildingName());
 
         return buildingInfoDTO;
+    }
+
+    @Override
+    public void deleteBuilding(String buildingUuid) {
+        log.info("删除教学楼 - UUID: {}", buildingUuid);
+
+        // 查询教学楼是否存在
+        BuildingDO building = buildingDAO.getById(buildingUuid);
+        if (building == null) {
+            throw new BusinessException("教学楼不存在: " + buildingUuid, ErrorCode.OPERATION_FAILED);
+        }
+
+        // 检查教学楼下是否还有教室
+        if (classroomDAO.existsByBuildingUuid(buildingUuid)) {
+            long classroomCount = classroomDAO.countByBuildingUuid(buildingUuid);
+            throw new BusinessException("该教学楼下还有 " + classroomCount + " 个教室，无法删除", ErrorCode.OPERATION_FAILED);
+        }
+
+        // 执行删除
+        boolean deleted = buildingDAO.removeById(buildingUuid);
+
+        if (!deleted) {
+            throw new BusinessException("删除教学楼失败", ErrorCode.OPERATION_FAILED);
+        }
+
+        log.info("教学楼删除成功 - UUID: {}, 编号: {}, 名称: {}",
+                buildingUuid, building.getBuildingNum(), building.getBuildingName());
     }
 
     /**
