@@ -54,6 +54,16 @@ public class BuildingDAO extends ServiceImpl<BuildingMapper, BuildingDO>
     }
 
     /**
+     * 检查教学楼UUID是否存在
+     *
+     * @param buildingUuid 教学楼UUID
+     * @return 如果存在返回true，否则返回false
+     */
+    public boolean existsByUuid(String buildingUuid) {
+        return this.getById(buildingUuid) != null;
+    }
+
+    /**
      * 分页查询教学楼信息
      *
      * @param page         页码
