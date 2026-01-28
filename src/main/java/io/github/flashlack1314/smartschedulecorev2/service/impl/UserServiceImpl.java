@@ -2,10 +2,7 @@ package io.github.flashlack1314.smartschedulecorev2.service.impl;
 
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.exception.BusinessException;
-import io.github.flashlack1314.smartschedulecorev2.dao.AcademicAdminDAO;
-import io.github.flashlack1314.smartschedulecorev2.dao.StudentDAO;
-import io.github.flashlack1314.smartschedulecorev2.dao.SystemAdminDAO;
-import io.github.flashlack1314.smartschedulecorev2.dao.TeacherDAO;
+import io.github.flashlack1314.smartschedulecorev2.dao.*;
 import io.github.flashlack1314.smartschedulecorev2.enums.UserType;
 import io.github.flashlack1314.smartschedulecorev2.model.dto.TokenInfoDTO;
 import io.github.flashlack1314.smartschedulecorev2.model.dto.UserInfoDTO;
@@ -13,10 +10,7 @@ import io.github.flashlack1314.smartschedulecorev2.model.dto.base.AcademicAdminU
 import io.github.flashlack1314.smartschedulecorev2.model.dto.base.StudentUserInfoDTO;
 import io.github.flashlack1314.smartschedulecorev2.model.dto.base.SystemAdminUserInfoDTO;
 import io.github.flashlack1314.smartschedulecorev2.model.dto.base.TeacherUserInfoDTO;
-import io.github.flashlack1314.smartschedulecorev2.model.entity.AcademicAdminDO;
-import io.github.flashlack1314.smartschedulecorev2.model.entity.StudentDO;
-import io.github.flashlack1314.smartschedulecorev2.model.entity.SystemAdminDO;
-import io.github.flashlack1314.smartschedulecorev2.model.entity.TeacherDO;
+import io.github.flashlack1314.smartschedulecorev2.model.entity.*;
 import io.github.flashlack1314.smartschedulecorev2.service.TokenService;
 import io.github.flashlack1314.smartschedulecorev2.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -37,6 +31,8 @@ public class UserServiceImpl implements UserService {
     private final TeacherDAO teacherDAO;
     private final AcademicAdminDAO academicAdminDAO;
     private final SystemAdminDAO systemAdminDAO;
+    private final ClassDAO classDAO;
+    private final DepartmentDAO departmentDAO;
 
     @Override
     public UserInfoDTO getUserInfo(String token) {
@@ -97,11 +93,24 @@ public class UserServiceImpl implements UserService {
      * @return 学生信息DTO
      */
     private StudentUserInfoDTO buildStudentInfo(StudentDO student) {
+        // 查询班级名称
+        String className = null;
+        if (student.getClassUuid() != null) {
+            ClassDO classDO = classDAO.getById(student.getClassUuid());
+            if (classDO != null) {
+                className = classDO.getClassName();
+            } else {
+                log.warn("学生关联的班级不存在 - 学生UUID: {}, 班级UUID: {}",
+                        student.getStudentUuid(), student.getClassUuid());
+            }
+        }
+
         return new StudentUserInfoDTO(
                 student.getStudentUuid(),
                 student.getStudentId(),
                 student.getStudentName(),
-                student.getClassUuid()
+                student.getClassUuid(),
+                className
         );
     }
 
@@ -130,9 +139,22 @@ public class UserServiceImpl implements UserService {
      * @return 教务管理员信息DTO
      */
     private AcademicAdminUserInfoDTO buildAcademicAdminInfo(AcademicAdminDO admin) {
+        // 查询学院名称
+        String departmentName = null;
+        if (admin.getDepartmentUuid() != null) {
+            DepartmentDO departmentDO = departmentDAO.getById(admin.getDepartmentUuid());
+            if (departmentDO != null) {
+                departmentName = departmentDO.getDepartmentName();
+            } else {
+                log.warn("教务管理员关联的学院不存在 - 教务UUID: {}, 学院UUID: {}",
+                        admin.getAcademicUuid(), admin.getDepartmentUuid());
+            }
+        }
+
         return new AcademicAdminUserInfoDTO(
                 admin.getAcademicUuid(),
                 admin.getDepartmentUuid(),
+                departmentName,
                 admin.getAcademicNum(),
                 admin.getAcademicName()
         );

@@ -25,6 +25,11 @@ public class AcademicAdminUserInfoDTO {
     private String departmentUuid;
 
     /**
+     * 所属学院名称
+     */
+    private String departmentName;
+
+    /**
      * 教务工号
      */
     private String academicNum;

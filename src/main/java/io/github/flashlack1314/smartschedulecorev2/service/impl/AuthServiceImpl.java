@@ -1,14 +1,17 @@
 package io.github.flashlack1314.smartschedulecorev2.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.xlf.utility.exception.BusinessException;
 import com.xlf.utility.ErrorCode;
+import com.xlf.utility.exception.BusinessException;
 import com.xlf.utility.util.PasswordUtil;
 import io.github.flashlack1314.smartschedulecorev2.dao.*;
 import io.github.flashlack1314.smartschedulecorev2.enums.UserType;
 import io.github.flashlack1314.smartschedulecorev2.model.dto.GetUserLoginDTO;
 import io.github.flashlack1314.smartschedulecorev2.model.dto.TokenInfoDTO;
-import io.github.flashlack1314.smartschedulecorev2.model.dto.base.*;
+import io.github.flashlack1314.smartschedulecorev2.model.dto.base.AcademicAdminUserInfoDTO;
+import io.github.flashlack1314.smartschedulecorev2.model.dto.base.StudentUserInfoDTO;
+import io.github.flashlack1314.smartschedulecorev2.model.dto.base.SystemAdminUserInfoDTO;
+import io.github.flashlack1314.smartschedulecorev2.model.dto.base.TeacherUserInfoDTO;
 import io.github.flashlack1314.smartschedulecorev2.model.entity.*;
 import io.github.flashlack1314.smartschedulecorev2.model.vo.ChangePasswordVO;
 import io.github.flashlack1314.smartschedulecorev2.service.AuthService;
@@ -32,6 +35,8 @@ public class AuthServiceImpl implements AuthService {
     private final TeacherDAO teacherDAO;
     private final AcademicAdminDAO academicAdminDAO;
     private final SystemAdminDAO systemAdminDAO;
+    private final ClassDAO classDAO;
+    private final DepartmentDAO departmentDAO;
 
     @Override
     public GetUserLoginDTO login(String userType, String userName, String password) {
@@ -225,11 +230,24 @@ public class AuthServiceImpl implements AuthService {
      * @return 学生信息DTO
      */
     private StudentUserInfoDTO buildStudentInfo(StudentDO student) {
+        // 查询班级名称
+        String className = null;
+        if (student.getClassUuid() != null) {
+            ClassDO classDO = classDAO.getById(student.getClassUuid());
+            if (classDO != null) {
+                className = classDO.getClassName();
+            } else {
+                log.warn("学生关联的班级不存在 - 学生UUID: {}, 班级UUID: {}",
+                        student.getStudentUuid(), student.getClassUuid());
+            }
+        }
+
         return new StudentUserInfoDTO(
                 student.getStudentUuid(),
                 student.getStudentId(),
                 student.getStudentName(),
-                student.getClassUuid()
+                student.getClassUuid(),
+                className
         );
     }
 
@@ -258,9 +276,22 @@ public class AuthServiceImpl implements AuthService {
      * @return 教务管理员信息DTO
      */
     private AcademicAdminUserInfoDTO buildAcademicAdminInfo(AcademicAdminDO admin) {
+        // 查询学院名称
+        String departmentName = null;
+        if (admin.getDepartmentUuid() != null) {
+            DepartmentDO departmentDO = departmentDAO.getById(admin.getDepartmentUuid());
+            if (departmentDO != null) {
+                departmentName = departmentDO.getDepartmentName();
+            } else {
+                log.warn("教务管理员关联的学院不存在 - 教务UUID: {}, 学院UUID: {}",
+                        admin.getAcademicUuid(), admin.getDepartmentUuid());
+            }
+        }
+
         return new AcademicAdminUserInfoDTO(
                 admin.getAcademicUuid(),
                 admin.getDepartmentUuid(),
+                departmentName,
                 admin.getAcademicNum(),
                 admin.getAcademicName()
         );

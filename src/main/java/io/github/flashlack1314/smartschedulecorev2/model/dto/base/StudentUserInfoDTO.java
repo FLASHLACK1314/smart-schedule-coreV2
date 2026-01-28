@@ -33,4 +33,9 @@ public class StudentUserInfoDTO {
      * 行政班级UUID
      */
     private String classUuid;
+
+    /**
+     * 行政班级名称
+     */
+    private String className;
 }

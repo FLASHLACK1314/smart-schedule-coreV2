@@ -36,6 +36,7 @@ public class SystemAdminController {
     @GetMapping("/getAcademicAdmin")
     @RequireRole({UserType.SYSTEM_ADMIN})
     public ResponseEntity<BaseResponse<PageDTO<UserInfoDTO>>> getAllUsers(
+            @RequestHeader("Authorization") String token,
             @RequestParam(value = "page", defaultValue = "1") int page,
             @RequestParam(value = "size", defaultValue = "10") int size,
             @RequestParam(value = "user_type", defaultValue = "STUDENT") String userType,

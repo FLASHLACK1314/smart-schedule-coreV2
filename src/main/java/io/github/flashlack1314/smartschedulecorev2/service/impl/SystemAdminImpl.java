@@ -3,10 +3,7 @@ package io.github.flashlack1314.smartschedulecorev2.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import io.github.flashlack1314.smartschedulecorev2.dao.AcademicAdminDAO;
-import io.github.flashlack1314.smartschedulecorev2.dao.StudentDAO;
-import io.github.flashlack1314.smartschedulecorev2.dao.SystemAdminDAO;
-import io.github.flashlack1314.smartschedulecorev2.dao.TeacherDAO;
+import io.github.flashlack1314.smartschedulecorev2.dao.*;
 import io.github.flashlack1314.smartschedulecorev2.enums.UserType;
 import io.github.flashlack1314.smartschedulecorev2.model.dto.PageDTO;
 import io.github.flashlack1314.smartschedulecorev2.model.dto.UserInfoDTO;
@@ -14,10 +11,7 @@ import io.github.flashlack1314.smartschedulecorev2.model.dto.base.AcademicAdminU
 import io.github.flashlack1314.smartschedulecorev2.model.dto.base.StudentUserInfoDTO;
 import io.github.flashlack1314.smartschedulecorev2.model.dto.base.SystemAdminUserInfoDTO;
 import io.github.flashlack1314.smartschedulecorev2.model.dto.base.TeacherUserInfoDTO;
-import io.github.flashlack1314.smartschedulecorev2.model.entity.AcademicAdminDO;
-import io.github.flashlack1314.smartschedulecorev2.model.entity.StudentDO;
-import io.github.flashlack1314.smartschedulecorev2.model.entity.SystemAdminDO;
-import io.github.flashlack1314.smartschedulecorev2.model.entity.TeacherDO;
+import io.github.flashlack1314.smartschedulecorev2.model.entity.*;
 import io.github.flashlack1314.smartschedulecorev2.service.SystemAdminService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -43,6 +37,8 @@ public class SystemAdminImpl implements SystemAdminService {
     private final StudentDAO studentDAO;
     private final TeacherDAO teacherDAO;
     private final SystemAdminDAO systemAdminDAO;
+    private final ClassDAO classDAO;
+    private final DepartmentDAO departmentDAO;
 
 
     @Override
@@ -257,6 +253,18 @@ public class SystemAdminImpl implements SystemAdminService {
     private StudentUserInfoDTO convertToStudentDTO(StudentDO DO) {
         StudentUserInfoDTO dto = new StudentUserInfoDTO();
         BeanUtils.copyProperties(DO, dto);
+
+        // 填充 className
+        if (DO.getClassUuid() != null) {
+            ClassDO classDO = classDAO.getById(DO.getClassUuid());
+            if (classDO != null) {
+                dto.setClassName(classDO.getClassName());
+            } else {
+                log.warn("学生关联的班级不存在 - 学生UUID: {}, 班级UUID: {}",
+                        DO.getStudentUuid(), DO.getClassUuid());
+            }
+        }
+
         return dto;
     }
 
@@ -275,6 +283,18 @@ public class SystemAdminImpl implements SystemAdminService {
     private AcademicAdminUserInfoDTO convertToAcademicAdminDTO(AcademicAdminDO DO) {
         AcademicAdminUserInfoDTO dto = new AcademicAdminUserInfoDTO();
         BeanUtils.copyProperties(DO, dto);
+
+        // 填充 departmentName
+        if (DO.getDepartmentUuid() != null) {
+            DepartmentDO departmentDO = departmentDAO.getById(DO.getDepartmentUuid());
+            if (departmentDO != null) {
+                dto.setDepartmentName(departmentDO.getDepartmentName());
+            } else {
+                log.warn("教务管理员关联的学院不存在 - 教务UUID: {}, 学院UUID: {}",
+                        DO.getAcademicUuid(), DO.getDepartmentUuid());
+            }
+        }
+
         return dto;
     }
 
