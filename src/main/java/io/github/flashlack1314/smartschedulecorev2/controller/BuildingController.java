@@ -92,8 +92,8 @@ public class BuildingController {
      * @param buildingUuid 教学楼uuid
      * @return 教学楼信息
      */
+    @GetMapping("/get")
     @RequireRole({UserType.SYSTEM_ADMIN, UserType.ACADEMIC_ADMIN, UserType.TEACHER, UserType.STUDENT})
-
     public ResponseEntity<BaseResponse<BuildingInfoDTO>> getBuilding(
             @RequestHeader("Authorization") String token,
             @RequestParam("building_uuid") String buildingUuid
