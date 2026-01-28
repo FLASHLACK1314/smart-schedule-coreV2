@@ -53,7 +53,7 @@ public class SystemAdminController {
      * @param userUuid    用户uuid
      * @param userType    用户类型
      * @param newPassword 新密码
-     * @return
+     * @return  修改密码结果
      */
     @PutMapping("/update-password")
     @RequireRole({UserType.SYSTEM_ADMIN})
