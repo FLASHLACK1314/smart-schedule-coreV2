@@ -7,6 +7,7 @@ import com.xlf.utility.util.UuidUtil;
 import io.github.flashlack1314.smartschedulecorev2.dao.BuildingDAO;
 import io.github.flashlack1314.smartschedulecorev2.dao.ClassroomDAO;
 import io.github.flashlack1314.smartschedulecorev2.dao.ClassroomTypeDAO;
+import io.github.flashlack1314.smartschedulecorev2.dao.ScheduleDAO;
 import io.github.flashlack1314.smartschedulecorev2.model.dto.ClassroomInfoDTO;
 import io.github.flashlack1314.smartschedulecorev2.model.dto.PageDTO;
 import io.github.flashlack1314.smartschedulecorev2.model.entity.BuildingDO;
@@ -33,6 +34,7 @@ public class ClassroomServiceImpl implements ClassroomService {
     private final ClassroomDAO classroomDAO;
     private final BuildingDAO buildingDAO;
     private final ClassroomTypeDAO classroomTypeDAO;
+    private final ScheduleDAO scheduleDAO;
 
     /**
      * 添加教室信息
@@ -192,5 +194,83 @@ public class ClassroomServiceImpl implements ClassroomService {
         pageDTO.setTotal(total);
         pageDTO.setRecords(records);
         return pageDTO;
+    }
+
+    /**
+     * 更新教室信息
+     *
+     * @param classroomUuid     教室UUID
+     * @param buildingUuid      教学楼UUID
+     * @param classroomName     教室名称
+     * @param classroomCapacity 教室容量
+     * @param classroomTypeUuid 教室类型UUID
+     * @throws BusinessException 当教室、教学楼、教室类型不存在或更新失败时抛出业务异常
+     */
+    @Override
+    public void updateClassroom(String classroomUuid, String buildingUuid, String classroomName, Integer classroomCapacity, String classroomTypeUuid) {
+        log.info("更新教室信息 - UUID: {}, 教学楼UUID: {}, 教室名称: {}, 容量: {}, 类型UUID: {}",
+                classroomUuid, buildingUuid, classroomName, classroomCapacity, classroomTypeUuid);
+
+        // 查询教室是否存在
+        ClassroomDO classroom = classroomDAO.getById(classroomUuid);
+        if (classroom == null) {
+            throw new BusinessException("教室不存在: " + classroomUuid, ErrorCode.OPERATION_FAILED);
+        }
+
+        // 验证教学楼是否存在
+        if (!buildingDAO.existsByUuid(buildingUuid)) {
+            throw new BusinessException("教学楼不存在: " + buildingUuid, ErrorCode.OPERATION_FAILED);
+        }
+
+        // 验证教室类型是否存在
+        if (!classroomTypeDAO.existsByUuid(classroomTypeUuid)) {
+            throw new BusinessException("教室类型不存在: " + classroomTypeUuid, ErrorCode.OPERATION_FAILED);
+        }
+
+        // 更新教室信息
+        classroom.setBuildingUuid(buildingUuid);
+        classroom.setClassroomName(classroomName);
+        classroom.setClassroomCapacity(classroomCapacity);
+        classroom.setClassroomTypeUuid(classroomTypeUuid);
+
+        // 保存更新
+        boolean updated = classroomDAO.updateById(classroom);
+        if (!updated) {
+            throw new BusinessException("更新教室失败", ErrorCode.OPERATION_FAILED);
+        }
+
+        log.info("教室更新成功 - UUID: {}, 教学楼UUID: {}, 教室名称: {}, 容量: {}, 类型UUID: {}",
+                classroomUuid, buildingUuid, classroomName, classroomCapacity, classroomTypeUuid);
+    }
+
+    /**
+     * 删除教室
+     *
+     * @param classroomUuid 教室UUID
+     * @throws BusinessException 当教室不存在、教室被排课使用或删除失败时抛出业务异常
+     */
+    @Override
+    public void deleteClassroom(String classroomUuid) {
+        log.info("删除教室 - UUID: {}", classroomUuid);
+
+        // 查询教室是否存在
+        ClassroomDO classroom = classroomDAO.getById(classroomUuid);
+        if (classroom == null) {
+            throw new BusinessException("教室不存在: " + classroomUuid, ErrorCode.OPERATION_FAILED);
+        }
+
+        // 检查教室是否被排课使用
+        if (scheduleDAO.existsByClassroomUuid(classroomUuid)) {
+            long scheduleCount = scheduleDAO.countByClassroomUuid(classroomUuid);
+            throw new BusinessException("该教室还有 " + scheduleCount + " 条排课记录，无法删除", ErrorCode.OPERATION_FAILED);
+        }
+
+        // 执行删除
+        boolean deleted = classroomDAO.removeById(classroomUuid);
+        if (!deleted) {
+            throw new BusinessException("删除教室失败", ErrorCode.OPERATION_FAILED);
+        }
+
+        log.info("教室删除成功 - UUID: {}, 教室名称: {}", classroomUuid, classroom.getClassroomName());
     }
 }

@@ -46,4 +46,27 @@ public interface ClassroomService {
             String classroomName,
             String classroomCapacity,
             String classroomTypeUuid);
+
+    /**
+     * 更新教室信息
+     *
+     * @param classroomUuid     教室UUID
+     * @param buildingUuid      教学楼UUID
+     * @param classroomName     教室名称
+     * @param classroomCapacity 教室容量
+     * @param classroomTypeUuid 教室类型UUID
+     */
+    void updateClassroom(
+            String classroomUuid,
+            String buildingUuid,
+            String classroomName,
+            Integer classroomCapacity,
+            String classroomTypeUuid);
+
+    /**
+     * 删除教室
+     *
+     * @param classroomUuid 教室UUID
+     */
+    void deleteClassroom(String classroomUuid);
 }
