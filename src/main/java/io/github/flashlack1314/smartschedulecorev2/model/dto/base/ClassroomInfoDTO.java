@@ -1,4 +1,4 @@
-package io.github.flashlack1314.smartschedulecorev2.model.dto;
+package io.github.flashlack1314.smartschedulecorev2.model.dto.base;
 
 import lombok.Data;
 import lombok.experimental.Accessors;
@@ -27,6 +27,10 @@ public class ClassroomInfoDTO {
      * 教室容量
      */
     private Integer capacity;
+    /**
+     * 教室类型uuid
+     */
+    private String classroomTypeUuid;
     /**
      * 教室类型名称
      */

@@ -1,7 +1,7 @@
 package io.github.flashlack1314.smartschedulecorev2.service;
 
-import io.github.flashlack1314.smartschedulecorev2.model.dto.ClassroomInfoDTO;
 import io.github.flashlack1314.smartschedulecorev2.model.dto.PageDTO;
+import io.github.flashlack1314.smartschedulecorev2.model.dto.base.ClassroomInfoDTO;
 import io.github.flashlack1314.smartschedulecorev2.model.vo.AddClassroomVO;
 
 /**
