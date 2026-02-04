@@ -81,11 +81,11 @@ public class SemesterController {
     }
 
     /**
-     * 获取学期信息
+     * 获取单个学期信息
      *
      * @param token        Token
-     * @param semesterUuid 学期uuid
-     * @return 学期信息
+     * @param semesterUuid 学期UUID
+     * @return 单个学期信息
      */
     @GetMapping("/get")
     @RequireRole({UserType.SYSTEM_ADMIN, UserType.ACADEMIC_ADMIN, UserType.TEACHER, UserType.STUDENT})

@@ -81,11 +81,11 @@ public class ClassroomTypeController {
     }
 
     /**
-     * 获取教室类型信息
+     * 获取单个教室类型信息
      *
      * @param token             Token
      * @param classroomTypeUuid 教室类型UUID
-     * @return 教室类型信息
+     * @return 单个教室类型信息
      */
     @GetMapping("/get")
     @RequireRole({UserType.SYSTEM_ADMIN, UserType.ACADEMIC_ADMIN, UserType.TEACHER, UserType.STUDENT})

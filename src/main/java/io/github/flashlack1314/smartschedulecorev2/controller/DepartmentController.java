@@ -81,11 +81,11 @@ public class DepartmentController {
     }
 
     /**
-     * 获取学院信息
+     * 获取单个学院信息
      *
      * @param token          Token
      * @param departmentUuid 学院UUID
-     * @return 学院信息
+     * @return 单个学院信息
      */
     @GetMapping("/get")
     @RequireRole({UserType.SYSTEM_ADMIN, UserType.ACADEMIC_ADMIN, UserType.TEACHER, UserType.STUDENT})

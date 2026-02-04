@@ -45,7 +45,7 @@ public class ClassroomController {
     }
 
     /**
-     * 获取教室信息
+     * 获取单个教室信息
      *
      * @param token         Token
      * @param classroomUuid 教室uuid
@@ -63,7 +63,7 @@ public class ClassroomController {
 
 
     /**
-     * 获取教室列表
+     * 获取教室分页查询
      *
      * @param token Token
      * @return 教室列表

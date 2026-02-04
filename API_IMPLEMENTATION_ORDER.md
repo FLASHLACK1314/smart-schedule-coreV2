@@ -18,16 +18,21 @@
 - ⚠️ **StudentController**（学生）- 仅实现 add，缺少 get/update/delete/getPage
 - ⚠️ **UserController**（用户）- 仅实现 getUserInfo
 
-### 未开始模块（8个）
+### 未开始模块（9个）
 
-- ❌ MajorController（专业）
-- ❌ ClassController（行政班级）
-- ❌ CourseController（课程）
-- ❌ TeacherController（教师）
-- ❌ AcademicController（教务管理）
-- ❌ TeachingClassController（教学班）
-- ❌ ScheduleController（排课）- **用户要求放到最后**
-- ❌ ScheduleConflictController（排课冲突）- **用户要求放到最后**
+- ❌ MajorController（专业）- 已创建文件，未实现
+- ❌ ClassController（行政班级）- 已创建文件，未实现
+- ❌ CourseController（课程）- 已创建文件，未实现
+- ❌ CourseClassroomTypeController（课程类型-教室类型关联）- ❌ **缺少文件** ✨
+- ❌ CourseQualificationController（课程教师资格）- ❌ **缺少文件**
+- ❌ TeacherController（教师）- 已创建文件，未实现
+- ❌ AcademicController（教务管理）- 已创建文件，未实现
+- ❌ TeachingClassController（教学班）- 已创建文件，未实现
+- ❌ TeachingClassClassController（教学班-行政班关联）- ❌ **缺少文件**
+- ❌ ScheduleController（排课）- 已创建文件，未实现（**用户要求放到最后**）
+- ❌ ScheduleConflictController（排课冲突）- 已创建文件，未实现（**用户要求放到最后**）
+
+> **说明**：共 18 个数据库表，其中 3 个关联表（course_classroom_type, course_qualification, teaching_class_class）尚未创建控制器文件
 
 ---
 
@@ -205,7 +210,31 @@
 
 ---
 
-#### 8. CourseQualificationController（课程教师资格管理）
+#### 8. CourseClassroomTypeController（课程类型-教室类型关联管理）⚠️ **需要创建**
+
+**文件路径**: `controller/CourseClassroomTypeController.java` ⚠️ **需要创建**
+
+**依赖关系**:
+
+- `course_classroom_type.course_type_uuid → course_type.course_type_uuid`
+- `course_classroom_type.classroom_type_uuid → classroom_type.classroom_type_uuid`
+
+**需要实现的接口**:
+
+- `POST /v1/courseClassroomType/add` - 添加课程类型-教室类型关联（指定某类课程可以在某类教室上课）
+- `GET /v1/courseClassroomType/getPage` - 分页查询关联关系
+- `DELETE /v1/courseClassroomType/delete` - 删除关联关系
+
+**关键点**:
+
+- 防止重复添加同一课程类型-教室类型组合
+- 需关联查询课程类型名称、教室类型名称
+- **排课时使用此表验证课程是否可以在指定教室上课**
+- 表结构：`sc_course_classroom_type(relation_uuid, course_type_uuid, classroom_type_uuid)`
+
+---
+
+#### 9. CourseQualificationController（课程教师资格管理）
 
 **文件路径**: `controller/CourseQualificationController.java` ⚠️ **需要创建**
 
@@ -231,7 +260,7 @@
 
 **优先级：🟡 中 - 完善业务数据**
 
-#### 9. StudentController（学生管理）- 补充完整
+#### 10. StudentController（学生管理）- 补充完整
 
 **文件路径**: `controller/StudentController.java`
 
@@ -255,7 +284,7 @@
 
 ---
 
-#### 10. AcademicController（教务管理员管理）
+#### 11. AcademicController（教务管理员管理）
 
 **文件路径**: `controller/AcademicController.java`
 
@@ -281,7 +310,7 @@
 
 **优先级：🟠 中高 - 教学班管理**
 
-#### 11. TeachingClassController（教学班管理）
+#### 12. TeachingClassController（教学班管理）
 
 **文件路径**: `controller/TeachingClassController.java`
 
@@ -307,7 +336,7 @@
 
 ---
 
-#### 12. TeachingClassClassController（教学班-行政班关联管理）
+#### 13. TeachingClassClassController（教学班-行政班关联管理）
 
 **文件路径**: `controller/TeachingClassClassController.java` ⚠️ **需要创建**
 
@@ -333,7 +362,7 @@
 
 **优先级：🔴 低 - 核心功能，用户要求放到最后**
 
-#### 13. ScheduleController（排课管理）⏳ **最后实现**
+#### 14. ScheduleController（排课管理）⏳ **最后实现**
 
 **文件路径**: `controller/ScheduleController.java`
 
@@ -365,7 +394,7 @@
 
 ---
 
-#### 14. ScheduleConflictController（排课冲突管理）⏳ **最后实现**
+#### 15. ScheduleConflictController（排课冲突管理）⏳ **最后实现**
 
 **文件路径**: `controller/ScheduleConflictController.java`
 
@@ -397,25 +426,26 @@
 - [x] CourseTypeController 完整实现 ✅
 - [x] ClassroomTypeController 完整实现 ✅
 
-### 阶段 2：一级依赖（第 4-8 步）
+### 阶段 2：一级依赖（第 4-9 步）
 
 - [ ] MajorController 完整实现
 - [ ] ClassController 完整实现
 - [ ] TeacherController 完整实现
 - [ ] CourseController 完整实现
+- [ ] CourseClassroomTypeController 创建并实现 ✨ **新增**
 - [ ] CourseQualificationController 创建并实现
 
-### 阶段 3：二级依赖（第 9-10 步）
+### 阶段 3：二级依赖（第 10-11 步）
 
 - [ ] StudentController 补充完整
 - [ ] AcademicController 完整实现
 
-### 阶段 4：三级依赖（第 11-12 步）
+### 阶段 4：三级依赖（第 12-13 步）
 
 - [ ] TeachingClassController 完整实现
 - [ ] TeachingClassClassController 创建并实现
 
-### 阶段 5：排课系统（第 13-14 步）
+### 阶段 5：排课系统（第 14-15 步）
 
 - [ ] ScheduleController 完整实现（排课算法）
 - [ ] ScheduleConflictController 完整实现
@@ -469,8 +499,8 @@
 **建议按顺序实现的模块（必做）**:
 
 1. Department → 2. CourseType → 3. ClassroomType → 4. Major → 5. Class → 6. Student（补充）→ 7. Teacher → 8. Course → 9.
-   Academic → 10. TeachingClass → 11. TeachingClassClass → 12. CourseQualification → 13. Schedule（最后）→ 14.
-   ScheduleConflict（最后）
+   CourseClassroomType ✨ **新增** → 10. CourseQualification → 11. Academic → 12. TeachingClass → 13.
+   TeachingClassClass → 14. Schedule（最后）→ 15. ScheduleConflict（最后）
 
 **可选模块**:
 

@@ -81,11 +81,11 @@ public class CourseTypeController {
     }
 
     /**
-     * 获取课程类型信息
+     * 获取单个课程类型信息
      *
      * @param token          Token
      * @param courseTypeUuid 课程类型UUID
-     * @return 课程类型信息
+     * @return 单个课程类型信息
      */
     @GetMapping("/get")
     @RequireRole({UserType.SYSTEM_ADMIN, UserType.ACADEMIC_ADMIN, UserType.TEACHER, UserType.STUDENT})

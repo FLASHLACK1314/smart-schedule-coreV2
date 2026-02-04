@@ -86,11 +86,11 @@ public class BuildingController {
     }
 
     /**
-     * 获取教学楼信息
+     * 获取单个教学楼信息
      *
      * @param token        Token
-     * @param buildingUuid 教学楼uuid
-     * @return 教学楼信息
+     * @param buildingUuid 教学楼UUID
+     * @return 单个教学楼信息
      */
     @GetMapping("/get")
     @RequireRole({UserType.SYSTEM_ADMIN, UserType.ACADEMIC_ADMIN, UserType.TEACHER, UserType.STUDENT})
