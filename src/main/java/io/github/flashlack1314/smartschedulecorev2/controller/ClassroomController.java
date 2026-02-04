@@ -5,15 +5,13 @@ import com.xlf.utility.ResultUtil;
 import io.github.flashlack1314.smartschedulecorev2.annotation.RequireRole;
 import io.github.flashlack1314.smartschedulecorev2.enums.UserType;
 import io.github.flashlack1314.smartschedulecorev2.model.dto.ClassroomInfoDTO;
+import io.github.flashlack1314.smartschedulecorev2.model.dto.PageDTO;
 import io.github.flashlack1314.smartschedulecorev2.model.vo.AddClassroomVO;
 import io.github.flashlack1314.smartschedulecorev2.service.ClassroomService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 /**
  * 教室控制器
@@ -63,4 +61,26 @@ public class ClassroomController {
         return ResultUtil.success("获取教室信息成功", result);
     }
 
+
+    /**
+     * 获取教室列表
+     *
+     * @param token Token
+     * @return 教室列表
+     */
+    @RequestMapping("/page")
+    @RequireRole({UserType.SYSTEM_ADMIN, UserType.ACADEMIC_ADMIN, UserType.TEACHER, UserType.STUDENT})
+    public ResponseEntity<BaseResponse<PageDTO<ClassroomInfoDTO>>> getClassroomList(
+            @RequestHeader("Authorization") String token,
+            @RequestParam(value = "page", defaultValue = "1") int page,
+            @RequestParam(value = "size", defaultValue = "10") int size,
+            @RequestParam(value = "building_uuid", required = false) String buildingUuid,
+            @RequestParam(value = "classroom_name", required = false) String classroomName,
+            @RequestParam(value = "classroom_capacity", required = false) String classroomCapacity,
+            @RequestParam(value = "classroom_type_uuid", required = false) String classroomTypeUuid
+    ) {
+        PageDTO<ClassroomInfoDTO> result = classroomService
+                .getClassroomPageList(page, size, buildingUuid, classroomName, classroomCapacity, classroomTypeUuid);
+        return ResultUtil.success("获取教室列表成功", result);
+    }
 }
