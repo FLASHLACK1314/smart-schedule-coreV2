@@ -7,9 +7,13 @@
 ## 核心设计理念
 
 1. **UUID主键**：所有表使用32位varchar类型的UUID作为主键
-2. **JSONB灵活存储**：对于复杂关系（如教师列表、时间偏好等）使用JSONB类型
-3. **外键约束**：严格的关系完整性约束
-4. **详细注释**：所有表和字段都有完整的中文注释
+2. **关联表设计**：对于多对多关系使用独立的关联表，而非JSONB
+   - 课程-教师关联：`sc_course_qualification`
+   - 教学班-行政班关联：`sc_teaching_class_class`
+3. **JSONB有限使用**：仅在特定场景使用JSONB类型
+   - `sc_schedule.weeks_json`：上课周次数组
+4. **外键约束**：严格的关系完整性约束
+5. **详细注释**：所有表和字段都有完整的中文注释
 
 ## 数据库表结构
 
@@ -80,19 +84,21 @@
 #### 2.2 sc_teacher（教师表）
 **文件**: `sc_teacher.sql`
 
-| 字段名 | 类型 | 约束 | 说明 |
-|--------|------|------|------|
-| teacher_uuid | varchar(32) | PRIMARY KEY | 教师UUID |
-| teacher_num | varchar(32) | UNIQUE, NOT NULL | 教师编号（唯一工号） |
-| teacher_name | varchar(32) | NOT NULL | 教师名称 |
-| title | varchar(32) | NOT NULL | 职称 |
-| teacher_password | varchar | NOT NULL | 密码 |
-| max_hours_per_week | integer | NOT NULL | 每周最高授课时长 |
-| like_time | jsonb | NOT NULL | 喜欢时间（JSONB格式） |
-| is_active | boolean | NOT NULL, DEFAULT true | 是否启用 |
+| 字段名                | 类型          | 约束                          | 说明          |
+|--------------------|-------------|-----------------------------|-------------|
+| teacher_uuid       | varchar(32) | PRIMARY KEY                 | 教师UUID      |
+| teacher_num        | varchar(32) | UNIQUE, NOT NULL            | 教师编号（唯一工号）  |
+| teacher_name       | varchar(32) | NOT NULL                    | 教师名称        |
+| title              | varchar(32) | NOT NULL                    | 职称          |
+| teacher_password   | varchar     | NOT NULL                    | 密码          |
+| department_uuid    | varchar(32) | FOREIGN KEY → sc_department | 所属学院UUID    |
+| max_hours_per_week | integer     | NOT NULL                    | 每周最高授课时长    |
+| like_time          | varchar     | NOT NULL                    | 喜欢时间（字符串格式） |
+| is_active          | boolean     | NOT NULL, DEFAULT true      | 是否启用        |
 
 **特色字段**:
-- `like_time`: JSONB格式存储教师的时间偏好
+
+- `like_time`: 字符串格式存储教师的时间偏好
 - `max_hours_per_week`: 用于排课时的工作量平衡
 - `is_active`: 支持教师账号的启用/禁用
 
@@ -219,7 +225,7 @@
 **关系**:
 - 属于某个专业（`major_uuid`）
 - 被多个学生引用（`sc_student.class_uuid`）
-- 被多个教学班引用（`sc_teaching_class.class_uuids`）
+- 被多个教学班-行政班关联引用（`sc_teaching_class_class.class_uuid`）
 
 **用途**: 管理行政班级（如"计算机2021-1班"），是学生的组织单位。
 
@@ -235,21 +241,40 @@
 | course_name | varchar(64) | NOT NULL | 课程名称 |
 | course_type_uuid | varchar(32) | FOREIGN KEY → sc_course_type | 课程类型UUID |
 | course_credit | numeric | NOT NULL | 课程学分（支持半分） |
-| qualified_teacher_uuids | jsonb | NOT NULL, DEFAULT '[]'::jsonb | 具有教授资格的老师UUID列表 |
 
 **关系**:
 - 属于某种课程类型（`course_type_uuid`）
+- 通过 `sc_course_qualification` 关联表关联多个教师
 
 **特色字段**:
-- `qualified_teacher_uuids`: JSONB数组存储可以讲授该课程的教师列表
 - `course_credit`: 支持半学分（如1.5学分）
 - `course_type_uuid`: 关联课程类型表，用于匹配合适的教室
 
-**用途**: 课程主数据，定义课程基本信息和授课资格。
+**用途**: 课程主数据，定义课程基本信息。
 
 ---
 
-#### 4.5 sc_teaching_class（教学班表）
+#### 4.5 sc_course_qualification（课程教师资格关联表）
+
+**文件**: `sc_course_qualification.sql`
+
+| 字段名                       | 类型          | 约束                       | 说明       |
+|---------------------------|-------------|--------------------------|----------|
+| course_qualification_uuid | varchar(32) | PRIMARY KEY              | 关联关系UUID |
+| course_uuid               | varchar(32) | FOREIGN KEY → sc_course  | 课程UUID   |
+| teacher_uuid              | varchar(32) | FOREIGN KEY → sc_teacher | 教师UUID   |
+
+**关系**:
+
+- 关联课程（`course_uuid`）
+- 关联教师（`teacher_uuid`）
+- 唯一约束：`(course_uuid, teacher_uuid)`
+
+**用途**: 定义哪些教师有资格讲授哪些课程，替代了原 JSONB 字段 `qualified_teacher_uuids`。
+
+---
+
+#### 4.6 sc_teaching_class（教学班表）
 **文件**: `sc_teaching_class.sql`
 
 | 字段名 | 类型 | 约束 | 说明 |
@@ -258,27 +283,38 @@
 | course_uuid | varchar(32) | FOREIGN KEY → sc_course | 课程UUID |
 | teacher_uuid | varchar(32) | FOREIGN KEY → sc_teacher | 教师UUID |
 | semester_uuid | varchar(32) | FOREIGN KEY → sc_semester | 学期UUID |
-| class_uuids | jsonb | NOT NULL, DEFAULT '[]'::jsonb | 关联的行政班级UUID列表 |
 | teaching_class_name | varchar(64) | | 教学班名称 |
 
 **关系**:
 - 关联课程（`course_uuid`）
 - 关联教师（`teacher_uuid`）
 - 属于某个学期（`semester_uuid`）
-- 包含多个行政班级（`class_uuids`）
-
-**特色字段**:
-- `class_uuids`: JSONB数组存储该教学班包含的所有行政班级
-  - 示例: `["class_uuid1", "class_uuid2", "class_uuid3"]`
-  - 支持合班上课场景
+- 通过 `sc_teaching_class_class` 关联表关联多个行政班级
 
 **用途**: 排课的业务主体。一个教学班表示：
-- 某门课 + 某个老师 + 某个学期 + 一组行政班级
-- 是排课算法的基本调度单元
 
-**核心概念**:
-- **行政班级**: 学生的固定组织单位（如"计科2101班"）
-- **教学班**: 临时的上课组织单位（如"高等数学-张老师-计科2101+2102"）
+- 某门课 + 某个老师 + 某个学期
+- 通过关联表可包含多个行政班级（支持合班上课）
+
+---
+
+#### 4.7 sc_teaching_class_class（教学班-行政班关联表）
+
+**文件**: `sc_teaching_class_class.sql`
+
+| 字段名                       | 类型          | 约束                              | 说明       |
+|---------------------------|-------------|---------------------------------|----------|
+| teaching_class_class_uuid | varchar(32) | PRIMARY KEY                     | 关联关系UUID |
+| teaching_class_uuid       | varchar(32) | FOREIGN KEY → sc_teaching_class | 教学班UUID  |
+| class_uuid                | varchar(32) | FOREIGN KEY → sc_class          | 行政班级UUID |
+
+**关系**:
+
+- 关联教学班（`teaching_class_uuid`）
+- 关联行政班级（`class_uuid`）
+- 唯一约束：`(teaching_class_uuid, class_uuid)`
+
+**用途**: 定义教学班包含哪些行政班级，替代了原 JSONB 字段 `class_uuids`，支持合班上课场景。
 
 ---
 
@@ -357,11 +393,12 @@ sc_semester（学期）
     ↓
     ├─ sc_teaching_class（教学班）
     │       ↓
-    │       ├─ sc_course（课程）──→ qualified_teacher_uuids ──→ sc_teacher（教师）
+    │       ├─ sc_course（课程）
+    │       │       └─ sc_course_qualification ──→ sc_teacher（教师）
     │       ├─ sc_teacher（教师）
-    │       └─ class_uuids ──→ sc_class（行政班级）
-    │                              ↓
-    │                              └─ sc_student（学生）
+    │       └─ sc_teaching_class_class ──→ sc_class（行政班级）
+    │                                          ↓
+    │                                          └─ sc_student（学生）
     │
     └─ sc_schedule（排课记录）
             ↓
@@ -370,7 +407,8 @@ sc_semester（学期）
             ├─ teacher_uuid ──→ sc_teacher
             └─ classroom_uuid ──→ sc_classroom
                                     ↓
-                                    └─ building_uuid ──→ sc_building
+                                    ├─ building_uuid ──→ sc_building
+                                    └─ classroom_type_uuid ──→ sc_classroom_type
 
 sc_department（学院）
     ↓
@@ -379,6 +417,10 @@ sc_department（学院）
     │       └─ sc_class（行政班级）
     │
     └─ sc_academic_admin（教务管理）
+
+sc_course_type（课程类型）
+    ↓
+    └─ sc_course_classroom_type ──→ sc_classroom_type（教室类型）
 
 sc_schedule_conflict（冲突记录）
     ↓
@@ -412,39 +454,60 @@ sc_schedule_conflict（冲突记录）
 5. 确认后设置为正式方案（`sc_schedule.status = 1`）
 
 ### 4. 课表查询阶段
-1. 学生查询：通过`sc_student.class_uuid` → `sc_teaching_class.class_uuids` → `sc_schedule`
+
+1. 学生查询：通过`sc_student.class_uuid` → `sc_teaching_class_class` → `sc_teaching_class` → `sc_schedule`
 2. 教师查询：通过`sc_teacher.teacher_uuid` → `sc_teaching_class.teacher_uuid` → `sc_schedule`
 3. 教室查询：通过`sc_classroom.classroom_uuid` → `sc_schedule.classroom_uuid`
 
-## JSONB字段说明
+## 关联表和JSONB字段说明
 
-### sc_course.qualified_teacher_uuids
-```json
-["teacher_uuid_1", "teacher_uuid_2", "teacher_uuid_3"]
+### 关联表设计
+
+#### sc_course_qualification（课程-教师关联）
+
+替代了原 `sc_course.qualified_teacher_uuids` JSONB 字段。
+
+**查询示例**：
+
+```sql
+-- 查询某课程的所有资格教师
+SELECT t.*
+FROM sc_teacher t
+        JOIN sc_course_qualification cq ON t.teacher_uuid = cq.teacher_uuid
+WHERE cq.course_uuid = 'xxx';
+
+-- 查询某教师有资格讲授的所有课程
+SELECT c.*
+FROM sc_course c
+        JOIN sc_course_qualification cq ON c.course_uuid = cq.course_uuid
+WHERE cq.teacher_uuid = 'xxx';
 ```
-表示该课程可以由这3位教师讲授。
 
-### sc_teacher.like_time
-```json
-{
-  "preferred": [
-    {"day": 1, "sections": [1, 2, 3]},
-    {"day": 3, "sections": [5, 6, 7]}
-  ],
-  "unwanted": [
-    {"day": 5, "sections": [9, 10]}
-  ]
-}
+#### sc_teaching_class_class（教学班-行政班关联）
+
+替代了原 `sc_teaching_class.class_uuids` JSONB 字段。
+
+**查询示例**：
+
+```sql
+-- 查询某教学班包含的所有行政班级
+SELECT c.*
+FROM sc_class c
+        JOIN sc_teaching_class_class tcc ON c.class_uuid = tcc.class_uuid
+WHERE tcc.teaching_class_uuid = 'xxx';
+
+-- 查询某行政班级参与的所有教学班
+SELECT tc.*
+FROM sc_teaching_class tc
+        JOIN sc_teaching_class_class tcc ON tc.teaching_class_uuid = tcc.teaching_class_uuid
+WHERE tcc.class_uuid = 'xxx';
 ```
-表示教师喜欢在周一第1-3节、周三第5-7节上课，不喜欢周五第9-10节。
 
-### sc_teaching_class.class_uuids
-```json
-["class_uuid_1", "class_uuid_2", "class_uuid_3"]
-```
-表示该教学班包含3个行政班级的学生（合班上课）。
+---
 
-### sc_schedule.weeks_json
+### JSONB字段（仅限特定场景）
+
+#### sc_schedule.weeks_json
 ```json
 [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
 ```
@@ -454,18 +517,28 @@ sc_schedule_conflict（冲突记录）
 [2, 4, 6, 8, 10, 12, 14, 16]  // 双周
 ```
 
+#### sc_teacher.like_time
+
+现为 **varchar** 类型，存储教师时间偏好的字符串格式。具体格式由业务逻辑定义。
+
+**注意**：
+
+- 原 `sc_course.qualified_teacher_uuids` JSONB 字段已被 `sc_course_qualification` 关联表替代
+- 原 `sc_teaching_class.class_uuids` JSONB 字段已被 `sc_teaching_class_class` 关联表替代
+
 ## 数据库权限
 
 所有表的所有权都归属给：`"smart-schedule-core"`
 
 ## 设计优势
 
-1. **灵活性**: JSONB字段支持复杂关系，类型表支持动态扩展
-2. **性能**: 冗余字段减少JOIN操作，提升查询性能
+1. **规范化设计**: 使用关联表替代JSONB存储多对多关系，符合数据库范式，便于维护和查询
+2. **性能优化**: 冗余字段减少JOIN操作，提升查询性能
 3. **扩展性**: 类型系统完全由数据库管理，无需修改代码即可添加新类型
 4. **完整性**: 严格的外键约束保证数据一致性
 5. **可维护性**: 详细的中文注释降低维护成本
 6. **灵活性**: 课程类型和教室类型通过关联表灵活配置，支持复杂匹配规则
+7. **查询友好**: 关联表设计使得SQL查询更加直观和高效
 
 ## 后续优化建议
 
@@ -477,6 +550,10 @@ sc_schedule_conflict（冲突记录）
 
 ---
 
-**文档版本**: 1.0
-**最后更新**: 2026-01-22
+**文档版本**: 2.0
+**最后更新**: 2026-02-04
 **维护者**: Smart Schedule Core V2 Team
+**更新说明**:
+
+- v2.0: 将 `sc_course.qualified_teacher_uuids` 和 `sc_teaching_class.class_uuids` 从 JSONB 字段改为独立关联表
+- v1.0: 初始版本

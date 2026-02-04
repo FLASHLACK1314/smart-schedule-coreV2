@@ -64,24 +64,14 @@ java -jar target/smart-schedule-coreV2-0.0.1-SNAPSHOT.jar
 ### 数据库设计理念
 
 1. **UUID 主键**：所有表使用 32 位 varchar 类型的 UUID 作为主键
-2. **JSONB 灵活存储**：对于复杂关系使用 JSONB 类型
-   - `sc_course.qualified_teacher_uuids`：教师 UUID 数组
-   - `sc_teacher.like_time`：教师时间偏好
-   - `sc_teaching_class.class_uuids`：行政班 UUID 数组
-   - `sc_schedule.weeks_json`：上课周次数组
-3. **外键约束**：严格的关系完整性约束
-4. **冗余设计**：`sc_schedule` 表冗余存储课程、教师、教室信息以减少 JOIN
-
-### JSONB 字段处理
-
-对于 JSONB 字段，使用 `com.x_lf.utility.mybatis.handler.type.JsonTypeHandler` 进行类型转换：
-
-```java
-@TableField(value = "like_time", typeHandler = com.x_lf.utility.mybatis.handler.type.JsonTypeHandler.class)
-private String likeTime;
-```
-
-**注意**：在实际使用中，已发现某些 JSONB 字段不需要显式指定 typeHandler（如 `TeacherDO.like_time` 和 `TeachingClassDO.class_uuids`），这些已被用户移除。
+2. **关联表设计**：对于多对多关系使用独立关联表，而非 JSONB
+   - `sc_course_qualification`：课程-教师多对多关联（原 `sc_course.qualified_teacher_uuids`）
+   - `sc_teaching_class_class`：教学班-行政班多对多关联（原 `sc_teaching_class.class_uuids`）
+3. **JSONB 存储**：仅用于特定场景
+   - `sc_schedule.weeks_json`：上课周次数组（JSONB 类型）
+   - `sc_teacher.like_time`：教师时间偏好（varchar 字符串格式）
+4. **外键约束**：严格的关系完整性约束
+5. **冗余设计**：`sc_schedule` 表冗余存储课程、教师、教室信息以减少 JOIN
 
 ### 核心表结构
 
@@ -97,8 +87,11 @@ private String likeTime;
 - `sc_building`（教学楼）→ `sc_classroom`（教室）
 
 #### 课程与教学组织
-- `sc_course`（课程）- 包含授课教师资格列表
-- `sc_teaching_class`（教学班）- 排课的业务主体，关联课程、教师、学期、行政班级
+
+- `sc_course`（课程）- 课程基本信息
+- `sc_course_qualification`（课程教师资格）- 课程与教师的多对多关联表
+- `sc_teaching_class`（教学班）- 排课的业务主体，关联课程、教师、学期
+- `sc_teaching_class_class`（教学班-行政班关联）- 教学班与行政班的多对多关联表
 
 #### 排课核心
 - `sc_schedule`（排课记录）- 存储最终课表，包含时间、地点冗余字段
@@ -138,16 +131,16 @@ private String likeTime;
 
 表必须按依赖顺序创建（在 `DatabaseInitProperties` 中定义）：
 
-1. **基础表**（无外键）：department, building, semester, teacher, course, system_admin
-2. **二级依赖**：major, classroom, academic_admin
-3. **三级依赖**：class, student
-4. **四级依赖**：teaching_class, schedule
+1. **基础表**（无外键）：department, building, semester, teacher, course, course_type, system_admin
+2. **二级依赖**：major, classroom, classroom_type, course_classroom_type, academic_admin, course_qualification
+3. **三级依赖**：class, student, teaching_class
+4. **四级依赖**：teaching_class_class, schedule
 5. **五级依赖**：schedule_conflict
 
 ## 开发注意事项
 
 1. **所有 DO 类必须包含中文注释**
-2. **JSONB 字段的 typeHandler 使用需谨慎**：某些字段已移除 typeHandler 声明
+2. **关联表优先**：多对多关系使用独立关联表，而非 JSONB 字段
 3. **主键统一使用 String 类型存储 32 位 UUID**
 4. **链式调用**：所有 DO 类支持链式调用（`@Accessors(chain = true)`）
 5. **日志使用**：DAO 层统一使用 `@Slf4j` 注解
