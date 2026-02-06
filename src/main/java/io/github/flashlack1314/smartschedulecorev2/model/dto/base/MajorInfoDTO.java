@@ -16,6 +16,10 @@ public class MajorInfoDTO {
      */
     private String majorUuid;
     /**
+     * 学院UUID
+     */
+    private String departmentUuid;
+    /**
      * 学院名称
      */
     private String departmentName;

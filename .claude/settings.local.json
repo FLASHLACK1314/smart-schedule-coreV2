@@ -5,7 +5,9 @@
       "Bash(findstr:*)",
       "Bash(cmd /c \"taskkill /F /PID 40704\")",
       "Bash(cd:*)",
-      "Bash(Select-String -Pattern \"错误|error|ERROR\" -Context 1,2)"
+      "Bash(Select-String -Pattern \"错误|error|ERROR\" -Context 1,2)",
+      "Bash(mvn clean compile:*)",
+      "Bash(./mvnw clean compile)"
     ]
   }
 }
