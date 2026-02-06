@@ -38,4 +38,28 @@ public class StudentDAO extends ServiceImpl<StudentMapper, StudentDO>
     public boolean existsByStudentId(String studentId) {
         return getByStudentId(studentId) != null;
     }
+
+    /**
+     * 检查班级下是否存在学生
+     *
+     * @param classUuid 班级UUID
+     * @return 是否存在
+     */
+    public boolean existsByClassUuid(String classUuid) {
+        LambdaQueryWrapper<StudentDO> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(StudentDO::getClassUuid, classUuid);
+        return this.count(queryWrapper) > 0;
+    }
+
+    /**
+     * 统计班级下的学生数量
+     *
+     * @param classUuid 班级UUID
+     * @return 学生数量
+     */
+    public long countByClassUuid(String classUuid) {
+        LambdaQueryWrapper<StudentDO> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(StudentDO::getClassUuid, classUuid);
+        return this.count(queryWrapper);
+    }
 }

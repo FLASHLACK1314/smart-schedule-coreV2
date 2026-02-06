@@ -22,7 +22,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/v1/department")
-public class DepartmentController {
+public class  DepartmentController {
     private final DepartmentService departmentService;
 
     /**

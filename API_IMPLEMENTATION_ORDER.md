@@ -117,7 +117,7 @@
 
 ### 第二阶段：一级依赖数据（依赖基础表）
 
-**优先级：🔥 高 - 构建核心业务结构**
+**优先级：🔥 高 - 构建核心业务结构** **已完成**
 
 #### 4. MajorController（专业管理）
 
@@ -141,7 +141,7 @@
 
 ---
 
-#### 5. ClassController（行政班级管理）
+#### 5. ClassController（行政班级管理）**已完成**
 
 **文件路径**: `controller/ClassController.java`
 
