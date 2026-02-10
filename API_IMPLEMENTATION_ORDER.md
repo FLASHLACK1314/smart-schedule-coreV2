@@ -2,37 +2,37 @@
 
 ## 📊 当前实现状态总览
 
-### 已完成模块（8个）
+### 已完成模块（15个）
 
 - ✅ **BuildingController**（教学楼）- 完整 CRUD
 - ✅ **ClassroomController**（教室）- 完整 CRUD
 - ✅ **SemesterController**（学期）- 完整 CRUD
 - ✅ **AuthController**（认证）- 完整认证功能
 - ✅ **SystemAdminController**（系统管理员）- 部分功能
-- ✅ **DepartmentController**（学院）- 完整 CRUD ✨ **新增**
-- ✅ **CourseTypeController**（课程类型）- 完整 CRUD ✨ **新增**
-- ✅ **ClassroomTypeController**（教室类型）- 完整 CRUD ✨ **新增**
+- ✅ **DepartmentController**（学院）- 完整 CRUD
+- ✅ **CourseTypeController**（课程类型）- 完整 CRUD
+- ✅ **ClassroomTypeController**（教室类型）- 完整 CRUD
+- ✅ **MajorController**（专业）- 完整 CRUD ✨ **新增**
+- ✅ **ClassController**（行政班级）- 完整 CRUD ✨ **新增**
+- ✅ **TeacherController**（教师）- 完整 CRUD ✨ **新增**
+- ✅ **CourseController**（课程）- 完整 CRUD ✨ **新增**
+- ✅ **CourseClassroomTypeController**（课程类型-教室类型关联）- 完整实现 ✨ **新增**
+- ✅ **CourseQualificationController**（课程教师资格）- 完整实现 ✨ **新增**
 
 ### 部分完成模块（2个）
 
 - ⚠️ **StudentController**（学生）- 仅实现 add，缺少 get/update/delete/getPage
 - ⚠️ **UserController**（用户）- 仅实现 getUserInfo
 
-### 未开始模块（9个）
+### 未开始模块（4个）
 
-- ❌ MajorController（专业）- 已创建文件，未实现
-- ❌ ClassController（行政班级）- 已创建文件，未实现
-- ❌ CourseController（课程）- 已创建文件，未实现
-- ❌ CourseClassroomTypeController（课程类型-教室类型关联）- ❌ **缺少文件** ✨
-- ❌ CourseQualificationController（课程教师资格）- ❌ **缺少文件**
-- ❌ TeacherController（教师）- 已创建文件，未实现
-- ❌ AcademicController（教务管理）- 已创建文件，未实现
-- ❌ TeachingClassController（教学班）- 已创建文件，未实现
-- ❌ TeachingClassClassController（教学班-行政班关联）- ❌ **缺少文件**
-- ❌ ScheduleController（排课）- 已创建文件，未实现（**用户要求放到最后**）
-- ❌ ScheduleConflictController（排课冲突）- 已创建文件，未实现（**用户要求放到最后**）
+- ❌ **AcademicController**（教务管理）- 已创建文件，未实现
+- ❌ **TeachingClassController**（教学班）- 已创建文件，未实现
+- ❌ **TeachingClassClassController**（教学班-行政班关联）- ❌ **缺少文件**
+- ❌ **ScheduleController**（排课）- 已创建文件，未实现（**用户要求放到最后**）
+- ❌ **ScheduleConflictController**（排课冲突）- 已创建文件，未实现（**用户要求放到最后**）
 
-> **说明**：共 18 个数据库表，其中 3 个关联表（course_classroom_type, course_qualification, teaching_class_class）尚未创建控制器文件
+> **说明**：共 18 个数据库表，第一阶段和第二阶段（基础数据 + 一级依赖）已全部完成 ✅
 
 ---
 
@@ -115,146 +115,148 @@
 
 ---
 
-### 第二阶段：一级依赖数据（依赖基础表）
+### 第二阶段：一级依赖数据（依赖基础表）✅ **已完成**
 
-**优先级：🔥 高 - 构建核心业务结构** **已完成**
+**优先级：🔥 高 - 构建核心业务结构**
 
-#### 4. MajorController（专业管理）
+#### 4. MajorController（专业管理）✅ **已完成**
 
 **文件路径**: `controller/MajorController.java`
 
 **依赖关系**: `major.department_uuid → department.department_uuid`
 
-**需要实现的接口**:
+**已实现的接口**:
 
-- `POST /v1/major/add` - 添加专业（需选择所属学院）
-- `GET /v1/major/getPage` - 分页查询专业（支持按专业名称/编号/学院筛选）
-- `PUT /v1/major/update` - 更新专业信息
-- `GET /v1/major/get` - 获取专业信息（返回时包含学院名称）
-- `DELETE /v1/major/delete` - 删除专业（需检查是否被 class 引用）
+- ✅ `POST /v1/major/add` - 添加专业（需选择所属学院）
+- ✅ `GET /v1/major/getPage` - 分页查询专业（支持按专业名称/编号/学院筛选）
+- ✅ `PUT /v1/major/update` - 更新专业信息
+- ✅ `GET /v1/major/get` - 获取专业信息（返回时包含学院名称）
+- ✅ `DELETE /v1/major/delete` - 删除专业（需检查是否被 class 引用）
 
-**关键点**:
+**实现的关键点**:
 
-- 专业编号唯一性检查
-- 需关联查询学院名称
-- 删除前需检查是否有行政班级引用
+- ✅ 专业编号唯一性检查
+- ✅ 需关联查询学院名称
+- ✅ 删除前需检查是否有行政班级引用
 
 ---
 
-#### 5. ClassController（行政班级管理）**已完成**
+#### 5. ClassController（行政班级管理）✅ **已完成**
 
 **文件路径**: `controller/ClassController.java`
 
 **依赖关系**: `class.major_uuid → major.major_uuid`
 
-**需要实现的接口**:
+**已实现的接口**:
 
-- `POST /v1/class/add` - 添加行政班级（需选择所属专业）
-- `GET /v1/class/getPage` - 分页查询行政班级（支持按班级名称/专业/学院筛选）
-- `PUT /v1/class/update` - 更新行政班级信息
-- `GET /v1/class/get` - 获取行政班级信息（返回时包含专业、学院名称）
-- `DELETE /v1/class/delete` - 删除行政班级（需检查是否被 student 引用）
+- ✅ `POST /v1/class/add` - 添加行政班级（需选择所属专业）
+- ✅ `GET /v1/class/getPage` - 分页查询行政班级（支持按班级名称/专业/学院筛选）
+- ✅ `PUT /v1/class/update` - 更新行政班级信息
+- ✅ `GET /v1/class/get` - 获取行政班级信息（返回时包含专业、学院名称）
+- ✅ `DELETE /v1/class/delete` - 删除行政班级（需检查是否被 student 引用）
 
-**关键点**:
+**实现的关键点**:
 
-- 班级名称在同一专业下唯一性检查
-- 需关联查询专业、学院名称
-- 删除前需检查是否有学生引用
+- ✅ 班级名称在同一专业下唯一性检查
+- ✅ 需关联查询专业、学院名称
+- ✅ 删除前需检查是否有学生引用
 
 ---
 
-#### 6. TeacherController（教师管理） **已完成**
+#### 6. TeacherController（教师管理）✅ **已完成**
 
 **文件路径**: `controller/TeacherController.java`
 
 **依赖关系**: `teacher.department_uuid → department.department_uuid`
 
-**需要实现的接口**:
+**已实现的接口**:
 
-- `POST /v1/teacher/add` - 添加教师（需选择所属学院）
-- `GET /v1/teacher/getPage` - 分页查询教师（支持按教师姓名/工号/学院筛选）
-- `PUT /v1/teacher/update` - 更新教师信息
-- `GET /v1/teacher/get` - 获取教师信息（返回时包含学院名称）
-- `DELETE /v1/teacher/delete` - 删除教师（需检查是否被 teaching_class/course_qualification/schedule 引用）
+- ✅ `POST /v1/teacher/add` - 添加教师（需选择所属学院）
+- ✅ `GET /v1/teacher/getPage` - 分页查询教师（支持按教师姓名/工号/学院筛选）
+- ✅ `PUT /v1/teacher/update` - 更新教师信息
+- ✅ `GET /v1/teacher/get` - 获取教师信息（返回时包含学院名称）
+- ✅ `DELETE /v1/teacher/delete` - 删除教师（需检查是否被 teaching_class/course_qualification/schedule 引用）
 
-**关键点**:
+**实现的关键点**:
 
-- 教师工号唯一性检查
-- 密码加密：使用 `PasswordUtil.encrypt()`
-- 需关联查询学院名称
-- 删除前需检查是否被教学班、课程资格、排课引用
-- 包含 JSONB 字段：`like_time`（教师时间偏好）存储样式：周一的上午3-4节课存储为 `{"1": [3,4]}`
-- 已经有了返回值TeacherInfoDTO，具体实现可以参考其他的控制器层和实现
+- ✅ 教师工号唯一性检查
+- ✅ 密码加密：使用 `PasswordUtil.encrypt()`
+- ✅ 需关联查询学院名称
+- ✅ 删除前需检查是否被教学班、课程资格、排课引用
+- ✅ 包含 JSONB 字段：`like_time`（教师时间偏好）
+- ✅ 使用 TeacherInfoDTO 返回数据
 
 ---
 
-#### 7. CourseController（课程管理） **已完成**
+#### 7. CourseController（课程管理）✅ **已完成**
 
 **文件路径**: `controller/CourseController.java`
 
 **依赖关系**: `course.course_type_uuid → course_type.course_type_uuid`
 
-**需要实现的接口**:
+**已实现的接口**:
 
-- `POST /v1/course/add` - 添加课程（需选择课程类型）
-- `GET /v1/course/getPage` - 分页查询课程（支持按课程名称/编号/类型筛选）
-- `PUT /v1/course/update` - 更新课程信息
-- `GET /v1/course/get` - 获取课程信息（返回时包含课程类型名称）
-- `DELETE /v1/course/delete` - 删除课程（需检查是否被 teaching_class/course_qualification/schedule 引用）
+- ✅ `POST /v1/course/add` - 添加课程（需选择课程类型）
+- ✅ `GET /v1/course/getPage` - 分页查询课程（支持按课程名称/编号/类型筛选）
+- ✅ `PUT /v1/course/update` - 更新课程信息
+- ✅ `GET /v1/course/get` - 获取课程信息（返回时包含课程类型名称）
+- ✅ `DELETE /v1/course/delete` - 删除课程（需检查是否被 teaching_class/course_qualification/schedule 引用）
 
-**关键点**:
+**实现的关键点**:
 
-- 课程编号唯一性检查
-- 学分使用 `BigDecimal` 类型
-- 需关联查询课程类型名称
-- 删除前需检查是否被教学班、课程资格、排课引用(排课引用用Todo留下来)
-- 已经有了返回值CourseInfoDTO，具体实现可以参考其他的控制器层和实现
+- ✅ 课程编号唯一性检查
+- ✅ 学分使用 `BigDecimal` 类型
+- ✅ 需关联查询课程类型名称
+- ✅ 删除前需检查是否被教学班、课程资格引用（排课引用TODO）
+- ✅ 使用 CourseInfoDTO 返回数据
 
 ---
 
-#### 8. CourseClassroomTypeController（课程类型-教室类型关联管理）⚠️ **需要创建** **已完成**
+#### 8. CourseClassroomTypeController（课程类型-教室类型关联管理）✅ **已完成**
 
-**文件路径**: `controller/CourseClassroomTypeController.java` ⚠️ **需要创建**
+**文件路径**: `controller/CourseClassroomTypeController.java`
 
 **依赖关系**:
 
 - `course_classroom_type.course_type_uuid → course_type.course_type_uuid`
 - `course_classroom_type.classroom_type_uuid → classroom_type.classroom_type_uuid`
 
-**需要实现的接口**:
+**已实现的接口**:
 
-- `POST /v1/courseClassroomType/add` - 添加课程类型-教室类型关联（指定某类课程可以在某类教室上课）
-- `GET /v1/courseClassroomType/getPage` - 分页查询关联关系
-- `DELETE /v1/courseClassroomType/delete` - 删除关联关系
+- ✅ `POST /v1/courseClassroomType/add` - 添加课程类型-教室类型关联（指定某类课程可以在某类教室上课）
+- ✅ `GET /v1/courseClassroomType/getPage` - 分页查询关联关系
+- ✅ `DELETE /v1/courseClassroomType/delete` - 删除关联关系
 
-**关键点**:
+**实现的关键点**:
 
-- 防止重复添加同一课程类型-教室类型组合
-- 需关联查询课程类型名称、教室类型名称
+- ✅ 防止重复添加同一课程类型-教室类型组合
+- ✅ 需关联查询课程类型名称、教室类型名称
+- ✅ 使用 CourseClassroomTypeInfoDTO 返回数据
 - **排课时使用此表验证课程是否可以在指定教室上课**（后续TODO）
-- 表结构：`sc_course_classroom_type(relation_uuid, course_type_uuid, classroom_type_uuid)`
 
 ---
 
-#### 9. CourseQualificationController（课程教师资格管理） **已完成**
+#### 9. CourseQualificationController（课程教师资格管理）✅ **已完成**
 
-**文件路径**: `controller/CourseQualificationController.java` ⚠️ **需要创建**
+**文件路径**: `controller/CourseQualificationController.java`
 
 **依赖关系**:
 
 - `course_qualification.course_uuid → course.course_uuid`
 - `course_qualification.teacher_uuid → teacher.teacher_uuid`
 
-**需要实现的接口**:
+**已实现的接口**:
 
-- `POST /v1/courseQualification/add` - 添加教师资格（需选择课程和教师）
-- `GET /v1/courseQualification/getPage` - 分页查询教师资格
-- `DELETE /v1/courseQualification/delete` - 删除教师资格
+- ✅ `POST /v1/courseQualification/add` - 添加教师资格（需选择课程和教师）
+- ✅ `GET /v1/courseQualification/getPage` - 分页查询教师资格
+- ✅ `DELETE /v1/courseQualification/delete` - 删除教师资格
 
-**关键点**:
+**实现的关键点**:
 
-- 防止重复添加同一课程-教师组合
-- 需关联查询课程名称、教师姓名、学院名称，这里应该创建新的dto来返回这个数据
+- ✅ 防止重复添加同一课程-教师组合
+- ✅ 需关联查询课程名称、教师姓名、学院名称
+- ✅ 使用 CourseQualificationInfoDTO 返回数据（包含三层关联信息）
+- ✅ 使用批量查询优化 N+1 问题
 
 ---
 
@@ -428,14 +430,14 @@
 - [x] CourseTypeController 完整实现 ✅
 - [x] ClassroomTypeController 完整实现 ✅
 
-### 阶段 2：一级依赖（第 4-9 步）
+### 阶段 2：一级依赖（第 4-9 步）✅ **已完成**
 
-- [ ] MajorController 完整实现
-- [ ] ClassController 完整实现
-- [ ] TeacherController 完整实现
-- [ ] CourseController 完整实现
-- [ ] CourseClassroomTypeController 创建并实现 ✨ **新增**
-- [ ] CourseQualificationController 创建并实现
+- [x] MajorController 完整实现 ✅
+- [x] ClassController 完整实现 ✅
+- [x] TeacherController 完整实现 ✅
+- [x] CourseController 完整实现 ✅
+- [x] CourseClassroomTypeController 创建并实现 ✅
+- [x] CourseQualificationController 创建并实现 ✅
 
 ### 阶段 3：二级依赖（第 10-11 步）
 
@@ -565,3 +567,58 @@
 - UUID 生成：`UuidUtil.generateUuidNoDash()`
 
 **下一步**: 阶段二 - 一级依赖数据（Major、Class、Teacher、Course、CourseQualification）
+
+---
+
+### 2026-02-11 - 阶段二完成 ✅
+
+**已完成模块（6个）**:
+
+1. ✅ **MajorController**（专业管理）
+    - 实现完整的 CRUD 功能
+    - 支持专业编号唯一性检查
+    - 删除前检查行政班级引用
+    - 关联查询学院名称
+
+2. ✅ **ClassController**（行政班级管理）
+    - 实现完整的 CRUD 功能
+    - 支持班级名称在同一专业下唯一性检查
+    - 删除前检查学生引用
+    - 关联查询专业、学院名称
+    - 创建 AddClassVO
+
+3. ✅ **TeacherController**（教师管理）
+    - 实现完整的 CRUD 功能
+    - 支持教师工号唯一性检查
+    - 删除前检查教学班、课程资格引用
+    - 密码加密：`PasswordUtil.encrypt()`
+    - JSONB 字段：`like_time`（教师时间偏好）
+    - 创建 AddTeacherVO
+
+4. ✅ **CourseController**（课程管理）
+    - 实现完整的 CRUD 功能
+    - 支持课程编号唯一性检查
+    - 删除前检查教学班、课程资格引用
+    - 学分使用 `BigDecimal` 类型
+    - 创建 AddCourseVO
+
+5. ✅ **CourseClassroomTypeController**（课程类型-教室类型关联）
+    - 实现 addRelation、getRelationPage、deleteRelation 接口
+    - 防止重复添加同一课程类型-教室类型组合
+    - 关联查询课程类型名称、教室类型名称
+    - 创建 AddCourseClassroomTypeVO、CourseClassroomTypeInfoDTO
+
+6. ✅ **CourseQualificationController**（课程教师资格）
+    - 实现 addQualification、getQualificationPage、deleteQualification 接口
+    - 防止重复添加同一课程-教师组合
+    - 三层关联查询：课程、教师、学院
+    - 使用批量查询优化 N+1 问题
+    - 创建 AddCourseQualificationVO、CourseQualificationInfoDTO
+
+**技术要点**:
+
+- 批量查询优化：使用 `listByIds()` + Map 构建避免 N+1 问题
+- 三层关联查询：CourseQualification → Course/Teacher → Department
+- 完整的业务验证和日志记录
+
+**下一步**: 阶段三 - 二级依赖数据（Student、Academic）
