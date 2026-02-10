@@ -5,8 +5,10 @@ import com.xlf.utility.ErrorCode;
 import com.xlf.utility.exception.BusinessException;
 import com.xlf.utility.util.PasswordUtil;
 import com.xlf.utility.util.UuidUtil;
+import io.github.flashlack1314.smartschedulecorev2.dao.CourseQualificationDAO;
 import io.github.flashlack1314.smartschedulecorev2.dao.DepartmentDAO;
 import io.github.flashlack1314.smartschedulecorev2.dao.TeacherDAO;
+import io.github.flashlack1314.smartschedulecorev2.dao.TeachingClassDAO;
 import io.github.flashlack1314.smartschedulecorev2.model.dto.PageDTO;
 import io.github.flashlack1314.smartschedulecorev2.model.dto.base.DepartmentInfoDTO;
 import io.github.flashlack1314.smartschedulecorev2.model.dto.base.TeacherInfoDTO;
@@ -32,6 +34,8 @@ import java.util.stream.Collectors;
 public class TeacherServiceImpl implements TeacherService {
     private final TeacherDAO teacherDAO;
     private final DepartmentDAO departmentDAO;
+    private final TeachingClassDAO teachingClassDAO;
+    private final CourseQualificationDAO courseQualificationDAO;
 
     @Override
     public void addTeacher(String teacherNum, String teacherName, String title, String departmentUuid,
@@ -171,8 +175,20 @@ public class TeacherServiceImpl implements TeacherService {
             throw new BusinessException("教师不存在: " + teacherUuid, ErrorCode.OPERATION_FAILED);
         }
 
-        // TODO: 检查教师是否被 teaching_class、course_qualification、schedule 引用
-        // 这部分可以后续完善
+        // 检查教师是否被教学班引用
+        if (teachingClassDAO.existsByTeacherUuid(teacherUuid)) {
+            long teachingClassCount = teachingClassDAO.countByTeacherUuid(teacherUuid);
+            throw new BusinessException("该教师还有 " + teachingClassCount + " 个教学班，无法删除", ErrorCode.OPERATION_FAILED);
+        }
+
+        // 检查教师是否被课程资格关联表引用
+        if (courseQualificationDAO.existsByTeacherUuid(teacherUuid)) {
+            long qualificationCount = courseQualificationDAO.countByTeacherUuid(teacherUuid);
+            throw new BusinessException("该教师还有 " + qualificationCount + " 条课程资格记录，无法删除", ErrorCode.OPERATION_FAILED);
+        }
+
+        // TODO: 检查教师是否被排课记录引用
+        // 这部分可以后续完善，等排课功能实现后再补充
 
         // 执行删除
         boolean deleted = teacherDAO.removeById(teacherUuid);

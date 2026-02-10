@@ -163,7 +163,7 @@
 
 ---
 
-#### 6. TeacherController（教师管理）
+#### 6. TeacherController（教师管理） **已完成**
 
 **文件路径**: `controller/TeacherController.java`
 
@@ -184,6 +184,7 @@
 - 需关联查询学院名称
 - 删除前需检查是否被教学班、课程资格、排课引用
 - 包含 JSONB 字段：`like_time`（教师时间偏好）存储样式：周一的上午3-4节课存储为 `{"1": [3,4]}`
+- 已经有了返回值TeacherInfoDTO，具体实现可以参考其他的控制器层和实现
 
 ---
 
