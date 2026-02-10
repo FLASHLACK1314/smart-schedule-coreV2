@@ -236,7 +236,7 @@
 
 ---
 
-#### 9. CourseQualificationController（课程教师资格管理）
+#### 9. CourseQualificationController（课程教师资格管理） **已完成**
 
 **文件路径**: `controller/CourseQualificationController.java` ⚠️ **需要创建**
 
