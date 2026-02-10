@@ -188,7 +188,7 @@
 
 ---
 
-#### 7. CourseController（课程管理）
+#### 7. CourseController（课程管理） **已完成**
 
 **文件路径**: `controller/CourseController.java`
 
@@ -212,7 +212,7 @@
 
 ---
 
-#### 8. CourseClassroomTypeController（课程类型-教室类型关联管理）⚠️ **需要创建**
+#### 8. CourseClassroomTypeController（课程类型-教室类型关联管理）⚠️ **需要创建** **已完成**
 
 **文件路径**: `controller/CourseClassroomTypeController.java` ⚠️ **需要创建**
 
@@ -231,7 +231,7 @@
 
 - 防止重复添加同一课程类型-教室类型组合
 - 需关联查询课程类型名称、教室类型名称
-- **排课时使用此表验证课程是否可以在指定教室上课**
+- **排课时使用此表验证课程是否可以在指定教室上课**（后续TODO）
 - 表结构：`sc_course_classroom_type(relation_uuid, course_type_uuid, classroom_type_uuid)`
 
 ---
@@ -254,7 +254,7 @@
 **关键点**:
 
 - 防止重复添加同一课程-教师组合
-- 需关联查询课程名称、教师姓名、学院名称
+- 需关联查询课程名称、教师姓名、学院名称，这里应该创建新的dto来返回这个数据
 
 ---
 
