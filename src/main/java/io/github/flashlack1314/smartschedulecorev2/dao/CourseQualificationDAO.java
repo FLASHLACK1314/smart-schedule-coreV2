@@ -1,6 +1,8 @@
 package io.github.flashlack1314.smartschedulecorev2.dao;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import io.github.flashlack1314.smartschedulecorev2.mapper.CourseQualificationMapper;
@@ -64,5 +66,43 @@ public class CourseQualificationDAO extends ServiceImpl<CourseQualificationMappe
         LambdaQueryWrapper<CourseQualificationDO> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(CourseQualificationDO::getCourseUuid, courseUuid);
         return this.count(queryWrapper);
+    }
+
+    /**
+     * 检查课程-教师资格关联是否存在
+     *
+     * @param courseUuid  课程UUID
+     * @param teacherUuid 教师UUID
+     * @return 是否存在
+     */
+    public boolean existsByCourseUuidAndTeacherUuid(String courseUuid, String teacherUuid) {
+        LambdaQueryWrapper<CourseQualificationDO> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(CourseQualificationDO::getCourseUuid, courseUuid);
+        queryWrapper.eq(CourseQualificationDO::getTeacherUuid, teacherUuid);
+        return this.count(queryWrapper) > 0;
+    }
+
+    /**
+     * 分页查询资格关联信息
+     *
+     * @param page        页码
+     * @param size        每页数量
+     * @param courseUuid  课程UUID（可选过滤）
+     * @param teacherUuid 教师UUID（可选过滤）
+     * @return 分页结果
+     */
+    public IPage<CourseQualificationDO> getQualificationPage(int page, int size,
+                                                             String courseUuid, String teacherUuid) {
+        LambdaQueryWrapper<CourseQualificationDO> queryWrapper = new LambdaQueryWrapper<>();
+
+        if (courseUuid != null && !courseUuid.trim().isEmpty()) {
+            queryWrapper.eq(CourseQualificationDO::getCourseUuid, courseUuid);
+        }
+
+        if (teacherUuid != null && !teacherUuid.trim().isEmpty()) {
+            queryWrapper.eq(CourseQualificationDO::getTeacherUuid, teacherUuid);
+        }
+
+        return this.page(new Page<>(page, size), queryWrapper);
     }
 }
