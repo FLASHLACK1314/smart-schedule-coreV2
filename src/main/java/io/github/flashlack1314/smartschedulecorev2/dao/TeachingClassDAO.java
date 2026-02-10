@@ -40,4 +40,28 @@ public class TeachingClassDAO extends ServiceImpl<TeachingClassMapper, TeachingC
         queryWrapper.eq(TeachingClassDO::getTeacherUuid, teacherUuid);
         return this.count(queryWrapper);
     }
+
+    /**
+     * 检查课程是否被教学班引用
+     *
+     * @param courseUuid 课程UUID
+     * @return 如果被引用返回true，否则返回false
+     */
+    public boolean existsByCourseUuid(String courseUuid) {
+        LambdaQueryWrapper<TeachingClassDO> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(TeachingClassDO::getCourseUuid, courseUuid);
+        return this.count(queryWrapper) > 0;
+    }
+
+    /**
+     * 统计课程被教学班引用的数量
+     *
+     * @param courseUuid 课程UUID
+     * @return 引用数量
+     */
+    public long countByCourseUuid(String courseUuid) {
+        LambdaQueryWrapper<TeachingClassDO> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(TeachingClassDO::getCourseUuid, courseUuid);
+        return this.count(queryWrapper);
+    }
 }

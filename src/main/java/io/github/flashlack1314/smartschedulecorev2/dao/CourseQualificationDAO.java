@@ -41,4 +41,28 @@ public class CourseQualificationDAO extends ServiceImpl<CourseQualificationMappe
         queryWrapper.eq(CourseQualificationDO::getTeacherUuid, teacherUuid);
         return this.count(queryWrapper);
     }
+
+    /**
+     * 检查课程是否被课程资格关联表引用
+     *
+     * @param courseUuid 课程UUID
+     * @return 如果被引用返回true，否则返回false
+     */
+    public boolean existsByCourseUuid(String courseUuid) {
+        LambdaQueryWrapper<CourseQualificationDO> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(CourseQualificationDO::getCourseUuid, courseUuid);
+        return this.count(queryWrapper) > 0;
+    }
+
+    /**
+     * 统计课程被课程资格关联表引用的数量
+     *
+     * @param courseUuid 课程UUID
+     * @return 引用数量
+     */
+    public long countByCourseUuid(String courseUuid) {
+        LambdaQueryWrapper<CourseQualificationDO> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(CourseQualificationDO::getCourseUuid, courseUuid);
+        return this.count(queryWrapper);
+    }
 }
