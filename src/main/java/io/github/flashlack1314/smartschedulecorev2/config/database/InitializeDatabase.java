@@ -560,7 +560,7 @@ public class InitializeDatabase {
                 .setDepartmentUuid(csDepartmentUuid)
                 .setTeacherPassword(PasswordUtil.encrypt("qwer1234"))
                 .setMaxHoursPerWeek(20)
-                .setLikeTime("周一、周二、周三的第1-2节和第3-4节")
+                .setLikeTime("{\"1\":[1,2,3,4],\"2\":[1,2,3,4],\"3\":[1,2,3,4]}")
                 .setIsActive(true);
         teachers.add(teacher1);
 
@@ -572,7 +572,7 @@ public class InitializeDatabase {
                 .setDepartmentUuid(csDepartmentUuid)
                 .setTeacherPassword(PasswordUtil.encrypt("qwer1234"))
                 .setMaxHoursPerWeek(18)
-                .setLikeTime("周二、周四的第5-6节和第7-8节")
+                .setLikeTime("{\"2\":[5,6,7,8],\"4\":[5,6,7,8]}")
                 .setIsActive(true);
         teachers.add(teacher2);
 
@@ -584,7 +584,7 @@ public class InitializeDatabase {
                 .setDepartmentUuid(csDepartmentUuid)
                 .setTeacherPassword(PasswordUtil.encrypt("qwer1234"))
                 .setMaxHoursPerWeek(16)
-                .setLikeTime("周三、周五的第1-2节")
+                .setLikeTime("{\"3\":[1,2],\"5\":[1,2]}")
                 .setIsActive(true);
         teachers.add(teacher3);
 
@@ -596,7 +596,7 @@ public class InitializeDatabase {
                 .setDepartmentUuid(csDepartmentUuid)
                 .setTeacherPassword(PasswordUtil.encrypt("qwer1234"))
                 .setMaxHoursPerWeek(12)
-                .setLikeTime("周一、周四的第3-4节")
+                .setLikeTime("{\"1\":[3,4],\"4\":[3,4]}")
                 .setIsActive(true);
         teachers.add(teacher4);
 
