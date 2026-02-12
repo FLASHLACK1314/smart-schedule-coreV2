@@ -10,6 +10,9 @@ import io.github.flashlack1314.smartschedulecorev2.model.entity.MajorDO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 /**
  * 专业DAO
  * @author flash
@@ -119,5 +122,19 @@ public class MajorDAO extends ServiceImpl<MajorMapper, MajorDO>
 
         // 执行分页查询
         return this.page(new Page<>(page, size), queryWrapper);
+    }
+
+    /**
+     * 获取学院下所有专业的UUID列表
+     *
+     * @param departmentUuid 学院UUID
+     * @return 专业UUID列表
+     */
+    public List<String> listUuidByDepartmentUuid(String departmentUuid) {
+        LambdaQueryWrapper<MajorDO> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(MajorDO::getDepartmentUuid, departmentUuid);
+        return this.list(queryWrapper).stream()
+                .map(MajorDO::getMajorUuid)
+                .collect(Collectors.toList());
     }
 }
