@@ -57,7 +57,7 @@ public class  DepartmentController {
             @RequestHeader("Authorization") String token,
             @RequestParam int page,
             @RequestParam int size,
-            @RequestParam(required = false) String departmentName
+            @RequestParam(value = "department_name", required = false) String departmentName
     ) {
         PageDTO<DepartmentInfoDTO> result = departmentService.getDepartmentPage(page, size, departmentName);
         return ResultUtil.success("获取学院分页信息成功", result);
@@ -91,7 +91,7 @@ public class  DepartmentController {
     @RequireRole({UserType.SYSTEM_ADMIN, UserType.ACADEMIC_ADMIN, UserType.TEACHER, UserType.STUDENT})
     public ResponseEntity<BaseResponse<DepartmentInfoDTO>> getDepartment(
             @RequestHeader("Authorization") String token,
-            @RequestParam String departmentUuid
+            @RequestParam("department_uuid") String departmentUuid
     ) {
         DepartmentInfoDTO result = departmentService.getDepartment(departmentUuid);
         return ResultUtil.success("获取学院信息成功", result);
@@ -108,7 +108,7 @@ public class  DepartmentController {
     @RequireRole({UserType.SYSTEM_ADMIN, UserType.ACADEMIC_ADMIN})
     public ResponseEntity<BaseResponse<Void>> deleteDepartment(
             @RequestHeader("Authorization") String token,
-            @RequestParam String departmentUuid
+            @RequestParam("department_uuid") String departmentUuid
     ) {
         departmentService.deleteDepartment(departmentUuid);
         return ResultUtil.success("删除学院成功");

@@ -57,7 +57,7 @@ public class ClassroomTypeController {
             @RequestHeader("Authorization") String token,
             @RequestParam int page,
             @RequestParam int size,
-            @RequestParam(required = false) String classroomTypeName
+            @RequestParam(value = "classroom_type_name", required = false) String classroomTypeName
     ) {
         PageDTO<ClassroomTypeInfoDTO> result = classroomTypeService.getClassroomTypePage(page, size, classroomTypeName);
         return ResultUtil.success("获取教室类型分页信息成功", result);
@@ -91,7 +91,7 @@ public class ClassroomTypeController {
     @RequireRole({UserType.SYSTEM_ADMIN, UserType.ACADEMIC_ADMIN, UserType.TEACHER, UserType.STUDENT})
     public ResponseEntity<BaseResponse<ClassroomTypeInfoDTO>> getClassroomType(
             @RequestHeader("Authorization") String token,
-            @RequestParam String classroomTypeUuid
+            @RequestParam("classroom_type_uuid") String classroomTypeUuid
     ) {
         ClassroomTypeInfoDTO result = classroomTypeService.getClassroomType(classroomTypeUuid);
         return ResultUtil.success("获取教室类型信息成功", result);
@@ -108,7 +108,7 @@ public class ClassroomTypeController {
     @RequireRole({UserType.SYSTEM_ADMIN, UserType.ACADEMIC_ADMIN})
     public ResponseEntity<BaseResponse<Void>> deleteClassroomType(
             @RequestHeader("Authorization") String token,
-            @RequestParam String classroomTypeUuid
+            @RequestParam("classroom_type_uuid") String classroomTypeUuid
     ) {
         classroomTypeService.deleteClassroomType(classroomTypeUuid);
         return ResultUtil.success("删除教室类型成功");

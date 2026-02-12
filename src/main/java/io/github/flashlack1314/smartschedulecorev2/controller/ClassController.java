@@ -59,8 +59,8 @@ public class ClassController {
             @RequestHeader("Authorization") String token,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size,
-            @RequestParam(required = false) String className,
-            @RequestParam(required = false) String majorUuid,
+            @RequestParam(value = "class_name", required = false) String className,
+            @RequestParam(value = "major_uuid", required = false) String majorUuid,
             @RequestParam(required = false) String departmentUuid
     ) {
         PageDTO<ClassInfoDTO> result = classService.getClassPage(page, size, className, majorUuid, departmentUuid);
@@ -95,7 +95,7 @@ public class ClassController {
     @RequireRole({UserType.SYSTEM_ADMIN, UserType.ACADEMIC_ADMIN, UserType.TEACHER, UserType.STUDENT})
     public ResponseEntity<BaseResponse<ClassInfoDTO>> getClass(
             @RequestHeader("Authorization") String token,
-            @RequestParam String classUuid
+            @RequestParam("class_uuid") String classUuid
     ) {
         ClassInfoDTO result = classService.getClass(classUuid);
         return ResultUtil.success("获取行政班级信息成功", result);
@@ -112,7 +112,7 @@ public class ClassController {
     @RequireRole({UserType.SYSTEM_ADMIN, UserType.ACADEMIC_ADMIN})
     public ResponseEntity<BaseResponse<Void>> deleteClass(
             @RequestHeader("Authorization") String token,
-            @RequestParam String classUuid
+            @RequestParam("class_uuid") String classUuid
     ) {
         classService.deleteClass(classUuid);
         return ResultUtil.success("删除行政班级成功");

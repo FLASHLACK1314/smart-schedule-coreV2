@@ -58,8 +58,8 @@ public class CourseClassroomTypeController {
             @RequestHeader("Authorization") String token,
             @RequestParam int page,
             @RequestParam int size,
-            @RequestParam(required = false) String courseTypeUuid,
-            @RequestParam(required = false) String classroomTypeUuid
+            @RequestParam(value = "course_type_uuid", required = false) String courseTypeUuid,
+            @RequestParam(value = "classroom_type_uuid", required = false) String classroomTypeUuid
     ) {
         PageDTO<CourseClassroomTypeInfoDTO> result = courseClassroomTypeService.getRelationPage(
                 page, size, courseTypeUuid, classroomTypeUuid);
@@ -77,7 +77,7 @@ public class CourseClassroomTypeController {
     @RequireRole({UserType.SYSTEM_ADMIN, UserType.ACADEMIC_ADMIN})
     public ResponseEntity<BaseResponse<Void>> deleteRelation(
             @RequestHeader("Authorization") String token,
-            @RequestParam String relationUuid
+            @RequestParam("relation_uuid") String relationUuid
     ) {
         courseClassroomTypeService.deleteRelation(relationUuid);
         return ResultUtil.success("删除关联成功");

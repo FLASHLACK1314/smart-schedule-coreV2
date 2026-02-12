@@ -57,7 +57,7 @@ public class CourseTypeController {
             @RequestHeader("Authorization") String token,
             @RequestParam int page,
             @RequestParam int size,
-            @RequestParam(required = false) String courseTypeName
+            @RequestParam(value = "course_type_name", required = false) String courseTypeName
     ) {
         PageDTO<CourseTypeInfoDTO> result = courseTypeService.getCourseTypePage(page, size, courseTypeName);
         return ResultUtil.success("获取课程类型分页信息成功", result);
@@ -91,7 +91,7 @@ public class CourseTypeController {
     @RequireRole({UserType.SYSTEM_ADMIN, UserType.ACADEMIC_ADMIN, UserType.TEACHER, UserType.STUDENT})
     public ResponseEntity<BaseResponse<CourseTypeInfoDTO>> getCourseType(
             @RequestHeader("Authorization") String token,
-            @RequestParam String courseTypeUuid
+            @RequestParam("course_type_uuid") String courseTypeUuid
     ) {
         CourseTypeInfoDTO result = courseTypeService.getCourseType(courseTypeUuid);
         return ResultUtil.success("获取课程类型信息成功", result);
@@ -108,7 +108,7 @@ public class CourseTypeController {
     @RequireRole({UserType.SYSTEM_ADMIN, UserType.ACADEMIC_ADMIN})
     public ResponseEntity<BaseResponse<Void>> deleteCourseType(
             @RequestHeader("Authorization") String token,
-            @RequestParam String courseTypeUuid
+            @RequestParam("course_type_uuid") String courseTypeUuid
     ) {
         courseTypeService.deleteCourseType(courseTypeUuid);
         return ResultUtil.success("删除课程类型成功");

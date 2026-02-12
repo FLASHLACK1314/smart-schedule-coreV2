@@ -68,9 +68,9 @@ public class TeacherController {
             @RequestHeader("Authorization") String token,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size,
-            @RequestParam(required = false) String teacherName,
-            @RequestParam(required = false) String teacherNum,
-            @RequestParam(required = false) String departmentUuid
+            @RequestParam(value = "teacher_name", required = false) String teacherName,
+            @RequestParam(value = "teacher_num", required = false) String teacherNum,
+            @RequestParam(value = "department_uuid", required = false) String departmentUuid
     ) {
         PageDTO<TeacherInfoDTO> result = teacherService.getTeacherPage(page, size, teacherName, teacherNum, departmentUuid);
         return ResultUtil.success("获取教师分页信息成功", result);
@@ -114,7 +114,7 @@ public class TeacherController {
     @RequireRole({UserType.SYSTEM_ADMIN, UserType.ACADEMIC_ADMIN, UserType.TEACHER, UserType.STUDENT})
     public ResponseEntity<BaseResponse<TeacherInfoDTO>> getTeacher(
             @RequestHeader("Authorization") String token,
-            @RequestParam String teacherUuid
+            @RequestParam("teacher_uuid") String teacherUuid
     ) {
         TeacherInfoDTO result = teacherService.getTeacher(teacherUuid);
         return ResultUtil.success("获取教师信息成功", result);
@@ -131,7 +131,7 @@ public class TeacherController {
     @RequireRole({UserType.SYSTEM_ADMIN, UserType.ACADEMIC_ADMIN})
     public ResponseEntity<BaseResponse<Void>> deleteTeacher(
             @RequestHeader("Authorization") String token,
-            @RequestParam String teacherUuid
+            @RequestParam("teacher_uuid") String teacherUuid
     ) {
         teacherService.deleteTeacher(teacherUuid);
         return ResultUtil.success("删除教师成功");

@@ -58,9 +58,9 @@ public class CourseController {
             @RequestHeader("Authorization") String token,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size,
-            @RequestParam(required = false) String courseName,
-            @RequestParam(required = false) String courseNum,
-            @RequestParam(required = false) String courseTypeUuid
+            @RequestParam(value = "course_name", required = false) String courseName,
+            @RequestParam(value = "course_num", required = false) String courseNum,
+            @RequestParam(value = "course_type_uuid", required = false) String courseTypeUuid
     ) {
         PageDTO<CourseInfoDTO> result = courseService.getCoursePage(page, size, courseName, courseNum, courseTypeUuid);
         return ResultUtil.success("获取课程分页信息成功", result);
@@ -94,7 +94,7 @@ public class CourseController {
     @RequireRole({UserType.SYSTEM_ADMIN, UserType.ACADEMIC_ADMIN, UserType.TEACHER, UserType.STUDENT})
     public ResponseEntity<BaseResponse<CourseInfoDTO>> getCourse(
             @RequestHeader("Authorization") String token,
-            @RequestParam String courseUuid
+            @RequestParam("course_uuid") String courseUuid
     ) {
         CourseInfoDTO result = courseService.getCourse(courseUuid);
         return ResultUtil.success("获取课程信息成功", result);
@@ -111,7 +111,7 @@ public class CourseController {
     @RequireRole({UserType.SYSTEM_ADMIN, UserType.ACADEMIC_ADMIN})
     public ResponseEntity<BaseResponse<Void>> deleteCourse(
             @RequestHeader("Authorization") String token,
-            @RequestParam String courseUuid
+            @RequestParam("course_uuid") String courseUuid
     ) {
         courseService.deleteCourse(courseUuid);
         return ResultUtil.success("删除课程成功");

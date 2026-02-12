@@ -58,8 +58,8 @@ public class CourseQualificationController {
             @RequestHeader("Authorization") String token,
             @RequestParam int page,
             @RequestParam int size,
-            @RequestParam(required = false) String courseUuid,
-            @RequestParam(required = false) String teacherUuid
+            @RequestParam(value = "course_uuid", required = false) String courseUuid,
+            @RequestParam(value = "teacher_uuid", required = false) String teacherUuid
     ) {
         PageDTO<CourseQualificationInfoDTO> result = courseQualificationService.getQualificationPage(
                 page, size, courseUuid, teacherUuid);
@@ -77,7 +77,7 @@ public class CourseQualificationController {
     @RequireRole({UserType.SYSTEM_ADMIN, UserType.ACADEMIC_ADMIN})
     public ResponseEntity<BaseResponse<Void>> deleteQualification(
             @RequestHeader("Authorization") String token,
-            @RequestParam String qualificationUuid
+            @RequestParam("qualification_uuid") String qualificationUuid
     ) {
         courseQualificationService.deleteQualification(qualificationUuid);
         return ResultUtil.success("删除资格关联成功");
