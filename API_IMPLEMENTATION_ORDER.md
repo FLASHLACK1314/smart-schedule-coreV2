@@ -288,7 +288,7 @@
 
 ---
 
-#### 11. AcademicController（教务管理员管理）
+#### 11. AcademicController（教务管理员管理） **已完成**
 
 **文件路径**: `controller/AcademicController.java`
 

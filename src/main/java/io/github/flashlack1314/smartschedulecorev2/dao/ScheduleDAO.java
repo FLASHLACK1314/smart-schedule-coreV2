@@ -40,4 +40,28 @@ public class ScheduleDAO extends ServiceImpl<ScheduleMapper, ScheduleDO>
         queryWrapper.eq(ScheduleDO::getClassroomUuid, classroomUuid);
         return this.count(queryWrapper);
     }
+
+    /**
+     * 检查教学班是否被排课使用
+     *
+     * @param teachingClassUuid 教学班UUID
+     * @return 如果被使用返回true，否则返回false
+     */
+    public boolean existsByTeachingClassUuid(String teachingClassUuid) {
+        LambdaQueryWrapper<ScheduleDO> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(ScheduleDO::getTeachingClassUuid, teachingClassUuid);
+        return this.count(queryWrapper) > 0;
+    }
+
+    /**
+     * 统计教学班被排课使用的次数
+     *
+     * @param teachingClassUuid 教学班UUID
+     * @return 排课记录数量
+     */
+    public long countByTeachingClassUuid(String teachingClassUuid) {
+        LambdaQueryWrapper<ScheduleDO> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(ScheduleDO::getTeachingClassUuid, teachingClassUuid);
+        return this.count(queryWrapper);
+    }
 }
