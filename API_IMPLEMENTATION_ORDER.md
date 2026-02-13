@@ -2,7 +2,7 @@
 
 ## 📊 当前实现状态总览
 
-### 已完成模块（15个）
+### 已完成模块（17个）
 
 - ✅ **BuildingController**（教学楼）- 完整 CRUD
 - ✅ **ClassroomController**（教室）- 完整 CRUD
@@ -12,27 +12,27 @@
 - ✅ **DepartmentController**（学院）- 完整 CRUD
 - ✅ **CourseTypeController**（课程类型）- 完整 CRUD
 - ✅ **ClassroomTypeController**（教室类型）- 完整 CRUD
-- ✅ **MajorController**（专业）- 完整 CRUD ✨ **新增**
-- ✅ **ClassController**（行政班级）- 完整 CRUD ✨ **新增**
-- ✅ **TeacherController**（教师）- 完整 CRUD ✨ **新增**
-- ✅ **CourseController**（课程）- 完整 CRUD ✨ **新增**
-- ✅ **CourseClassroomTypeController**（课程类型-教室类型关联）- 完整实现 ✨ **新增**
-- ✅ **CourseQualificationController**（课程教师资格）- 完整实现 ✨ **新增**
+- ✅ **MajorController**（专业）- 完整 CRUD
+- ✅ **ClassController**（行政班级）- 完整 CRUD
+- ✅ **TeacherController**（教师）- 完整 CRUD
+- ✅ **CourseController**（课程）- 完整 CRUD
+- ✅ **CourseClassroomTypeController**（课程类型-教室类型关联）- 完整实现
+- ✅ **CourseQualificationController**（课程教师资格）- 完整实现
+- ✅ **StudentController**（学生）- 完整 CRUD ✨ **新完成**
+- ✅ **AcademicController**（教务管理）- 完整 CRUD ✨ **新完成**
+- ✅ **TeachingClassController**（教学班）- 完整 CRUD ✨ **新完成**
+- ✅ **TeachingClassClassController**（教学班-行政班关联）- 完整实现 ✨ **新完成**
 
-### 部分完成模块（2个）
+### 部分完成模块（1个）
 
-- ⚠️ **StudentController**（学生）- 仅实现 add，缺少 get/update/delete/getPage
 - ⚠️ **UserController**（用户）- 仅实现 getUserInfo
 
-### 未开始模块（4个）
+### 未开始模块（2个）
 
-- ❌ **AcademicController**（教务管理）- 已创建文件，未实现
-- ❌ **TeachingClassController**（教学班）- 已创建文件，未实现
-- ❌ **TeachingClassClassController**（教学班-行政班关联）- ❌ **缺少文件**
 - ❌ **ScheduleController**（排课）- 已创建文件，未实现（**用户要求放到最后**）
 - ❌ **ScheduleConflictController**（排课冲突）- 已创建文件，未实现（**用户要求放到最后**）
 
-> **说明**：共 18 个数据库表，第一阶段和第二阶段（基础数据 + 一级依赖）已全部完成 ✅
+> **说明**：共 18 个数据库表，第一至第四阶段已全部完成 ✅，仅剩排课模块（2个）
 
 ---
 
@@ -260,61 +260,60 @@
 
 ---
 
-### 第三阶段：二级依赖数据（依赖一级依赖表） **已完成**
+### 第三阶段：二级依赖数据（依赖一级依赖表）✅ **已完成**
 
 **优先级：🟡 中 - 完善业务数据**
 
-#### 10. StudentController（学生管理）- 补充完整
+#### 10. StudentController（学生管理）✅ **已完成**
 
 **文件路径**: `controller/StudentController.java`
 
 **依赖关系**: `student.class_uuid → class.class_uuid`
 
-**当前状态**: ⚠️ 仅实现 add 接口
+**已实现的接口**:
 
-**需要补充的接口**:
+- ✅ `POST /v1/student/add` - 添加学生
+- ✅ `GET /v1/student/getPage` - 分页查询学生（支持按学号/姓名/班级/专业/学院筛选）
+- ✅ `PUT /v1/student/update` - 更新学生信息
+- ✅ `GET /v1/student/get` - 获取学生信息（返回时包含班级、专业、学院名称）
+- ✅ `DELETE /v1/student/delete` - 删除学生
 
-- `GET /v1/student/getPage` - 分页查询学生（支持按学号/姓名/班级/专业/学院筛选）
-- `PUT /v1/student/update` - 更新学生信息
-- `GET /v1/student/get` - 获取学生信息（返回时包含班级、专业、学院名称）
-- `DELETE /v1/student/delete` - 删除学生
+**实现的关键点**:
 
-**关键点**:
-
-- 学号唯一性检查
-- 密码加密：使用 `PasswordUtil.encrypt()`
-- 需关联查询班级、专业、学院名称
-- 支持多级筛选（按学院→专业→班级）
+- ✅ 学号唯一性检查
+- ✅ 密码加密：使用 `PasswordUtil.encrypt()`
+- ✅ 需关联查询班级、专业、学院名称
+- ✅ 支持多级筛选（按学院→专业→班级）
 
 ---
 
-#### 11. AcademicController（教务管理员管理） **已完成**
+#### 11. AcademicController（教务管理员管理）✅ **已完成**
 
 **文件路径**: `controller/AcademicController.java`
 
 **依赖关系**: `academic_admin.department_uuid → department.department_uuid`
 
-**需要实现的接口**:
+**已实现的接口**:
 
-- `POST /v1/academic/add` - 添加教务管理员（需选择所属学院）
-- `GET /v1/academic/getPage` - 分页查询教务管理员（支持按姓名/工号/学院筛选）
-- `PUT /v1/academic/update` - 更新教务管理员信息
-- `GET /v1/academic/get` - 获取教务管理员信息（返回时包含学院名称）
-- `DELETE /v1/academic/delete` - 删除教务管理员
+- ✅ `POST /v1/academic/add` - 添加教务管理员（需选择所属学院）
+- ✅ `GET /v1/academic/getPage` - 分页查询教务管理员（支持按姓名/工号/学院筛选）
+- ✅ `PUT /v1/academic/update` - 更新教务管理员信息
+- ✅ `GET /v1/academic/get` - 获取教务管理员信息（返回时包含学院名称）
+- ✅ `DELETE /v1/academic/delete` - 删除教务管理员
 
-**关键点**:
+**实现的关键点**:
 
-- 工号唯一性检查
-- 密码加密：使用 `PasswordUtil.encrypt()`
-- 需关联查询学院名称
+- ✅ 工号唯一性检查
+- ✅ 密码加密：使用 `PasswordUtil.encrypt()`
+- ✅ 需关联查询学院名称
 
 ---
 
-### 第四阶段：三级依赖数据（核心业务）
+### 第四阶段：三级依赖数据（核心业务）✅ **已完成**
 
-**优先级：🟠 中高 - 教学班管理** **已完成**
+**优先级：🟠 中高 - 教学班管理**
 
-#### 12. TeachingClassController（教学班管理）
+#### 12. TeachingClassController（教学班管理）✅ **已完成**
 
 **文件路径**: `controller/TeachingClassController.java`
 
@@ -324,41 +323,43 @@
 - `teaching_class.teacher_uuid → teacher.teacher_uuid`
 - `teaching_class.semester_uuid → semester.semester_uuid`
 
-**需要实现的接口**:
+**已实现的接口**:
 
-- `POST /v1/teachingClass/add` - 添加教学班（需选择课程、教师、学期）
-- `GET /v1/teachingClass/getPage` - 分页查询教学班（支持按课程/教师/学期筛选）
-- `PUT /v1/teachingClass/update` - 更新教学班信息
-- `GET /v1/teachingClass/get` - 获取教学班信息（返回时包含课程、教师、学期名称）
-- `DELETE /v1/teachingClass/delete` - 删除教学班（需检查是否被 teaching_class_class/schedule 引用）
+- ✅ `POST /v1/teachingClass/add` - 添加教学班（需选择课程、教师、学期）
+- ✅ `GET /v1/teachingClass/getPage` - 分页查询教学班（支持按课程/教师/学期筛选）
+- ✅ `PUT /v1/teachingClass/update` - 更新教学班信息
+- ✅ `GET /v1/teachingClass/get` - 获取教学班信息（返回时包含课程、教师、学期名称）
+- ✅ `DELETE /v1/teachingClass/delete` - 删除教学班
 
-**关键点**:
+**实现的关键点**:
 
-- 需关联查询课程、教师、学期名称
-- 删除前需检查是否被教学班-行政班关联、排课引用
-- 验证所选教师具有该课程的授课资格
+- ✅ 需关联查询课程、教师、学期名称
+- ✅ 删除前需检查是否被教学班-行政班关联、排课引用
+- ✅ 验证所选教师具有该课程的授课资格（通过 CourseQualificationDAO）
 
 ---
 
-#### 13. TeachingClassClassController（教学班-行政班关联管理） **已完成**
+#### 13. TeachingClassClassController（教学班-行政班关联管理）✅ **已完成**
 
-**文件路径**: `controller/TeachingClassClassController.java` ⚠️ **需要创建**
+**文件路径**: `controller/TeachingClassClassController.java`
 
 **依赖关系**:
 
 - `teaching_class_class.teaching_class_uuid → teaching_class.teaching_class_uuid`
 - `teaching_class_class.class_uuid → class.class_uuid`
 
-**需要实现的接口**:
+**已实现的接口**:
 
-- `POST /v1/teachingClassClass/add` - 添加行政班到教学班
-- `GET /v1/teachingClassClass/getPage` - 分页查询教学班的行政班列表
-- `DELETE /v1/teachingClassClass/delete` - 移除教学班的行政班
+- ✅ `POST /v1/teachingClassClass/add` - 添加行政班到教学班
+- ✅ `GET /v1/teachingClassClass/getPage` - 分页查询教学班的行政班列表
+- ✅ `DELETE /v1/teachingClassClass/delete` - 移除教学班的行政班
 
-**关键点**:
+**实现的关键点**:
 
-- 防止重复添加同一行政班
-- 需关联查询教学班名称、行政班名称、专业、学院
+- ✅ 防止重复添加同一行政班
+- ✅ 需关联查询教学班名称、行政班名称、专业、学院
+- ✅ 使用批量查询优化性能
+- ✅ 使用 TeachingClassClassInfoDTO 返回数据
 
 ---
 
@@ -379,15 +380,14 @@
 
 **需要实现的接口**:
 
-- `POST /v1/schedule/add` - 添加排课记录
+- `POST /v1/schedule/add` - 添加排课记录（手动排课）
 - `GET /v1/schedule/getPage` - 分页查询排课记录（多维度筛选）
 - `PUT /v1/schedule/update` - 更新排课记录
 - `GET /v1/schedule/get` - 获取排课记录详情
 - `DELETE /v1/schedule/delete` - 删除排课记录
-- `POST /v1/schedule/auto-schedule` - 自动排课（核心功能）
-- `GET /v1/schedule/conflicts` - 查看排课冲突
+- `POST /v1/schedule/auto-schedule` - **遗传算法自动排课**（后续实现）
 
-**关键点**:
+**手动排课关键点**:
 
 - 复杂的关联查询（教学班、课程、教师、教室、学期）
 - JSONB 字段：`weeks_json`（上课周次）
@@ -395,6 +395,29 @@
 - 教室容量检测
 - 教师工作量检测
 - 支持锁定标识 `is_locked`
+
+**遗传算法自动排课说明**（仅记录，后续讨论）:
+
+> 🧬 **遗传算法自动排课**是系统的核心智能功能，将基于遗传算法实现自动化排课。
+
+**算法考虑因素**:
+1. **教师时间偏好**：优先安排教师偏好的时间段
+2. **教室容量匹配**：确保教室容量满足学生人数
+3. **课程类型-教室类型匹配**：确保课程在合适类型的教室上课
+4. **时间冲突避免**：自动检测并避免教师、教室、班级的时间冲突
+
+**输入参数**:
+- 学期 UUID
+- 待排课教学班列表
+- 可用教室范围（可选）
+- 时间约束条件（可选）
+
+**输出结果**:
+- 自动生成的排课方案
+- 冲突检测结果
+- 优化评分报告
+
+> ⚠️ **注**：遗传算法具体实现将在后续讨论确定，目前仅记录设计思路。
 
 ---
 
@@ -439,19 +462,19 @@
 - [x] CourseClassroomTypeController 创建并实现 ✅
 - [x] CourseQualificationController 创建并实现 ✅
 
-### 阶段 3：二级依赖（第 10-11 步）
+### 阶段 3：二级依赖（第 10-11 步）✅ **已完成**
 
-- [ ] StudentController 补充完整
-- [ ] AcademicController 完整实现
+- [x] StudentController 完整实现 ✅
+- [x] AcademicController 完整实现 ✅
 
-### 阶段 4：三级依赖（第 12-13 步）
+### 阶段 4：三级依赖（第 12-13 步）✅ **已完成**
 
-- [ ] TeachingClassController 完整实现
-- [ ] TeachingClassClassController 创建并实现
+- [x] TeachingClassController 完整实现 ✅
+- [x] TeachingClassClassController 创建并实现 ✅
 
-### 阶段 5：排课系统（第 14-15 步）
+### 阶段 5：排课系统（第 14-15 步）⏳ **待实现**
 
-- [ ] ScheduleController 完整实现（排课算法）
+- [ ] ScheduleController 完整实现（包含遗传算法自动排课）
 - [ ] ScheduleConflictController 完整实现
 
 ---
@@ -523,6 +546,48 @@
 ---
 
 ## 📅 更新日志
+
+### 2026-02-13 - 阶段三、四完成 ✅
+
+**已完成模块（4个）**:
+
+1. ✅ **StudentController**（学生管理）
+    - 补充完整的 CRUD 功能（已有 add 接口）
+    - 支持学号唯一性检查
+    - 实现 getPage、get、update、delete 接口
+    - 关联查询班级、专业、学院名称
+    - 支持多级筛选（按学院→专业→班级）
+
+2. ✅ **AcademicController**（教务管理员）
+    - 实现完整的 CRUD 功能
+    - 支持工号唯一性检查
+    - 密码加密：`PasswordUtil.encrypt()`
+    - 关联查询学院名称
+
+3. ✅ **TeachingClassController**（教学班管理）
+    - 实现完整的 CRUD 功能
+    - 验证所选教师具有该课程的授课资格（通过 CourseQualificationDAO）
+    - 删除前检查是否被教学班-行政班关联、排课引用
+    - 关联查询课程、教师、学期名称
+
+4. ✅ **TeachingClassClassController**（教学班-行政班关联）
+    - 实现完整的关联管理功能（add、getPage、delete）
+    - 防止重复添加同一行政班
+    - 使用批量查询优化 N+1 问题
+    - 关联查询教学班、行政班、专业、学院名称
+
+**技术要点**:
+
+- 批量查询优化：避免 N+1 问题
+- 业务验证：教学班添加时验证教师资格
+- 完整的关联查询：多层关联信息返回
+- 删除检查：检查子表引用
+
+**当前进度**: 17/19 个模块已完成，仅剩 ScheduleController、ScheduleConflictController（排课系统）
+
+**下一步**: 阶段五 - 排课系统（包含遗传算法自动排课）
+
+---
 
 ### 2026-02-04 - 阶段一完成 ✅
 
