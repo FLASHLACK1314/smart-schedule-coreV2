@@ -13,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -93,13 +94,17 @@ public class TeachingClassClassServiceImpl implements TeachingClassClassService 
                 .map(TeachingClassClassDO::getClassUuid)
                 .collect(Collectors.toSet());
 
-        // 批量查询教学班信息
-        List<TeachingClassDO> teachingClasses = teachingClassDAO.listByIds(teachingClassUuids);
+        // 批量查询教学班信息（避免空集合导致 SQL 错误）
+        List<TeachingClassDO> teachingClasses = teachingClassUuids.isEmpty()
+                ? Collections.emptyList()
+                : teachingClassDAO.listByIds(teachingClassUuids);
         Map<String, TeachingClassDO> teachingClassMap = teachingClasses.stream()
                 .collect(Collectors.toMap(TeachingClassDO::getTeachingClassUuid, tc -> tc));
 
-        // 批量查询行政班信息
-        List<ClassDO> classes = classDAO.listByIds(classUuids);
+        // 批量查询行政班信息（避免空集合导致 SQL 错误）
+        List<ClassDO> classes = classUuids.isEmpty()
+                ? Collections.emptyList()
+                : classDAO.listByIds(classUuids);
         Map<String, ClassDO> classMap = classes.stream()
                 .collect(Collectors.toMap(ClassDO::getClassUuid, c -> c));
 
@@ -114,18 +119,24 @@ public class TeachingClassClassServiceImpl implements TeachingClassClassService 
                 .map(ClassDO::getMajorUuid)
                 .collect(Collectors.toSet());
 
-        // 批量查询课程信息
-        List<CourseDO> courses = courseDAO.listByIds(courseUuids);
+        // 批量查询课程信息（避免空集合导致 SQL 错误）
+        List<CourseDO> courses = courseUuids.isEmpty()
+                ? Collections.emptyList()
+                : courseDAO.listByIds(courseUuids);
         Map<String, CourseDO> courseMap = courses.stream()
                 .collect(Collectors.toMap(CourseDO::getCourseUuid, c -> c));
 
-        // 批量查询教师信息
-        List<TeacherDO> teachers = teacherDAO.listByIds(teacherUuids);
+        // 批量查询教师信息（避免空集合导致 SQL 错误）
+        List<TeacherDO> teachers = teacherUuids.isEmpty()
+                ? Collections.emptyList()
+                : teacherDAO.listByIds(teacherUuids);
         Map<String, TeacherDO> teacherMap = teachers.stream()
                 .collect(Collectors.toMap(TeacherDO::getTeacherUuid, t -> t));
 
-        // 批量查询专业信息
-        List<MajorDO> majors = majorDAO.listByIds(majorUuids);
+        // 批量查询专业信息（避免空集合导致 SQL 错误）
+        List<MajorDO> majors = majorUuids.isEmpty()
+                ? Collections.emptyList()
+                : majorDAO.listByIds(majorUuids);
         Map<String, MajorDO> majorMap = majors.stream()
                 .collect(Collectors.toMap(MajorDO::getMajorUuid, m -> m));
 
@@ -134,8 +145,10 @@ public class TeachingClassClassServiceImpl implements TeachingClassClassService 
                 .map(MajorDO::getDepartmentUuid)
                 .collect(Collectors.toSet());
 
-        // 批量查询学院信息
-        List<DepartmentDO> departments = departmentDAO.listByIds(departmentUuids);
+        // 批量查询学院信息（避免空集合导致 SQL 错误）
+        List<DepartmentDO> departments = departmentUuids.isEmpty()
+                ? Collections.emptyList()
+                : departmentDAO.listByIds(departmentUuids);
         Map<String, DepartmentDO> departmentMap = departments.stream()
                 .collect(Collectors.toMap(DepartmentDO::getDepartmentUuid, d -> d));
 

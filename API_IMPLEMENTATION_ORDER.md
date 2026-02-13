@@ -340,7 +340,7 @@
 
 ---
 
-#### 13. TeachingClassClassController（教学班-行政班关联管理）
+#### 13. TeachingClassClassController（教学班-行政班关联管理） **已完成**
 
 **文件路径**: `controller/TeachingClassClassController.java` ⚠️ **需要创建**
 
