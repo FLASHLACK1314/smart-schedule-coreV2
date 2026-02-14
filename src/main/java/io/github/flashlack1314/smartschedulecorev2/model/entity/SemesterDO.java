@@ -27,4 +27,10 @@ public class SemesterDO {
      */
     @TableField("semester_name")
     private String semesterName;
+
+    /**
+     * 学期周数
+     */
+    @TableField("semester_weeks")
+    private Integer semesterWeeks;
 }

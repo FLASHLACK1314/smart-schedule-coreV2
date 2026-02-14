@@ -28,8 +28,8 @@ public class SemesterServiceImpl implements SemesterService {
     private final SemesterDAO semesterDAO;
 
     @Override
-    public void addSemester(String semesterName) {
-        log.info("添加学期 - 名称: {}", semesterName);
+    public void addSemester(String semesterName, Integer semesterWeeks) {
+        log.info("添加学期 - 名称: {}, 周数: {}", semesterName, semesterWeeks);
 
         // 检查学期名称是否已存在
         if (semesterDAO.existsBySemesterName(semesterName)) {
@@ -40,6 +40,7 @@ public class SemesterServiceImpl implements SemesterService {
         SemesterDO semesterDO = new SemesterDO();
         semesterDO.setSemesterUuid(UuidUtil.generateUuidNoDash());
         semesterDO.setSemesterName(semesterName);
+        semesterDO.setSemesterWeeks(semesterWeeks);
 
         // 保存到数据库
         boolean saved = semesterDAO.save(semesterDO);
@@ -48,7 +49,7 @@ public class SemesterServiceImpl implements SemesterService {
             throw new BusinessException("保存学期失败", ErrorCode.OPERATION_FAILED);
         }
 
-        log.info("学期添加成功 - UUID: {}, 名称: {}", semesterDO.getSemesterUuid(), semesterName);
+        log.info("学期添加成功 - UUID: {}, 名称: {}, 周数: {}", semesterDO.getSemesterUuid(), semesterName, semesterWeeks);
     }
 
     @Override
@@ -73,8 +74,8 @@ public class SemesterServiceImpl implements SemesterService {
     }
 
     @Override
-    public void updateSemester(String semesterUuid, String semesterName) {
-        log.info("更新学期信息 - UUID: {}, 名称: {}", semesterUuid, semesterName);
+    public void updateSemester(String semesterUuid, String semesterName, Integer semesterWeeks) {
+        log.info("更新学期信息 - UUID: {}, 名称: {}, 周数: {}", semesterUuid, semesterName, semesterWeeks);
 
         // 查询学期是否存在
         SemesterDO semester = semesterDAO.getById(semesterUuid);
@@ -89,6 +90,7 @@ public class SemesterServiceImpl implements SemesterService {
 
         // 更新学期信息
         semester.setSemesterName(semesterName);
+        semester.setSemesterWeeks(semesterWeeks);
 
         // 保存更新
         boolean updated = semesterDAO.updateById(semester);
@@ -97,7 +99,7 @@ public class SemesterServiceImpl implements SemesterService {
             throw new BusinessException("更新学期失败", ErrorCode.OPERATION_FAILED);
         }
 
-        log.info("学期更新成功 - UUID: {}, 名称: {}", semesterUuid, semesterName);
+        log.info("学期更新成功 - UUID: {}, 名称: {}, 周数: {}", semesterUuid, semesterName, semesterWeeks);
     }
 
     @Override
@@ -150,6 +152,7 @@ public class SemesterServiceImpl implements SemesterService {
         SemesterInfoDTO dto = new SemesterInfoDTO();
         dto.setSemesterUuid(semesterDO.getSemesterUuid());
         dto.setSemesterName(semesterDO.getSemesterName());
+        dto.setSemesterWeeks(semesterDO.getSemesterWeeks());
         return dto;
     }
 

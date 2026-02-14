@@ -30,15 +30,17 @@ public class SemesterController {
      *
      * @param token        Token
      * @param semesterName 学期名称
+     * @param semesterWeeks 学期周数
      * @return 添加学期成功的信息
      */
     @PostMapping("/add")
     @RequireRole({UserType.SYSTEM_ADMIN, UserType.ACADEMIC_ADMIN})
     public ResponseEntity<BaseResponse<Void>> addSemester(
             @RequestHeader("Authorization") String token,
-            @RequestParam("semester_name") String semesterName
+            @RequestParam("semester_name") String semesterName,
+            @RequestParam("semester_weeks") Integer semesterWeeks
     ) {
-        semesterService.addSemester(semesterName);
+        semesterService.addSemester(semesterName, semesterWeeks);
         return ResultUtil.success("添加学期成功");
     }
 
@@ -67,6 +69,7 @@ public class SemesterController {
      * @param token        Token
      * @param semesterUuid 学期uuid
      * @param semesterName 学期名称
+     * @param semesterWeeks 学期周数
      * @return 更新学期信息成功信息
      */
     @PutMapping("/update")
@@ -74,9 +77,10 @@ public class SemesterController {
     public ResponseEntity<BaseResponse<Void>> updateSemester(
             @RequestHeader("Authorization") String token,
             @RequestParam("semester_uuid") String semesterUuid,
-            @RequestParam("semester_name") String semesterName
+            @RequestParam("semester_name") String semesterName,
+            @RequestParam("semester_weeks") Integer semesterWeeks
     ) {
-        semesterService.updateSemester(semesterUuid, semesterName);
+        semesterService.updateSemester(semesterUuid, semesterName, semesterWeeks);
         return ResultUtil.success("更新学期成功");
     }
 

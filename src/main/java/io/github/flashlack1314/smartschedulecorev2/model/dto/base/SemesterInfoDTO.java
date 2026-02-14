@@ -19,4 +19,8 @@ public class SemesterInfoDTO {
      * 学期名称
      */
     private String semesterName;
+    /**
+     * 学期周数
+     */
+    private Integer semesterWeeks;
 }

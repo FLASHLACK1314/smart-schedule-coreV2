@@ -2,6 +2,7 @@ package io.github.flashlack1314.smartschedulecorev2.service.impl;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.exception.BusinessException;
@@ -82,7 +83,18 @@ public class ScheduleServiceImpl implements ScheduleService {
             throw new BusinessException("上课周次不能为空", ErrorCode.OPERATION_FAILED);
         }
         try {
-            objectMapper.readTree(getData.getWeeksJson());
+            JsonNode weeksNode = objectMapper.readTree(getData.getWeeksJson());
+            // 验证周次是否超出学期范围
+            int maxWeek = 0;
+            for (JsonNode weekNode : weeksNode) {
+                int week = weekNode.asInt();
+                if (week > maxWeek) {
+                    maxWeek = week;
+                }
+            }
+            if (maxWeek > semesterDO.getSemesterWeeks()) {
+                throw new BusinessException("上课周次不能超过学期周数(" + semesterDO.getSemesterWeeks() + "周)", ErrorCode.OPERATION_FAILED);
+            }
         } catch (JsonProcessingException e) {
             throw new BusinessException("上课周次格式错误，应为JSON数组格式", ErrorCode.OPERATION_FAILED);
         }
@@ -219,7 +231,18 @@ public class ScheduleServiceImpl implements ScheduleService {
             throw new BusinessException("上课周次不能为空", ErrorCode.OPERATION_FAILED);
         }
         try {
-            objectMapper.readTree(getData.getWeeksJson());
+            JsonNode weeksNode = objectMapper.readTree(getData.getWeeksJson());
+            // 验证周次是否超出学期范围
+            int maxWeek = 0;
+            for (JsonNode weekNode : weeksNode) {
+                int week = weekNode.asInt();
+                if (week > maxWeek) {
+                    maxWeek = week;
+                }
+            }
+            if (maxWeek > semesterDO.getSemesterWeeks()) {
+                throw new BusinessException("上课周次不能超过学期周数(" + semesterDO.getSemesterWeeks() + "周)", ErrorCode.OPERATION_FAILED);
+            }
         } catch (JsonProcessingException e) {
             throw new BusinessException("上课周次格式错误，应为JSON数组格式", ErrorCode.OPERATION_FAILED);
         }

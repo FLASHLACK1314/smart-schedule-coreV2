@@ -14,8 +14,9 @@ public interface SemesterService {
      * 添加学期
      *
      * @param semesterName 学期名称
+     * @param semesterWeeks 学期周数
      */
-    void addSemester(String semesterName);
+    void addSemester(String semesterName, Integer semesterWeeks);
 
     /**
      * 获取学期信息分页
@@ -32,8 +33,9 @@ public interface SemesterService {
      *
      * @param semesterUuid 学期UUID
      * @param semesterName 学期名称
+     * @param semesterWeeks 学期周数
      */
-    void updateSemester(String semesterUuid, String semesterName);
+    void updateSemester(String semesterUuid, String semesterName, Integer semesterWeeks);
 
     /**
      * 获取学期信息

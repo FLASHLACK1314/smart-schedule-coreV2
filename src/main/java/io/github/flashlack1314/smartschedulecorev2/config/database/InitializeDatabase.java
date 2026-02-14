@@ -247,12 +247,14 @@ public class InitializeDatabase {
 
         SemesterDO sem1 = new SemesterDO();
         sem1.setSemesterUuid(UuidUtil.generateUuidNoDash())
-                .setSemesterName("2024-2025学年第一学期");
+                .setSemesterName("2024-2025学年第一学期")
+                .setSemesterWeeks(18);
         semesters.add(sem1);
 
         SemesterDO sem2 = new SemesterDO();
         sem2.setSemesterUuid(UuidUtil.generateUuidNoDash())
-                .setSemesterName("2024-2025学年第二学期");
+                .setSemesterName("2024-2025学年第二学期")
+                .setSemesterWeeks(18);
         semesters.add(sem2);
 
         semesterDAO.saveBatch(semesters);
