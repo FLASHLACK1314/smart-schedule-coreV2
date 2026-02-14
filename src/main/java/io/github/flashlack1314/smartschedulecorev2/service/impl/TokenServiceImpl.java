@@ -117,16 +117,19 @@ public class TokenServiceImpl implements TokenService {
     public void deleteToken(String token) {
         String redisKey = tokenProperties.getRedisKeyPrefix() + token;
 
-        // 获取Token信息（用于清理索引）
+        // 获取Token信息（用于清理索引）- 直接从Redis获取，避免调用getTokenInfo导致递归
         try {
-            TokenInfoDTO tokenInfo = getTokenInfo(token);
-            String userTokensKey = getUserTokensKey(
-                    tokenInfo.getUserUuid(),
-                    tokenInfo.getUserType()
-            );
-            redisTemplate.opsForSet().remove(userTokensKey, token);
-        } catch (BusinessException e) {
-            // Token已不存在，忽略
+            Object tokenObj = redisTemplate.opsForValue().get(redisKey);
+
+            if (tokenObj instanceof TokenInfoDTO tokenInfo) {
+                String userTokensKey = getUserTokensKey(
+                        tokenInfo.getUserUuid(),
+                        tokenInfo.getUserType()
+                );
+                redisTemplate.opsForSet().remove(userTokensKey, token);
+            }
+        } catch (Exception e) {
+            // 获取Token信息失败或Token不存在，忽略
         }
 
         redisTemplate.delete(redisKey);
