@@ -212,6 +212,9 @@ public class ScheduleContext {
     /** 教师每周最大课时 (teacherUuid -> maxHours) */
     private Map<String, Integer> teacherMaxHours;
 
+    /** 已有的正式排课记录 (status=1，用于冲突检测) */
+    private List<ExistingSchedule> existingSchedules;
+
     /** 已锁定的排课记录 (算法跳过这些) */
     private List<LockedSchedule> lockedSchedules;
 
@@ -220,6 +223,22 @@ public class ScheduleContext {
 
     /** 每周上课天数 (通常5或7) */
     private Integer daysPerWeek;
+
+    @Data
+    public static class ExistingSchedule {
+        /** 排课记录UUID */
+        private String scheduleUuid;
+        /** 教学班UUID */
+        private String teachingClassUuid;
+        /** 教师UUID */
+        private String teacherUuid;
+        /** 教室UUID */
+        private String classroomUuid;
+        /** 关联的行政班UUID列表 */
+        private List<String> classUuids;
+        /** 时间槽 */
+        private TimeSlot timeSlot;
+    }
 
     @Data
     public static class TeachingClassInfo {
@@ -273,10 +292,13 @@ public class ConflictDetector {
     public ConflictReport detectConflicts(Chromosome chromosome, ScheduleContext context) {
         List<Conflict> conflicts = new ArrayList<>();
 
-        // 1. 教师时间冲突检测
+        // 0. 与已有排课的冲突检测（优先检测，因为已有排课不可修改）
+        conflicts.addAll(detectConflictsWithExistingSchedules(chromosome, context));
+
+        // 1. 教师时间冲突检测（方案内部）
         conflicts.addAll(detectTeacherConflicts(chromosome));
 
-        // 2. 教室时间冲突检测
+        // 2. 教室时间冲突检测（方案内部）
         conflicts.addAll(detectClassroomConflicts(chromosome));
 
         // 3. 班级时间冲突检测
@@ -307,7 +329,52 @@ public class ConflictDetector {
         // 需要查询 teaching_class_class 关联表
     }
 
-    // ... 其他检测方法
+    /**
+     * 检测与已有排课的冲突（重要！）
+     * 遍历当前方案中的每个课程安排，检查是否与数据库中已有的正式排课冲突
+     */
+    private List<Conflict> detectConflictsWithExistingSchedules(Chromosome chromosome, ScheduleContext context) {
+        List<Conflict> conflicts = new ArrayList<>();
+        List<ExistingSchedule> existingSchedules = context.getExistingSchedules();
+
+        if (existingSchedules == null || existingSchedules.isEmpty()) {
+            return conflicts; // 没有已有排课，无需检测
+        }
+
+        // 遍历当前染色体的所有课程安排
+        for (Map.Entry<TimeSlot, List<CourseAppointment>> entry : chromosome.getGenes().entrySet()) {
+            TimeSlot currentTimeSlot = entry.getKey();
+            List<CourseAppointment> currentAppointments = entry.getValue();
+
+            // 遍历该时间槽的每个课程安排
+            for (CourseAppointment current : currentAppointments) {
+                // 检查与每个已有排课是否冲突
+                for (ExistingSchedule existing : existingSchedules) {
+                    // 检查时间是否重叠
+                    if (!currentTimeSlot.isOverlap(existing.getTimeSlot())) {
+                        continue; // 时间不重叠，跳过
+                    }
+
+                    // 教师冲突：已有排课的教师 == 当前安排的教师
+                    if (current.getTeacherUuid().equals(existing.getTeacherUuid())) {
+                        conflicts.add(new Conflict(...));
+                    }
+
+                    // 教室冲突：已有排课的教室 == 当前安排的教室
+                    if (current.getClassroomUuid().equals(existing.getClassroomUuid())) {
+                        conflicts.add(new Conflict(...));
+                    }
+
+                    // 班级冲突：当前安排的行政班与已有排课的行政班有重叠
+                    if (hasClassOverlap(current.getClassUuids(), existing.getClassUuids())) {
+                        conflicts.add(new Conflict(...));
+                    }
+                }
+            }
+        }
+
+        return conflicts;
+    }
 }
 ```
 
@@ -807,6 +874,45 @@ public class AutoScheduleServiceImpl implements AutoScheduleService {
         context.setTeacherTimePreferences(preferences);
         context.setTeacherMaxHours(maxHours);
 
+        // 查询该学期已有的正式排课记录（status=1），用于冲突检测
+        List<ScheduleDO> existingSchedules = scheduleDAO.list(
+            scheduleDAO.lambdaQuery()
+                .eq(ScheduleDO::getSemesterUuid, request.getSemesterUuid())
+                .eq(ScheduleDO::getStatus, 1) // 只查询正式排课
+                .getWrapper()
+        );
+
+        List<ScheduleContext.ExistingSchedule> existingList = existingSchedules.stream()
+            .map(schedule -> {
+                ScheduleContext.ExistingSchedule existing = new ScheduleContext.ExistingSchedule();
+                existing.setScheduleUuid(schedule.getScheduleUuid());
+                existing.setTeachingClassUuid(schedule.getTeachingClassUuid());
+                existing.setTeacherUuid(schedule.getTeacherUuid());
+                existing.setClassroomUuid(schedule.getClassroomUuid());
+
+                // 构建时间槽
+                TimeSlot timeSlot = new TimeSlot();
+                timeSlot.setDayOfWeek(schedule.getDayOfWeek());
+                timeSlot.setSectionStart(schedule.getSectionStart());
+                timeSlot.setSectionEnd(schedule.getSectionEnd());
+                timeSlot.setWeeks(parseWeeksJson(schedule.getWeeksJson()));
+                existing.setTimeSlot(timeSlot);
+
+                // 查询关联的行政班
+                List<TeachingClassClassDO> relations = teachingClassClassDAO.list(
+                    teachingClassClassDAO.lambdaQuery()
+                        .eq(TeachingClassClassDO::getTeachingClassUuid, schedule.getTeachingClassUuid())
+                        .getWrapper()
+                );
+                existing.setClassUuids(relations.stream()
+                    .map(TeachingClassClassDO::getClassUuid)
+                    .collect(Collectors.toList()));
+
+                return existing;
+            })
+            .collect(Collectors.toList());
+        context.setExistingSchedules(existingList);
+
         // 查询已锁定的排课记录
         List<ScheduleDO> lockedSchedules = scheduleDAO.list(
             scheduleDAO.lambdaQuery()
@@ -853,19 +959,20 @@ public class AutoScheduleServiceImpl implements AutoScheduleService {
 **Goal**: 实现所有硬约束冲突检测逻辑
 **Success Criteria**:
 - ConflictDetector 类实现完成
-- 6种硬约束检测逻辑全部实现
+- 7种硬约束检测逻辑全部实现（包括与已有排课的冲突检测）
 - 冲突检测单元测试通过
 - 能正确识别教师、教室、班级时间冲突
 
 **Tasks**:
 1. 创建 `algorithm/core/ConflictDetector.java`
-2. 实现教师时间冲突检测 `detectTeacherConflicts()`
-3. 实现教室时间冲突检测 `detectClassroomConflicts()`
-4. 实现班级时间冲突检测 `detectClassConflicts()`（需查询关联表）
-5. 实现教室容量约束检测 `detectCapacityConflicts()`
-6. 实现教室类型匹配检测 `detectClassroomTypeConflicts()`
-7. 实现教师资格约束检测 `detectQualificationConflicts()`
-8. 编写冲突检测的集成测试
+2. **实现与已有排课的冲突检测 `detectConflictsWithExistingSchedules()`（优先级最高）**
+3. 实现教师时间冲突检测 `detectTeacherConflicts()`
+4. 实现教室时间冲突检测 `detectClassroomConflicts()`
+5. 实现班级时间冲突检测 `detectClassConflicts()`（需查询关联表）
+6. 实现教室容量约束检测 `detectCapacityConflicts()`
+7. 实现教室类型匹配检测 `detectClassroomTypeConflicts()`
+8. 实现教师资格约束检测 `detectQualificationConflicts()`
+9. 编写冲突检测的集成测试
 
 **Status**: Not Started
 
