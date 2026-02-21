@@ -50,7 +50,7 @@ public class ScheduleInfoDTO {
      */
     private Integer sectionEnd;
     /**
-     * 上课周次
+     * 上课周次 JSON数组字符串
      */
     private String weeksJson;
     /**

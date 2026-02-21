@@ -73,9 +73,9 @@ public class ScheduleDO {
     private Integer sectionEnd;
 
     /**
-     * 上课周次 [1,2,3...] (JSONB格式)
+     * 上课周次 JSON数组字符串 如"[1,2,3]"
      */
-    @TableField(value = "weeks_json")
+    @TableField("weeks_json")
     private String weeksJson;
 
     /**

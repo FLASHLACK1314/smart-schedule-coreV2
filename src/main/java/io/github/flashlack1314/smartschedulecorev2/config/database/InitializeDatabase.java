@@ -38,6 +38,9 @@ public class InitializeDatabase {
     private final ClassDAO classDAO;
     private final StudentDAO studentDAO;
     private final CourseQualificationDAO courseQualificationDAO;
+    private final TeachingClassDAO teachingClassDAO;
+    private final TeachingClassClassDAO teachingClassClassDAO;
+    private final ScheduleDAO scheduleDAO;
 
     /**
      * 初始化数据库数据
@@ -67,6 +70,11 @@ public class InitializeDatabase {
 
         // 第四层：关联数据
         this.initializeCourseQualifications(courses, teachers);
+
+        // 第五层：教学班和排课记录
+        List<TeachingClassDO> teachingClasses = this.initializeTeachingClasses(courses, teachers, semesters);
+        this.initializeTeachingClassClasses(teachingClasses, classes);
+        this.initializeSchedules(teachingClasses, semesters, classrooms, courses, teachers);
 
         // 系统管理员
         this.createSystemAdmin();
@@ -720,5 +728,319 @@ public class InitializeDatabase {
 
         courseQualificationDAO.saveBatch(qualifications);
         log.info("课程教师资格关联数据初始化完成，共 {} 条记录", qualifications.size());
+    }
+
+    /**
+     * 初始化教学班数据
+     */
+    private List<TeachingClassDO> initializeTeachingClasses(
+            List<CourseDO> courses,
+            List<TeacherDO> teachers,
+            List<SemesterDO> semesters) {
+        log.info("正在初始化教学班数据...");
+
+        List<TeachingClassDO> teachingClasses = new ArrayList<>();
+
+        // 数据结构-张教授-计科2101班 (第1学期)
+        TeachingClassDO tc1 = new TeachingClassDO();
+        tc1.setTeachingClassUuid(UuidUtil.generateUuidNoDash())
+                .setCourseUuid(courses.get(0).getCourseUuid()) // 数据结构
+                .setTeacherUuid(teachers.get(0).getTeacherUuid()) // 张教授
+                .setSemesterUuid(semesters.get(0).getSemesterUuid()) // 第1学期
+                .setTeachingClassName("数据结构-张教授-计科2101班");
+        teachingClasses.add(tc1);
+
+        // 操作系统-张教授-计科2102班 (第1学期)
+        TeachingClassDO tc2 = new TeachingClassDO();
+        tc2.setTeachingClassUuid(UuidUtil.generateUuidNoDash())
+                .setCourseUuid(courses.get(1).getCourseUuid()) // 操作系统
+                .setTeacherUuid(teachers.get(0).getTeacherUuid()) // 张教授
+                .setSemesterUuid(semesters.get(0).getSemesterUuid()) // 第1学期
+                .setTeachingClassName("操作系统-张教授-计科2102班");
+        teachingClasses.add(tc2);
+
+        // 操作系统-王副教授-软件2101班 (第1学期)
+        TeachingClassDO tc3 = new TeachingClassDO();
+        tc3.setTeachingClassUuid(UuidUtil.generateUuidNoDash())
+                .setCourseUuid(courses.get(1).getCourseUuid()) // 操作系统
+                .setTeacherUuid(teachers.get(1).getTeacherUuid()) // 王副教授
+                .setSemesterUuid(semesters.get(0).getSemesterUuid()) // 第1学期
+                .setTeachingClassName("操作系统-王副教授-软件2101班");
+        teachingClasses.add(tc3);
+
+        // Java程序设计-李讲师-计科2101+2102班 (第1学期, 合班)
+        TeachingClassDO tc4 = new TeachingClassDO();
+        tc4.setTeachingClassUuid(UuidUtil.generateUuidNoDash())
+                .setCourseUuid(courses.get(2).getCourseUuid()) // Java程序设计
+                .setTeacherUuid(teachers.get(2).getTeacherUuid()) // 李讲师
+                .setSemesterUuid(semesters.get(0).getSemesterUuid()) // 第1学期
+                .setTeachingClassName("Java程序设计-李讲师-计科2101+2102班");
+        teachingClasses.add(tc4);
+
+        // 数据库系统-李讲师-软件2101班 (第1学期)
+        TeachingClassDO tc5 = new TeachingClassDO();
+        tc5.setTeachingClassUuid(UuidUtil.generateUuidNoDash())
+                .setCourseUuid(courses.get(5).getCourseUuid()) // 数据库系统
+                .setTeacherUuid(teachers.get(2).getTeacherUuid()) // 李讲师
+                .setSemesterUuid(semesters.get(0).getSemesterUuid()) // 第1学期
+                .setTeachingClassName("数据库系统-李讲师-软件2101班");
+        teachingClasses.add(tc5);
+
+        // 电路原理-王副教授-电子2101班 (第1学期)
+        TeachingClassDO tc6 = new TeachingClassDO();
+        tc6.setTeachingClassUuid(UuidUtil.generateUuidNoDash())
+                .setCourseUuid(courses.get(3).getCourseUuid()) // 电路原理
+                .setTeacherUuid(teachers.get(1).getTeacherUuid()) // 王副教授
+                .setSemesterUuid(semesters.get(0).getSemesterUuid()) // 第1学期
+                .setTeachingClassName("电路原理-王副教授-电子2101班");
+        teachingClasses.add(tc6);
+
+        // 大学体育-赵老师-计科2101班 (第1学期)
+        TeachingClassDO tc7 = new TeachingClassDO();
+        tc7.setTeachingClassUuid(UuidUtil.generateUuidNoDash())
+                .setCourseUuid(courses.get(4).getCourseUuid()) // 大学体育
+                .setTeacherUuid(teachers.get(3).getTeacherUuid()) // 赵老师
+                .setSemesterUuid(semesters.get(0).getSemesterUuid()) // 第1学期
+                .setTeachingClassName("大学体育-赵老师-计科2101班");
+        teachingClasses.add(tc7);
+
+        // 大学体育-赵老师-计科2102班 (第2学期)
+        TeachingClassDO tc8 = new TeachingClassDO();
+        tc8.setTeachingClassUuid(UuidUtil.generateUuidNoDash())
+                .setCourseUuid(courses.get(4).getCourseUuid()) // 大学体育
+                .setTeacherUuid(teachers.get(3).getTeacherUuid()) // 赵老师
+                .setSemesterUuid(semesters.get(1).getSemesterUuid()) // 第2学期
+                .setTeachingClassName("大学体育-赵老师-计科2102班");
+        teachingClasses.add(tc8);
+
+        teachingClassDAO.saveBatch(teachingClasses);
+        log.info("教学班数据初始化完成，共 {} 条记录", teachingClasses.size());
+        return teachingClasses;
+    }
+
+    /**
+     * 初始化教学班-行政班关联数据
+     */
+    private void initializeTeachingClassClasses(
+            List<TeachingClassDO> teachingClasses,
+            List<ClassDO> classes) {
+        log.info("正在初始化教学班-行政班关联数据...");
+
+        List<TeachingClassClassDO> relations = new ArrayList<>();
+
+        // tc1 (数据结构) -> 计科2101班
+        TeachingClassClassDO rel1 = new TeachingClassClassDO();
+        rel1.setTeachingClassClassUuid(UuidUtil.generateUuidNoDash())
+                .setTeachingClassUuid(teachingClasses.get(0).getTeachingClassUuid())
+                .setClassUuid(classes.get(0).getClassUuid()); // 计科2101班
+        relations.add(rel1);
+
+        // tc2 (操作系统-张教授) -> 计科2102班
+        TeachingClassClassDO rel2 = new TeachingClassClassDO();
+        rel2.setTeachingClassClassUuid(UuidUtil.generateUuidNoDash())
+                .setTeachingClassUuid(teachingClasses.get(1).getTeachingClassUuid())
+                .setClassUuid(classes.get(1).getClassUuid()); // 计科2102班
+        relations.add(rel2);
+
+        // tc3 (操作系统-王副教授) -> 软件2101班
+        TeachingClassClassDO rel3 = new TeachingClassClassDO();
+        rel3.setTeachingClassClassUuid(UuidUtil.generateUuidNoDash())
+                .setTeachingClassUuid(teachingClasses.get(2).getTeachingClassUuid())
+                .setClassUuid(classes.get(2).getClassUuid()); // 软件2101班
+        relations.add(rel3);
+
+        // tc4 (Java程序设计, 合班) -> 计科2101班 + 计科2102班
+        TeachingClassClassDO rel4 = new TeachingClassClassDO();
+        rel4.setTeachingClassClassUuid(UuidUtil.generateUuidNoDash())
+                .setTeachingClassUuid(teachingClasses.get(3).getTeachingClassUuid())
+                .setClassUuid(classes.get(0).getClassUuid()); // 计科2101班
+        relations.add(rel4);
+
+        TeachingClassClassDO rel5 = new TeachingClassClassDO();
+        rel5.setTeachingClassClassUuid(UuidUtil.generateUuidNoDash())
+                .setTeachingClassUuid(teachingClasses.get(3).getTeachingClassUuid())
+                .setClassUuid(classes.get(1).getClassUuid()); // 计科2102班
+        relations.add(rel5);
+
+        // tc5 (数据库系统) -> 软件2101班
+        TeachingClassClassDO rel6 = new TeachingClassClassDO();
+        rel6.setTeachingClassClassUuid(UuidUtil.generateUuidNoDash())
+                .setTeachingClassUuid(teachingClasses.get(4).getTeachingClassUuid())
+                .setClassUuid(classes.get(2).getClassUuid()); // 软件2101班
+        relations.add(rel6);
+
+        // tc6 (电路原理) -> 电子2101班
+        TeachingClassClassDO rel7 = new TeachingClassClassDO();
+        rel7.setTeachingClassClassUuid(UuidUtil.generateUuidNoDash())
+                .setTeachingClassUuid(teachingClasses.get(5).getTeachingClassUuid())
+                .setClassUuid(classes.get(3).getClassUuid()); // 电子2101班
+        relations.add(rel7);
+
+        // tc7 (大学体育-第1学期) -> 计科2101班
+        TeachingClassClassDO rel8 = new TeachingClassClassDO();
+        rel8.setTeachingClassClassUuid(UuidUtil.generateUuidNoDash())
+                .setTeachingClassUuid(teachingClasses.get(6).getTeachingClassUuid())
+                .setClassUuid(classes.get(0).getClassUuid()); // 计科2101班
+        relations.add(rel8);
+
+        // tc8 (大学体育-第2学期) -> 计科2102班
+        TeachingClassClassDO rel9 = new TeachingClassClassDO();
+        rel9.setTeachingClassClassUuid(UuidUtil.generateUuidNoDash())
+                .setTeachingClassUuid(teachingClasses.get(7).getTeachingClassUuid())
+                .setClassUuid(classes.get(1).getClassUuid()); // 计科2102班
+        relations.add(rel9);
+
+        teachingClassClassDAO.saveBatch(relations);
+        log.info("教学班-行政班关联数据初始化完成，共 {} 条记录", relations.size());
+    }
+
+    /**
+     * 初始化排课记录数据
+     */
+    private void initializeSchedules(
+            List<TeachingClassDO> teachingClasses,
+            List<SemesterDO> semesters,
+            List<ClassroomDO> classrooms,
+            List<CourseDO> courses,
+            List<TeacherDO> teachers) {
+        log.info("正在初始化排课记录数据...");
+
+        List<ScheduleDO> schedules = new ArrayList<>();
+
+        // 生成周次JSON字符串
+        String fullWeeks = "[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18]";
+        String weeks1to8 = "[1,2,3,4,5,6,7,8]";
+        String weeks1to16 = "[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16]";
+
+        // tc1: 数据结构-张教授-计科2101班 -> 周一1-2节, A101, 1-8周
+        ScheduleDO sched1 = new ScheduleDO();
+        sched1.setScheduleUuid(UuidUtil.generateUuidNoDash())
+                .setSemesterUuid(semesters.get(0).getSemesterUuid())
+                .setTeachingClassUuid(teachingClasses.get(0).getTeachingClassUuid())
+                .setCourseUuid(teachingClasses.get(0).getCourseUuid()) // 冗余字段
+                .setTeacherUuid(teachingClasses.get(0).getTeacherUuid()) // 冗余字段
+                .setClassroomUuid(classrooms.get(0).getClassroomUuid()) // A101
+                .setDayOfWeek(1)
+                .setSectionStart(1)
+                .setSectionEnd(2)
+                .setWeeksJson(weeks1to8)
+                .setIsLocked(false)
+                .setStatus(1);
+        schedules.add(sched1);
+
+        // tc2: 操作系统-张教授-计科2102班 -> 周三3-4节, A102, 1-18周
+        ScheduleDO sched2 = new ScheduleDO();
+        sched2.setScheduleUuid(UuidUtil.generateUuidNoDash())
+                .setSemesterUuid(semesters.get(0).getSemesterUuid())
+                .setTeachingClassUuid(teachingClasses.get(1).getTeachingClassUuid())
+                .setCourseUuid(teachingClasses.get(1).getCourseUuid())
+                .setTeacherUuid(teachingClasses.get(1).getTeacherUuid())
+                .setClassroomUuid(classrooms.get(1).getClassroomUuid()) // A102
+                .setDayOfWeek(3)
+                .setSectionStart(3)
+                .setSectionEnd(4)
+                .setWeeksJson(fullWeeks)
+                .setIsLocked(false)
+                .setStatus(1);
+        schedules.add(sched2);
+
+        // tc3: 操作系统-王副教授-软件2101班 -> 周二5-6节, B101, 1-18周
+        ScheduleDO sched3 = new ScheduleDO();
+        sched3.setScheduleUuid(UuidUtil.generateUuidNoDash())
+                .setSemesterUuid(semesters.get(0).getSemesterUuid())
+                .setTeachingClassUuid(teachingClasses.get(2).getTeachingClassUuid())
+                .setCourseUuid(teachingClasses.get(2).getCourseUuid())
+                .setTeacherUuid(teachingClasses.get(2).getTeacherUuid())
+                .setClassroomUuid(classrooms.get(3).getClassroomUuid()) // B101
+                .setDayOfWeek(2)
+                .setSectionStart(5)
+                .setSectionEnd(6)
+                .setWeeksJson(fullWeeks)
+                .setIsLocked(false)
+                .setStatus(1);
+        schedules.add(sched3);
+
+        // tc4: Java程序设计-李讲师-计科2101+2102班 -> 周四7-8节, C101, 1-18周
+        ScheduleDO sched4 = new ScheduleDO();
+        sched4.setScheduleUuid(UuidUtil.generateUuidNoDash())
+                .setSemesterUuid(semesters.get(0).getSemesterUuid())
+                .setTeachingClassUuid(teachingClasses.get(3).getTeachingClassUuid())
+                .setCourseUuid(teachingClasses.get(3).getCourseUuid())
+                .setTeacherUuid(teachingClasses.get(3).getTeacherUuid())
+                .setClassroomUuid(classrooms.get(4).getClassroomUuid()) // C101
+                .setDayOfWeek(4)
+                .setSectionStart(7)
+                .setSectionEnd(8)
+                .setWeeksJson(fullWeeks)
+                .setIsLocked(false)
+                .setStatus(1);
+        schedules.add(sched4);
+
+        // tc5: 数据库系统-李讲师-软件2101班 -> 周五1-2节, A101, 1-18周
+        ScheduleDO sched5 = new ScheduleDO();
+        sched5.setScheduleUuid(UuidUtil.generateUuidNoDash())
+                .setSemesterUuid(semesters.get(0).getSemesterUuid())
+                .setTeachingClassUuid(teachingClasses.get(4).getTeachingClassUuid())
+                .setCourseUuid(teachingClasses.get(4).getCourseUuid())
+                .setTeacherUuid(teachingClasses.get(4).getTeacherUuid())
+                .setClassroomUuid(classrooms.get(0).getClassroomUuid()) // A101
+                .setDayOfWeek(5)
+                .setSectionStart(1)
+                .setSectionEnd(2)
+                .setWeeksJson(fullWeeks)
+                .setIsLocked(false)
+                .setStatus(1);
+        schedules.add(sched5);
+
+        // tc6: 电路原理-王副教授-电子2101班 -> 周一5-6节, C201, 1-18周
+        ScheduleDO sched6 = new ScheduleDO();
+        sched6.setScheduleUuid(UuidUtil.generateUuidNoDash())
+                .setSemesterUuid(semesters.get(0).getSemesterUuid())
+                .setTeachingClassUuid(teachingClasses.get(5).getTeachingClassUuid())
+                .setCourseUuid(teachingClasses.get(5).getCourseUuid())
+                .setTeacherUuid(teachingClasses.get(5).getTeacherUuid())
+                .setClassroomUuid(classrooms.get(5).getClassroomUuid()) // C201
+                .setDayOfWeek(1)
+                .setSectionStart(5)
+                .setSectionEnd(6)
+                .setWeeksJson(fullWeeks)
+                .setIsLocked(false)
+                .setStatus(1);
+        schedules.add(sched6);
+
+        // tc7: 大学体育-赵老师-计科2101班 -> 周三7-8节, D101, 1-18周
+        ScheduleDO sched7 = new ScheduleDO();
+        sched7.setScheduleUuid(UuidUtil.generateUuidNoDash())
+                .setSemesterUuid(semesters.get(0).getSemesterUuid())
+                .setTeachingClassUuid(teachingClasses.get(6).getTeachingClassUuid())
+                .setCourseUuid(teachingClasses.get(6).getCourseUuid())
+                .setTeacherUuid(teachingClasses.get(6).getTeacherUuid())
+                .setClassroomUuid(classrooms.get(6).getClassroomUuid()) // D101
+                .setDayOfWeek(3)
+                .setSectionStart(7)
+                .setSectionEnd(8)
+                .setWeeksJson(fullWeeks)
+                .setIsLocked(false)
+                .setStatus(1);
+        schedules.add(sched7);
+
+        // tc8: 大学体育-赵老师-计科2102班 -> 周五3-4节, D101, 1-16周 (第2学期)
+        ScheduleDO sched8 = new ScheduleDO();
+        sched8.setScheduleUuid(UuidUtil.generateUuidNoDash())
+                .setSemesterUuid(semesters.get(1).getSemesterUuid()) // 第2学期
+                .setTeachingClassUuid(teachingClasses.get(7).getTeachingClassUuid())
+                .setCourseUuid(teachingClasses.get(7).getCourseUuid())
+                .setTeacherUuid(teachingClasses.get(7).getTeacherUuid())
+                .setClassroomUuid(classrooms.get(6).getClassroomUuid()) // D101
+                .setDayOfWeek(5)
+                .setSectionStart(3)
+                .setSectionEnd(4)
+                .setWeeksJson(weeks1to16)
+                .setIsLocked(false)
+                .setStatus(1);
+        schedules.add(sched8);
+
+        scheduleDAO.saveBatch(schedules);
+        log.info("排课记录数据初始化完成，共 {} 条记录", schedules.size());
     }
 }

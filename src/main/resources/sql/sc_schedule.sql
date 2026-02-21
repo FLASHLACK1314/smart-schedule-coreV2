@@ -21,7 +21,7 @@ create table public.sc_schedule
     day_of_week         integer     not null, -- 1-7
     section_start       integer     not null, -- 起始节次
     section_end         integer     not null, -- 结束节次
-    weeks_json          jsonb       not null default '[]'::jsonb, -- 上课周次 [1,2,3...]
+    weeks_json          varchar     not null, -- 上课周次 JSON数组字符串 如"[1,2,3]"
 
     -- 锁定标识：如果老师手动调整并确认了这一节，可以锁定
     is_locked           boolean     not null default false,
