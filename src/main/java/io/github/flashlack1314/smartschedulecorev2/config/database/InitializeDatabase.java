@@ -1,5 +1,7 @@
 package io.github.flashlack1314.smartschedulecorev2.config.database;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.xlf.utility.util.PasswordUtil;
 import com.xlf.utility.util.UuidUtil;
 import io.github.flashlack1314.smartschedulecorev2.dao.*;
@@ -747,7 +749,8 @@ public class InitializeDatabase {
                 .setCourseUuid(courses.get(0).getCourseUuid()) // 数据结构
                 .setTeacherUuid(teachers.get(0).getTeacherUuid()) // 张教授
                 .setSemesterUuid(semesters.get(0).getSemesterUuid()) // 第1学期
-                .setTeachingClassName("数据结构-张教授-计科2101班");
+                .setTeachingClassName("数据结构-张教授-计科2101班")
+                .setTeachingClassHours(0);
         teachingClasses.add(tc1);
 
         // 操作系统-张教授-计科2102班 (第1学期)
@@ -756,7 +759,8 @@ public class InitializeDatabase {
                 .setCourseUuid(courses.get(1).getCourseUuid()) // 操作系统
                 .setTeacherUuid(teachers.get(0).getTeacherUuid()) // 张教授
                 .setSemesterUuid(semesters.get(0).getSemesterUuid()) // 第1学期
-                .setTeachingClassName("操作系统-张教授-计科2102班");
+                .setTeachingClassName("操作系统-张教授-计科2102班")
+                .setTeachingClassHours(0);
         teachingClasses.add(tc2);
 
         // 操作系统-王副教授-软件2101班 (第1学期)
@@ -765,7 +769,8 @@ public class InitializeDatabase {
                 .setCourseUuid(courses.get(1).getCourseUuid()) // 操作系统
                 .setTeacherUuid(teachers.get(1).getTeacherUuid()) // 王副教授
                 .setSemesterUuid(semesters.get(0).getSemesterUuid()) // 第1学期
-                .setTeachingClassName("操作系统-王副教授-软件2101班");
+                .setTeachingClassName("操作系统-王副教授-软件2101班")
+                .setTeachingClassHours(0);
         teachingClasses.add(tc3);
 
         // Java程序设计-李讲师-计科2101+2102班 (第1学期, 合班)
@@ -774,7 +779,8 @@ public class InitializeDatabase {
                 .setCourseUuid(courses.get(2).getCourseUuid()) // Java程序设计
                 .setTeacherUuid(teachers.get(2).getTeacherUuid()) // 李讲师
                 .setSemesterUuid(semesters.get(0).getSemesterUuid()) // 第1学期
-                .setTeachingClassName("Java程序设计-李讲师-计科2101+2102班");
+                .setTeachingClassName("Java程序设计-李讲师-计科2101+2102班")
+                .setTeachingClassHours(0);
         teachingClasses.add(tc4);
 
         // 数据库系统-李讲师-软件2101班 (第1学期)
@@ -783,7 +789,8 @@ public class InitializeDatabase {
                 .setCourseUuid(courses.get(5).getCourseUuid()) // 数据库系统
                 .setTeacherUuid(teachers.get(2).getTeacherUuid()) // 李讲师
                 .setSemesterUuid(semesters.get(0).getSemesterUuid()) // 第1学期
-                .setTeachingClassName("数据库系统-李讲师-软件2101班");
+                .setTeachingClassName("数据库系统-李讲师-软件2101班")
+                .setTeachingClassHours(0);
         teachingClasses.add(tc5);
 
         // 电路原理-王副教授-电子2101班 (第1学期)
@@ -792,7 +799,8 @@ public class InitializeDatabase {
                 .setCourseUuid(courses.get(3).getCourseUuid()) // 电路原理
                 .setTeacherUuid(teachers.get(1).getTeacherUuid()) // 王副教授
                 .setSemesterUuid(semesters.get(0).getSemesterUuid()) // 第1学期
-                .setTeachingClassName("电路原理-王副教授-电子2101班");
+                .setTeachingClassName("电路原理-王副教授-电子2101班")
+                .setTeachingClassHours(0);
         teachingClasses.add(tc6);
 
         // 大学体育-赵老师-计科2101班 (第1学期)
@@ -801,7 +809,8 @@ public class InitializeDatabase {
                 .setCourseUuid(courses.get(4).getCourseUuid()) // 大学体育
                 .setTeacherUuid(teachers.get(3).getTeacherUuid()) // 赵老师
                 .setSemesterUuid(semesters.get(0).getSemesterUuid()) // 第1学期
-                .setTeachingClassName("大学体育-赵老师-计科2101班");
+                .setTeachingClassName("大学体育-赵老师-计科2101班")
+                .setTeachingClassHours(0);
         teachingClasses.add(tc7);
 
         // 大学体育-赵老师-计科2102班 (第2学期)
@@ -810,11 +819,13 @@ public class InitializeDatabase {
                 .setCourseUuid(courses.get(4).getCourseUuid()) // 大学体育
                 .setTeacherUuid(teachers.get(3).getTeacherUuid()) // 赵老师
                 .setSemesterUuid(semesters.get(1).getSemesterUuid()) // 第2学期
-                .setTeachingClassName("大学体育-赵老师-计科2102班");
+                .setTeachingClassName("大学体育-赵老师-计科2102班")
+                .setTeachingClassHours(0);
         teachingClasses.add(tc8);
 
+        // 先保存教学班（学时暂时为0，待排课初始化完成后更新）
         teachingClassDAO.saveBatch(teachingClasses);
-        log.info("教学班数据初始化完成，共 {} 条记录", teachingClasses.size());
+        log.info("教学班数据初始化完成，共 {} 条记录（待更新学时）", teachingClasses.size());
         return teachingClasses;
     }
 
@@ -912,6 +923,9 @@ public class InitializeDatabase {
         String weeks1to8 = "[1,2,3,4,5,6,7,8]";
         String weeks1to16 = "[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16]";
 
+        // ObjectMapper 用于解析周次JSON数组
+        ObjectMapper objectMapper = new ObjectMapper();
+
         // tc1: 数据结构-张教授-计科2101班 -> 周一1-2节, A101, 1-8周
         ScheduleDO sched1 = new ScheduleDO();
         sched1.setScheduleUuid(UuidUtil.generateUuidNoDash())
@@ -926,6 +940,16 @@ public class InitializeDatabase {
                 .setWeeksJson(weeks1to8)
                 .setIsLocked(false)
                 .setStatus(1);
+        // 计算学时: (2-1+1) × 8 = 16
+        try {
+            JsonNode weeksNode1 = objectMapper.readTree(weeks1to8);
+            int weekCount1 = weeksNode1.size();
+            int creditHours1 = (sched1.getSectionEnd() - sched1.getSectionStart() + 1) * weekCount1;
+            sched1.setCreditHours(creditHours1);
+        } catch (Exception e) {
+            log.warn("解析sched1周次JSON失败，使用默认值0", e);
+            sched1.setCreditHours(0);
+        }
         schedules.add(sched1);
 
         // tc2: 操作系统-张教授-计科2102班 -> 周三3-4节, A102, 1-18周
@@ -942,6 +966,16 @@ public class InitializeDatabase {
                 .setWeeksJson(fullWeeks)
                 .setIsLocked(false)
                 .setStatus(1);
+        // 计算学时: (4-3+1) × 18 = 36
+        try {
+            JsonNode weeksNode2 = objectMapper.readTree(fullWeeks);
+            int weekCount2 = weeksNode2.size();
+            int creditHours2 = (sched2.getSectionEnd() - sched2.getSectionStart() + 1) * weekCount2;
+            sched2.setCreditHours(creditHours2);
+        } catch (Exception e) {
+            log.warn("解析sched2周次JSON失败，使用默认值0", e);
+            sched2.setCreditHours(0);
+        }
         schedules.add(sched2);
 
         // tc3: 操作系统-王副教授-软件2101班 -> 周二5-6节, B101, 1-18周
@@ -958,6 +992,16 @@ public class InitializeDatabase {
                 .setWeeksJson(fullWeeks)
                 .setIsLocked(false)
                 .setStatus(1);
+        // 计算学时: (6-5+1) × 18 = 36
+        try {
+            JsonNode weeksNode3 = objectMapper.readTree(fullWeeks);
+            int weekCount3 = weeksNode3.size();
+            int creditHours3 = (sched3.getSectionEnd() - sched3.getSectionStart() + 1) * weekCount3;
+            sched3.setCreditHours(creditHours3);
+        } catch (Exception e) {
+            log.warn("解析sched3周次JSON失败，使用默认值0", e);
+            sched3.setCreditHours(0);
+        }
         schedules.add(sched3);
 
         // tc4: Java程序设计-李讲师-计科2101+2102班 -> 周四7-8节, C101, 1-18周
@@ -974,6 +1018,16 @@ public class InitializeDatabase {
                 .setWeeksJson(fullWeeks)
                 .setIsLocked(false)
                 .setStatus(1);
+        // 计算学时: (8-7+1) × 18 = 36
+        try {
+            JsonNode weeksNode4 = objectMapper.readTree(fullWeeks);
+            int weekCount4 = weeksNode4.size();
+            int creditHours4 = (sched4.getSectionEnd() - sched4.getSectionStart() + 1) * weekCount4;
+            sched4.setCreditHours(creditHours4);
+        } catch (Exception e) {
+            log.warn("解析sched4周次JSON失败，使用默认值0", e);
+            sched4.setCreditHours(0);
+        }
         schedules.add(sched4);
 
         // tc5: 数据库系统-李讲师-软件2101班 -> 周五1-2节, A101, 1-18周
@@ -990,6 +1044,16 @@ public class InitializeDatabase {
                 .setWeeksJson(fullWeeks)
                 .setIsLocked(false)
                 .setStatus(1);
+        // 计算学时: (2-1+1) × 18 = 36
+        try {
+            JsonNode weeksNode5 = objectMapper.readTree(fullWeeks);
+            int weekCount5 = weeksNode5.size();
+            int creditHours5 = (sched5.getSectionEnd() - sched5.getSectionStart() + 1) * weekCount5;
+            sched5.setCreditHours(creditHours5);
+        } catch (Exception e) {
+            log.warn("解析sched5周次JSON失败，使用默认值0", e);
+            sched5.setCreditHours(0);
+        }
         schedules.add(sched5);
 
         // tc6: 电路原理-王副教授-电子2101班 -> 周一5-6节, C201, 1-18周
@@ -1006,6 +1070,16 @@ public class InitializeDatabase {
                 .setWeeksJson(fullWeeks)
                 .setIsLocked(false)
                 .setStatus(1);
+        // 计算学时: (6-5+1) × 18 = 36
+        try {
+            JsonNode weeksNode6 = objectMapper.readTree(fullWeeks);
+            int weekCount6 = weeksNode6.size();
+            int creditHours6 = (sched6.getSectionEnd() - sched6.getSectionStart() + 1) * weekCount6;
+            sched6.setCreditHours(creditHours6);
+        } catch (Exception e) {
+            log.warn("解析sched6周次JSON失败，使用默认值0", e);
+            sched6.setCreditHours(0);
+        }
         schedules.add(sched6);
 
         // tc7: 大学体育-赵老师-计科2101班 -> 周三7-8节, D101, 1-18周
@@ -1022,6 +1096,16 @@ public class InitializeDatabase {
                 .setWeeksJson(fullWeeks)
                 .setIsLocked(false)
                 .setStatus(1);
+        // 计算学时: (8-7+1) × 18 = 36
+        try {
+            JsonNode weeksNode7 = objectMapper.readTree(fullWeeks);
+            int weekCount7 = weeksNode7.size();
+            int creditHours7 = (sched7.getSectionEnd() - sched7.getSectionStart() + 1) * weekCount7;
+            sched7.setCreditHours(creditHours7);
+        } catch (Exception e) {
+            log.warn("解析sched7周次JSON失败，使用默认值0", e);
+            sched7.setCreditHours(0);
+        }
         schedules.add(sched7);
 
         // tc8: 大学体育-赵老师-计科2102班 -> 周五3-4节, D101, 1-16周 (第2学期)
@@ -1038,9 +1122,36 @@ public class InitializeDatabase {
                 .setWeeksJson(weeks1to16)
                 .setIsLocked(false)
                 .setStatus(1);
+        // 计算学时: (4-3+1) × 16 = 32
+        try {
+            JsonNode weeksNode8 = objectMapper.readTree(weeks1to16);
+            int weekCount8 = weeksNode8.size();
+            int creditHours8 = (sched8.getSectionEnd() - sched8.getSectionStart() + 1) * weekCount8;
+            sched8.setCreditHours(creditHours8);
+        } catch (Exception e) {
+            log.warn("解析sched8周次JSON失败，使用默认值0", e);
+            sched8.setCreditHours(0);
+        }
         schedules.add(sched8);
 
+        // 保存排课记录
         scheduleDAO.saveBatch(schedules);
         log.info("排课记录数据初始化完成，共 {} 条记录", schedules.size());
+
+        // 更新所有教学班的学时统计
+        log.info("正在更新教学班学时统计...");
+        for (TeachingClassDO tc : teachingClasses) {
+            // 统计该教学班的所有排课学时
+            int totalHours = schedules.stream()
+                    .filter(s -> s.getTeachingClassUuid().equals(tc.getTeachingClassUuid()))
+                    .mapToInt(s -> s.getCreditHours() != null ? s.getCreditHours() : 0)
+                    .sum();
+            tc.setTeachingClassHours(totalHours);
+            log.info("教学班 {} 学时: {}", tc.getTeachingClassName(), totalHours);
+        }
+
+        // 更新教学班学时（已存在的记录）
+        teachingClassDAO.updateBatchById(teachingClasses);
+        log.info("教学班学时更新完成");
     }
 }

@@ -79,6 +79,12 @@ public class ScheduleDO {
     private String weeksJson;
 
     /**
+     * 累计学时 (单次学时 × 周次数)
+     */
+    @TableField("credit_hours")
+    private Integer creditHours;
+
+    /**
      * 锁定标识：如果老师手动调整并确认了这一节，可以锁定
      */
     @TableField("is_locked")

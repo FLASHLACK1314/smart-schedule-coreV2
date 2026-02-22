@@ -45,4 +45,10 @@ public class TeachingClassDO {
      */
     @TableField("teaching_class_name")
     private String teachingClassName;
+
+    /**
+     * 教学班学时 (排课记录累计)
+     */
+    @TableField("teaching_class_hours")
+    private Integer teachingClassHours;
 }

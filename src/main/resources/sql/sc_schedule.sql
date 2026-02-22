@@ -23,6 +23,9 @@ create table public.sc_schedule
     section_end         integer     not null, -- 结束节次
     weeks_json          varchar     not null, -- 上课周次 JSON数组字符串 如"[1,2,3]"
 
+    -- 学时信息
+    credit_hours        integer     not null default 0, -- 累计学时 (单次学时 × 周次数)
+
     -- 锁定标识：如果老师手动调整并确认了这一节，可以锁定
     is_locked           boolean     not null default false,
 
@@ -33,3 +36,4 @@ create table public.sc_schedule
 
 comment on table public.sc_schedule is '排课表 (基于教学班进行排课)';
 comment on column public.sc_schedule.teaching_class_uuid is '教学班UUID (代替原逻辑分组ID)';
+comment on column public.sc_schedule.credit_hours is '累计学时 (单次学时 × 周次数)';

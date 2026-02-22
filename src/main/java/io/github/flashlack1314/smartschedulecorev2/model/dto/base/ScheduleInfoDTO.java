@@ -54,6 +54,10 @@ public class ScheduleInfoDTO {
      */
     private String weeksJson;
     /**
+     * 累计学时 (单次学时 × 周次数)
+     */
+    private Integer creditHours;
+    /**
      * 锁定标识
      */
     private Boolean isLocked;

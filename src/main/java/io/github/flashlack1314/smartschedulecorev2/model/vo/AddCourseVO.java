@@ -37,4 +37,9 @@ public class AddCourseVO {
      * 课程学分（支持半分）
      */
     private BigDecimal courseCredit;
+
+    /**
+     * 课程学时（总课时数）
+     */
+    private Integer courseHours;
 }

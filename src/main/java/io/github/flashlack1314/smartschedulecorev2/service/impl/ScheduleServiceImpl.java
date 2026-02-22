@@ -78,16 +78,18 @@ public class ScheduleServiceImpl implements ScheduleService {
             throw new BusinessException("结束节次必须大于等于起始节次", ErrorCode.OPERATION_FAILED);
         }
 
-        // 验证weeksJson格式
+        // 验证weeksJson格式并计算周次数
+        int weekCount = 0;
         if (getData.getWeeksJson() == null || getData.getWeeksJson().trim().isEmpty()) {
             throw new BusinessException("上课周次不能为空", ErrorCode.OPERATION_FAILED);
         }
         try {
             JsonNode weeksNode = objectMapper.readTree(getData.getWeeksJson());
-            // 验证周次是否超出学期范围
+            // 验证周次是否超出学期范围并计算周次数
             int maxWeek = 0;
             for (JsonNode weekNode : weeksNode) {
                 int week = weekNode.asInt();
+                weekCount++;
                 if (week > maxWeek) {
                     maxWeek = week;
                 }
@@ -131,11 +133,18 @@ public class ScheduleServiceImpl implements ScheduleService {
         scheduleDO.setStatus(getData.getStatus());
         scheduleDO.setUpdatedAt(LocalDateTime.now());
 
+        // 计算并设置累计学时
+        int creditHours = calculateCreditHours(getData.getSectionStart(), getData.getSectionEnd(), weekCount);
+        scheduleDO.setCreditHours(creditHours);
+
         // 保存到数据库
         boolean saved = scheduleDAO.save(scheduleDO);
         if (!saved) {
             throw new BusinessException("保存排课失败", ErrorCode.OPERATION_FAILED);
         }
+
+        // 更新教学班学时
+        updateTeachingClassHours(getData.getTeachingClassUuid());
 
         log.info("排课添加成功 - UUID: {}", scheduleDO.getScheduleUuid());
         return scheduleDO.getScheduleUuid();
@@ -226,16 +235,18 @@ public class ScheduleServiceImpl implements ScheduleService {
             throw new BusinessException("结束节次必须大于等于起始节次", ErrorCode.OPERATION_FAILED);
         }
 
-        // 验证weeksJson格式
+        // 验证weeksJson格式并计算周次数
+        int weekCount = 0;
         if (getData.getWeeksJson() == null || getData.getWeeksJson().trim().isEmpty()) {
             throw new BusinessException("上课周次不能为空", ErrorCode.OPERATION_FAILED);
         }
         try {
             JsonNode weeksNode = objectMapper.readTree(getData.getWeeksJson());
-            // 验证周次是否超出学期范围
+            // 验证周次是否超出学期范围并计算周次数
             int maxWeek = 0;
             for (JsonNode weekNode : weeksNode) {
                 int week = weekNode.asInt();
+                weekCount++;
                 if (week > maxWeek) {
                     maxWeek = week;
                 }
@@ -252,6 +263,9 @@ public class ScheduleServiceImpl implements ScheduleService {
             throw new BusinessException("状态必须为0（预览）或1（正式）", ErrorCode.OPERATION_FAILED);
         }
 
+        // 记录原教学班UUID（用于判断是否需要更新原教学班学时）
+        String oldTeachingClassUuid = schedule.getTeachingClassUuid();
+
         // 更新排课信息
         schedule.setSemesterUuid(getData.getSemesterUuid());
         schedule.setTeachingClassUuid(getData.getTeachingClassUuid());
@@ -266,10 +280,21 @@ public class ScheduleServiceImpl implements ScheduleService {
         schedule.setStatus(getData.getStatus());
         schedule.setUpdatedAt(LocalDateTime.now());
 
+        // 计算并设置累计学时
+        int creditHours = calculateCreditHours(getData.getSectionStart(), getData.getSectionEnd(), weekCount);
+        schedule.setCreditHours(creditHours);
+
         // 保存更新
         boolean updated = scheduleDAO.updateById(schedule);
         if (!updated) {
             throw new BusinessException("更新排课失败", ErrorCode.OPERATION_FAILED);
+        }
+
+        // 更新教学班学时
+        updateTeachingClassHours(getData.getTeachingClassUuid());
+        // 如果教学班变更，也需要更新原教学班学时
+        if (!oldTeachingClassUuid.equals(getData.getTeachingClassUuid())) {
+            updateTeachingClassHours(oldTeachingClassUuid);
         }
 
         log.info("排课更新成功 - UUID: {}", getData.getScheduleUuid());
@@ -295,6 +320,9 @@ public class ScheduleServiceImpl implements ScheduleService {
         if (!deleted) {
             throw new BusinessException("删除排课失败", ErrorCode.OPERATION_FAILED);
         }
+
+        // 更新教学班学时
+        updateTeachingClassHours(schedule.getTeachingClassUuid());
 
         log.info("排课删除成功 - UUID: {}", scheduleUuid);
     }
@@ -404,6 +432,45 @@ public class ScheduleServiceImpl implements ScheduleService {
     }
 
     /**
+     * 计算排课累计学时
+     *
+     * @param sectionStart 起始节次
+     * @param sectionEnd   结束节次
+     * @param weekCount    周次数
+     * @return 累计学时
+     */
+    private int calculateCreditHours(int sectionStart, int sectionEnd, int weekCount) {
+        int singleHours = sectionEnd - sectionStart + 1;
+        return singleHours * weekCount;
+    }
+
+    /**
+     * 更新教学班的累计学时
+     *
+     * @param teachingClassUuid 教学班UUID
+     */
+    private void updateTeachingClassHours(String teachingClassUuid) {
+        // 查询该教学班的所有排课记录
+        List<ScheduleDO> schedules = scheduleDAO.lambdaQuery()
+                .eq(ScheduleDO::getTeachingClassUuid, teachingClassUuid)
+                .eq(ScheduleDO::getStatus, 1)  // 只统计正式执行的排课
+                .list();
+
+        // 累加所有排课记录的学时
+        int totalHours = schedules.stream()
+                .mapToInt(schedule -> schedule.getCreditHours() != null ? schedule.getCreditHours() : 0)
+                .sum();
+
+        // 更新教学班学时
+        teachingClassDAO.lambdaUpdate()
+                .eq(TeachingClassDO::getTeachingClassUuid, teachingClassUuid)
+                .set(TeachingClassDO::getTeachingClassHours, totalHours)
+                .update();
+
+        log.info("更新教学班学时 - UUID: {}, 总学时: {}", teachingClassUuid, totalHours);
+    }
+
+    /**
      * 转换 ScheduleDO 为 ScheduleInfoDTO
      */
     private ScheduleInfoDTO convertToScheduleInfoDTO(ScheduleDO scheduleDO) {
@@ -413,6 +480,7 @@ public class ScheduleServiceImpl implements ScheduleService {
         dto.setSectionStart(scheduleDO.getSectionStart());
         dto.setSectionEnd(scheduleDO.getSectionEnd());
         dto.setWeeksJson(scheduleDO.getWeeksJson());
+        dto.setCreditHours(scheduleDO.getCreditHours());  // 修复：添加学时字段映射
         dto.setIsLocked(scheduleDO.getIsLocked());
         dto.setStatus(scheduleDO.getStatus());
         dto.setUpdatedAt(scheduleDO.getUpdatedAt());

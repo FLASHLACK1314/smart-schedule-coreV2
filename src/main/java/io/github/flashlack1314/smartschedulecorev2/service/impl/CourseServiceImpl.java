@@ -60,6 +60,7 @@ public class CourseServiceImpl implements CourseService {
         courseDO.setCourseName(addCourseVO.getCourseName());
         courseDO.setCourseTypeUuid(addCourseVO.getCourseTypeUuid());
         courseDO.setCourseCredit(addCourseVO.getCourseCredit());
+        courseDO.setCourseHours(addCourseVO.getCourseHours());
 
         // 保存到数据库
         boolean saved = courseDAO.save(courseDO);
@@ -139,6 +140,7 @@ public class CourseServiceImpl implements CourseService {
         course.setCourseName(addCourseVO.getCourseName());
         course.setCourseTypeUuid(addCourseVO.getCourseTypeUuid());
         course.setCourseCredit(addCourseVO.getCourseCredit());
+        course.setCourseHours(addCourseVO.getCourseHours());
 
         // 保存更新
         boolean updated = courseDAO.updateById(course);
@@ -226,6 +228,7 @@ public class CourseServiceImpl implements CourseService {
         dto.setCourseName(courseDO.getCourseName());
         dto.setCourseTypeUuid(courseDO.getCourseTypeUuid());
         dto.setCourseCredit(courseDO.getCourseCredit());
+        dto.setCourseHours(courseDO.getCourseHours());
         return dto;
     }
 

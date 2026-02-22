@@ -31,4 +31,8 @@ public class TeachingClassInfoDTO {
      * 教学班名称
      */
     private String teachingClassName;
+    /**
+     * 教学班学时 (排课记录累计)
+     */
+    private Integer teachingClassHours;
 }

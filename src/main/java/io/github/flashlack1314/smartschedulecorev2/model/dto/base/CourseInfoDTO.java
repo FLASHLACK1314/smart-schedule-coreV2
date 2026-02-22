@@ -37,4 +37,9 @@ public class CourseInfoDTO {
      * 课程学分
      */
     private BigDecimal courseCredit;
+
+    /**
+     * 课程学时 (总课时数)
+     */
+    private Integer courseHours;
 }

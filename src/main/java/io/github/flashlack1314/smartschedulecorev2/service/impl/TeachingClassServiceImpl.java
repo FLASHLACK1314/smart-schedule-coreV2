@@ -229,6 +229,7 @@ public class TeachingClassServiceImpl implements TeachingClassService {
         TeachingClassInfoDTO dto = new TeachingClassInfoDTO();
         dto.setTeachingClassUuid(teachingClassDO.getTeachingClassUuid());
         dto.setTeachingClassName(teachingClassDO.getTeachingClassName());
+        dto.setTeachingClassHours(teachingClassDO.getTeachingClassHours());  // 修复：添加学时字段映射
 
         // 获取课程名称
         CourseDO courseDO = courseDAO.getById(teachingClassDO.getCourseUuid());

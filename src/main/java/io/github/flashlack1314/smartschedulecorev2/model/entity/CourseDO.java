@@ -47,4 +47,10 @@ public class CourseDO {
      */
     @TableField("course_credit")
     private BigDecimal courseCredit;
+
+    /**
+     * 课程学时 (总课时数)
+     */
+    @TableField("course_hours")
+    private Integer courseHours;
 }
