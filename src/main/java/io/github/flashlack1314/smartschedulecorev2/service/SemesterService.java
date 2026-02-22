@@ -3,6 +3,8 @@ package io.github.flashlack1314.smartschedulecorev2.service;
 import io.github.flashlack1314.smartschedulecorev2.model.dto.PageDTO;
 import io.github.flashlack1314.smartschedulecorev2.model.dto.base.SemesterInfoDTO;
 
+import java.time.LocalDate;
+
 /**
  * 学期服务接口
  *
@@ -15,8 +17,10 @@ public interface SemesterService {
      *
      * @param semesterName 学期名称
      * @param semesterWeeks 学期周数
+     * @param startDate 学期开始日期
+     * @param endDate 学期结束日期
      */
-    void addSemester(String semesterName, Integer semesterWeeks);
+    void addSemester(String semesterName, Integer semesterWeeks, LocalDate startDate, LocalDate endDate);
 
     /**
      * 获取学期信息分页
@@ -34,8 +38,10 @@ public interface SemesterService {
      * @param semesterUuid 学期UUID
      * @param semesterName 学期名称
      * @param semesterWeeks 学期周数
+     * @param startDate 学期开始日期
+     * @param endDate 学期结束日期
      */
-    void updateSemester(String semesterUuid, String semesterName, Integer semesterWeeks);
+    void updateSemester(String semesterUuid, String semesterName, Integer semesterWeeks, LocalDate startDate, LocalDate endDate);
 
     /**
      * 获取学期信息

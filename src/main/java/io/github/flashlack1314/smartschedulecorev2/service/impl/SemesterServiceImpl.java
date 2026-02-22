@@ -13,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -28,8 +29,16 @@ public class SemesterServiceImpl implements SemesterService {
     private final SemesterDAO semesterDAO;
 
     @Override
-    public void addSemester(String semesterName, Integer semesterWeeks) {
-        log.info("添加学期 - 名称: {}, 周数: {}", semesterName, semesterWeeks);
+    public void addSemester(String semesterName, Integer semesterWeeks, LocalDate startDate, LocalDate endDate) {
+        log.info("添加学期 - 名称: {}, 周数: {}, 开始日期: {}, 结束日期: {}", semesterName, semesterWeeks, startDate, endDate);
+
+        // 参数验证
+        if (startDate == null || endDate == null) {
+            throw new BusinessException("学期开始日期和结束日期不能为空", ErrorCode.OPERATION_FAILED);
+        }
+        if (startDate.isAfter(endDate)) {
+            throw new BusinessException("学期开始日期不能晚于结束日期", ErrorCode.OPERATION_FAILED);
+        }
 
         // 检查学期名称是否已存在
         if (semesterDAO.existsBySemesterName(semesterName)) {
@@ -41,6 +50,8 @@ public class SemesterServiceImpl implements SemesterService {
         semesterDO.setSemesterUuid(UuidUtil.generateUuidNoDash());
         semesterDO.setSemesterName(semesterName);
         semesterDO.setSemesterWeeks(semesterWeeks);
+        semesterDO.setStartDate(startDate);
+        semesterDO.setEndDate(endDate);
 
         // 保存到数据库
         boolean saved = semesterDAO.save(semesterDO);
@@ -49,7 +60,8 @@ public class SemesterServiceImpl implements SemesterService {
             throw new BusinessException("保存学期失败", ErrorCode.OPERATION_FAILED);
         }
 
-        log.info("学期添加成功 - UUID: {}, 名称: {}, 周数: {}", semesterDO.getSemesterUuid(), semesterName, semesterWeeks);
+        log.info("学期添加成功 - UUID: {}, 名称: {}, 周数: {}, 开始日期: {}, 结束日期: {}",
+                semesterDO.getSemesterUuid(), semesterName, semesterWeeks, startDate, endDate);
     }
 
     @Override
@@ -74,8 +86,17 @@ public class SemesterServiceImpl implements SemesterService {
     }
 
     @Override
-    public void updateSemester(String semesterUuid, String semesterName, Integer semesterWeeks) {
-        log.info("更新学期信息 - UUID: {}, 名称: {}, 周数: {}", semesterUuid, semesterName, semesterWeeks);
+    public void updateSemester(String semesterUuid, String semesterName, Integer semesterWeeks, LocalDate startDate, LocalDate endDate) {
+        log.info("更新学期信息 - UUID: {}, 名称: {}, 周数: {}, 开始日期: {}, 结束日期: {}",
+                semesterUuid, semesterName, semesterWeeks, startDate, endDate);
+
+        // 参数验证
+        if (startDate == null || endDate == null) {
+            throw new BusinessException("学期开始日期和结束日期不能为空", ErrorCode.OPERATION_FAILED);
+        }
+        if (startDate.isAfter(endDate)) {
+            throw new BusinessException("学期开始日期不能晚于结束日期", ErrorCode.OPERATION_FAILED);
+        }
 
         // 查询学期是否存在
         SemesterDO semester = semesterDAO.getById(semesterUuid);
@@ -91,6 +112,8 @@ public class SemesterServiceImpl implements SemesterService {
         // 更新学期信息
         semester.setSemesterName(semesterName);
         semester.setSemesterWeeks(semesterWeeks);
+        semester.setStartDate(startDate);
+        semester.setEndDate(endDate);
 
         // 保存更新
         boolean updated = semesterDAO.updateById(semester);
@@ -99,7 +122,8 @@ public class SemesterServiceImpl implements SemesterService {
             throw new BusinessException("更新学期失败", ErrorCode.OPERATION_FAILED);
         }
 
-        log.info("学期更新成功 - UUID: {}, 名称: {}, 周数: {}", semesterUuid, semesterName, semesterWeeks);
+        log.info("学期更新成功 - UUID: {}, 名称: {}, 周数: {}, 开始日期: {}, 结束日期: {}",
+                semesterUuid, semesterName, semesterWeeks, startDate, endDate);
     }
 
     @Override
@@ -153,6 +177,8 @@ public class SemesterServiceImpl implements SemesterService {
         dto.setSemesterUuid(semesterDO.getSemesterUuid());
         dto.setSemesterName(semesterDO.getSemesterName());
         dto.setSemesterWeeks(semesterDO.getSemesterWeeks());
+        dto.setStartDate(semesterDO.getStartDate());
+        dto.setEndDate(semesterDO.getEndDate());
         return dto;
     }
 

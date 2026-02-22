@@ -10,8 +10,13 @@ import io.github.flashlack1314.smartschedulecorev2.model.dto.base.SemesterInfoDT
 import io.github.flashlack1314.smartschedulecorev2.service.SemesterService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDate;
+
+import static org.springframework.format.annotation.DateTimeFormat.ISO;
 
 /**
  * 学期控制器
@@ -31,6 +36,8 @@ public class SemesterController {
      * @param token        Token
      * @param semesterName 学期名称
      * @param semesterWeeks 学期周数
+     * @param startDate    学期开始日期
+     * @param endDate      学期结束日期
      * @return 添加学期成功的信息
      */
     @PostMapping("/add")
@@ -38,9 +45,11 @@ public class SemesterController {
     public ResponseEntity<BaseResponse<Void>> addSemester(
             @RequestHeader("Authorization") String token,
             @RequestParam("semester_name") String semesterName,
-            @RequestParam("semester_weeks") Integer semesterWeeks
+            @RequestParam("semester_weeks") Integer semesterWeeks,
+            @RequestParam("start_date") @DateTimeFormat(iso = ISO.DATE) LocalDate startDate,
+            @RequestParam("end_date") @DateTimeFormat(iso = ISO.DATE) LocalDate endDate
     ) {
-        semesterService.addSemester(semesterName, semesterWeeks);
+        semesterService.addSemester(semesterName, semesterWeeks, startDate, endDate);
         return ResultUtil.success("添加学期成功");
     }
 
@@ -70,6 +79,8 @@ public class SemesterController {
      * @param semesterUuid 学期uuid
      * @param semesterName 学期名称
      * @param semesterWeeks 学期周数
+     * @param startDate    学期开始日期
+     * @param endDate      学期结束日期
      * @return 更新学期信息成功信息
      */
     @PutMapping("/update")
@@ -78,9 +89,11 @@ public class SemesterController {
             @RequestHeader("Authorization") String token,
             @RequestParam("semester_uuid") String semesterUuid,
             @RequestParam("semester_name") String semesterName,
-            @RequestParam("semester_weeks") Integer semesterWeeks
+            @RequestParam("semester_weeks") Integer semesterWeeks,
+            @RequestParam("start_date") @DateTimeFormat(iso = ISO.DATE) LocalDate startDate,
+            @RequestParam("end_date") @DateTimeFormat(iso = ISO.DATE) LocalDate endDate
     ) {
-        semesterService.updateSemester(semesterUuid, semesterName, semesterWeeks);
+        semesterService.updateSemester(semesterUuid, semesterName, semesterWeeks, startDate, endDate);
         return ResultUtil.success("更新学期成功");
     }
 

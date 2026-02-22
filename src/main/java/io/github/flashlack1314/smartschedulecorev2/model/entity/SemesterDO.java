@@ -6,6 +6,8 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 import lombok.experimental.Accessors;
 
+import java.time.LocalDate;
+
 /**
  * 学期DO
  *
@@ -33,4 +35,16 @@ public class SemesterDO {
      */
     @TableField("semester_weeks")
     private Integer semesterWeeks;
+
+    /**
+     * 学期开始日期
+     */
+    @TableField("start_date")
+    private LocalDate startDate;
+
+    /**
+     * 学期结束日期
+     */
+    @TableField("end_date")
+    private LocalDate endDate;
 }
