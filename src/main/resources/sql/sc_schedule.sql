@@ -26,9 +26,6 @@ create table public.sc_schedule
     -- 学时信息
     credit_hours        integer     not null default 0, -- 累计学时 (单次学时 × 周次数)
 
-    -- 锁定标识：如果老师手动调整并确认了这一节，可以锁定
-    is_locked           boolean     not null default false,
-
     -- 状态：0-预览方案, 1-正式执行
     status              integer     not null default 0,
     updated_at          timestamp   default current_timestamp

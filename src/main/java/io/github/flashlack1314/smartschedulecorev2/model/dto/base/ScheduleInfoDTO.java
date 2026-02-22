@@ -58,10 +58,6 @@ public class ScheduleInfoDTO {
      */
     private Integer creditHours;
     /**
-     * 锁定标识
-     */
-    private Boolean isLocked;
-    /**
      * 状态
      */
     private Integer status;

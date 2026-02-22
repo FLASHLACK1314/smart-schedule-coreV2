@@ -938,7 +938,6 @@ public class InitializeDatabase {
                 .setSectionStart(1)
                 .setSectionEnd(2)
                 .setWeeksJson(weeks1to8)
-                .setIsLocked(false)
                 .setStatus(1);
         // 计算学时: (2-1+1) × 8 = 16
         try {
@@ -964,7 +963,6 @@ public class InitializeDatabase {
                 .setSectionStart(3)
                 .setSectionEnd(4)
                 .setWeeksJson(fullWeeks)
-                .setIsLocked(false)
                 .setStatus(1);
         // 计算学时: (4-3+1) × 18 = 36
         try {
@@ -990,7 +988,6 @@ public class InitializeDatabase {
                 .setSectionStart(5)
                 .setSectionEnd(6)
                 .setWeeksJson(fullWeeks)
-                .setIsLocked(false)
                 .setStatus(1);
         // 计算学时: (6-5+1) × 18 = 36
         try {
@@ -1016,7 +1013,6 @@ public class InitializeDatabase {
                 .setSectionStart(7)
                 .setSectionEnd(8)
                 .setWeeksJson(fullWeeks)
-                .setIsLocked(false)
                 .setStatus(1);
         // 计算学时: (8-7+1) × 18 = 36
         try {
@@ -1037,12 +1033,12 @@ public class InitializeDatabase {
                 .setTeachingClassUuid(teachingClasses.get(4).getTeachingClassUuid())
                 .setCourseUuid(teachingClasses.get(4).getCourseUuid())
                 .setTeacherUuid(teachingClasses.get(4).getTeacherUuid())
-                .setClassroomUuid(classrooms.get(0).getClassroomUuid()) // A101
+                // A101
+                .setClassroomUuid(classrooms.get(0).getClassroomUuid())
                 .setDayOfWeek(5)
                 .setSectionStart(1)
                 .setSectionEnd(2)
                 .setWeeksJson(fullWeeks)
-                .setIsLocked(false)
                 .setStatus(1);
         // 计算学时: (2-1+1) × 18 = 36
         try {
@@ -1063,12 +1059,12 @@ public class InitializeDatabase {
                 .setTeachingClassUuid(teachingClasses.get(5).getTeachingClassUuid())
                 .setCourseUuid(teachingClasses.get(5).getCourseUuid())
                 .setTeacherUuid(teachingClasses.get(5).getTeacherUuid())
-                .setClassroomUuid(classrooms.get(5).getClassroomUuid()) // C201
+                // C201
+                .setClassroomUuid(classrooms.get(5).getClassroomUuid())
                 .setDayOfWeek(1)
                 .setSectionStart(5)
                 .setSectionEnd(6)
                 .setWeeksJson(fullWeeks)
-                .setIsLocked(false)
                 .setStatus(1);
         // 计算学时: (6-5+1) × 18 = 36
         try {
@@ -1094,7 +1090,6 @@ public class InitializeDatabase {
                 .setSectionStart(7)
                 .setSectionEnd(8)
                 .setWeeksJson(fullWeeks)
-                .setIsLocked(false)
                 .setStatus(1);
         // 计算学时: (8-7+1) × 18 = 36
         try {
@@ -1120,7 +1115,6 @@ public class InitializeDatabase {
                 .setSectionStart(3)
                 .setSectionEnd(4)
                 .setWeeksJson(weeks1to16)
-                .setIsLocked(false)
                 .setStatus(1);
         // 计算学时: (4-3+1) × 16 = 32
         try {

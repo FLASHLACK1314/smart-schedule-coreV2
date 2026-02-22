@@ -129,7 +129,6 @@ public class ScheduleServiceImpl implements ScheduleService {
         scheduleDO.setSectionStart(getData.getSectionStart());
         scheduleDO.setSectionEnd(getData.getSectionEnd());
         scheduleDO.setWeeksJson(getData.getWeeksJson());
-        scheduleDO.setIsLocked(getData.getIsLocked() != null ? getData.getIsLocked() : false);
         scheduleDO.setStatus(getData.getStatus());
         scheduleDO.setUpdatedAt(LocalDateTime.now());
 
@@ -199,11 +198,6 @@ public class ScheduleServiceImpl implements ScheduleService {
         ScheduleDO schedule = scheduleDAO.getById(getData.getScheduleUuid());
         if (schedule == null) {
             throw new BusinessException("排课记录不存在: " + getData.getScheduleUuid(), ErrorCode.OPERATION_FAILED);
-        }
-
-        // 检查是否锁定
-        if (Boolean.TRUE.equals(schedule.getIsLocked())) {
-            throw new BusinessException("该排课记录已锁定，无法更新", ErrorCode.OPERATION_FAILED);
         }
 
         // 验证学期是否存在
@@ -276,7 +270,6 @@ public class ScheduleServiceImpl implements ScheduleService {
         schedule.setSectionStart(getData.getSectionStart());
         schedule.setSectionEnd(getData.getSectionEnd());
         schedule.setWeeksJson(getData.getWeeksJson());
-        schedule.setIsLocked(getData.getIsLocked() != null ? getData.getIsLocked() : false);
         schedule.setStatus(getData.getStatus());
         schedule.setUpdatedAt(LocalDateTime.now());
 
@@ -308,11 +301,6 @@ public class ScheduleServiceImpl implements ScheduleService {
         ScheduleDO schedule = scheduleDAO.getById(scheduleUuid);
         if (schedule == null) {
             throw new BusinessException("排课记录不存在: " + scheduleUuid, ErrorCode.OPERATION_FAILED);
-        }
-
-        // 检查是否锁定
-        if (Boolean.TRUE.equals(schedule.getIsLocked())) {
-            throw new BusinessException("该排课记录已锁定，无法删除", ErrorCode.OPERATION_FAILED);
         }
 
         // 执行删除
@@ -481,7 +469,6 @@ public class ScheduleServiceImpl implements ScheduleService {
         dto.setSectionEnd(scheduleDO.getSectionEnd());
         dto.setWeeksJson(scheduleDO.getWeeksJson());
         dto.setCreditHours(scheduleDO.getCreditHours());  // 修复：添加学时字段映射
-        dto.setIsLocked(scheduleDO.getIsLocked());
         dto.setStatus(scheduleDO.getStatus());
         dto.setUpdatedAt(scheduleDO.getUpdatedAt());
 

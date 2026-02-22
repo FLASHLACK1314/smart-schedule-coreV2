@@ -470,9 +470,6 @@ create table public.sc_schedule
     section_end         integer     not null, -- 结束节次
     weeks_json          jsonb       not null default '[]'::jsonb, -- 上课周次 [1,2,3...]
 
-    -- 锁定标识：如果老师手动调整并确认了这一节，可以锁定
-    is_locked           boolean     not null default false,
-
     -- 状态：0-预览方案, 1-正式执行
     status              integer     not null default 0,
     updated_at          timestamp   default current_timestamp

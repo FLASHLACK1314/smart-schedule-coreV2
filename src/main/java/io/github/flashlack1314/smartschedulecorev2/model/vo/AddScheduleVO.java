@@ -52,11 +52,6 @@ public class AddScheduleVO {
     private String weeksJson;
 
     /**
-     * 锁定标识（可选，默认false）
-     */
-    private Boolean isLocked;
-
-    /**
      * 状态：0-预览方案, 1-正式执行（必填）
      */
     private Integer status;
