@@ -31,4 +31,12 @@ public class AddTeachingClassVO {
      * 教学班名称
      */
     private String teachingClassName;
+    /**
+     * 每周上课次数（可选，默认1）
+     */
+    private Integer weeklySessions;
+    /**
+     * 每次上课节次数（可选，默认2）
+     */
+    private Integer sectionsPerSession;
 }

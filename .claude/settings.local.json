@@ -7,7 +7,12 @@
       "Bash(cd:*)",
       "Bash(Select-String -Pattern \"错误|error|ERROR\" -Context 1,2)",
       "Bash(mvn clean compile:*)",
-      "Bash(./mvnw clean compile)"
+      "Bash(./mvnw clean compile)",
+      "Bash(cd C:\\\\project\\\\毕设代码\\\\smart-schedule-coreV2:*)",
+      "Bash(cd \"C:\\\\project\\\\毕设代码\\\\smart-schedule-coreV2\" && ./mvnw test -Dtest=TimeSlotTest -q 2>&1)",
+      "Bash(cd \"C:\\\\project\\\\毕设代码\\\\smart-schedule-coreV2\" && ./mvnw test -Dtest=HoursCalculatorTest -q 2>&1)",
+      "Bash(cd \"C:\\\\project\\\\毕设代码\\\\smart-schedule-coreV2\" && ./mvnw compile -q 2>&1)",
+      "Bash(head:*)"
     ]
   }
 }

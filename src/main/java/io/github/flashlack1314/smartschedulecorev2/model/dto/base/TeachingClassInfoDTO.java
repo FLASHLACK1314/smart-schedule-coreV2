@@ -35,4 +35,20 @@ public class TeachingClassInfoDTO {
      * 教学班学时 (排课记录累计)
      */
     private Integer teachingClassHours;
+    /**
+     * 每周上课次数
+     */
+    private Integer weeklySessions;
+    /**
+     * 每次上课节次数
+     */
+    private Integer sectionsPerSession;
+    /**
+     * 排课状态：0-未排课, 1-已排课
+     */
+    private Integer scheduledStatus;
+    /**
+     * 已排课学时（累计）
+     */
+    private Integer scheduledHours;
 }

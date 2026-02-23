@@ -21,15 +21,16 @@ public interface TeachingClassService {
     /**
      * 分页查询教学班
      *
-     * @param page         页码
-     * @param size         每页数量
-     * @param courseUuid   课程UUID（可选）
-     * @param teacherUuid  教师UUID（可选）
-     * @param semesterUuid 学期UUID（可选）
+     * @param page            页码
+     * @param size            每页数量
+     * @param courseUuid      课程UUID（可选）
+     * @param teacherUuid     教师UUID（可选）
+     * @param semesterUuid    学期UUID（可选）
+     * @param scheduledStatus 排课状态（可选）：null-全部, 0-未排课, 1-已排课
      * @return 分页结果
      */
     PageDTO<TeachingClassInfoDTO> getTeachingClassPage(int page, int size, String courseUuid,
-                                                        String teacherUuid, String semesterUuid);
+                                                        String teacherUuid, String semesterUuid, Integer scheduledStatus);
 
     /**
      * 获取教学班信息

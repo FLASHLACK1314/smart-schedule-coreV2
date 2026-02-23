@@ -9,6 +9,7 @@ import io.github.flashlack1314.smartschedulecorev2.model.dto.PageDTO;
 import io.github.flashlack1314.smartschedulecorev2.model.dto.base.TeachingClassInfoDTO;
 import io.github.flashlack1314.smartschedulecorev2.model.entity.CourseDO;
 import io.github.flashlack1314.smartschedulecorev2.model.entity.SemesterDO;
+import io.github.flashlack1314.smartschedulecorev2.model.entity.ScheduleDO;
 import io.github.flashlack1314.smartschedulecorev2.model.entity.TeacherDO;
 import io.github.flashlack1314.smartschedulecorev2.model.entity.TeachingClassDO;
 import io.github.flashlack1314.smartschedulecorev2.model.vo.AddTeachingClassVO;
@@ -78,6 +79,8 @@ public class TeachingClassServiceImpl implements TeachingClassService {
         teachingClassDO.setTeacherUuid(getData.getTeacherUuid());
         teachingClassDO.setSemesterUuid(getData.getSemesterUuid());
         teachingClassDO.setTeachingClassName(getData.getTeachingClassName());
+        teachingClassDO.setWeeklySessions(getData.getWeeklySessions());
+        teachingClassDO.setSectionsPerSession(getData.getSectionsPerSession());
 
         // 保存到数据库
         boolean saved = teachingClassDAO.save(teachingClassDO);
@@ -94,25 +97,58 @@ public class TeachingClassServiceImpl implements TeachingClassService {
 
     @Override
     public PageDTO<TeachingClassInfoDTO> getTeachingClassPage(int page, int size, String courseUuid,
-                                                                String teacherUuid, String semesterUuid) {
-        log.info("查询教学班分页信息 - page: {}, size: {}, courseUuid: {}, teacherUuid: {}, semesterUuid: {}",
-                page, size, courseUuid, teacherUuid, semesterUuid);
+                                                                String teacherUuid, String semesterUuid, Integer scheduledStatus) {
+        log.info("查询教学班分页信息 - page: {}, size: {}, courseUuid: {}, teacherUuid: {}, semesterUuid: {}, scheduledStatus: {}",
+                page, size, courseUuid, teacherUuid, semesterUuid, scheduledStatus);
 
         // 调用DAO层进行分页查询
         IPage<TeachingClassDO> pageResult = teachingClassDAO.getTeachingClassPage(
                 page, size, courseUuid, teacherUuid, semesterUuid);
 
-        // 转换为 TeachingClassInfoDTO
-        List<TeachingClassInfoDTO> teachingClassInfoList = pageResult.getRecords().stream()
-                .map(this::convertToTeachingClassInfoDTO)
+        // 转换为 DTO 并计算排课状态
+        List<TeachingClassInfoDTO> dtoList = pageResult.getRecords().stream()
+                .map(tc -> {
+                    TeachingClassInfoDTO dto = convertToTeachingClassInfoDTO(tc);
+
+                    // 查询该教学班的正式排课记录数（status=1）
+                    long scheduleCount = scheduleDAO.lambdaQuery()
+                            .eq(ScheduleDO::getTeachingClassUuid, tc.getTeachingClassUuid())
+                            .eq(ScheduleDO::getStatus, 1)
+                            .count();
+
+                    dto.setScheduledStatus(scheduleCount > 0 ? 1 : 0);
+
+                    // 计算已排课学时
+                    if (scheduleCount > 0) {
+                        Integer scheduledHours = scheduleDAO.lambdaQuery()
+                                .eq(ScheduleDO::getTeachingClassUuid, tc.getTeachingClassUuid())
+                                .eq(ScheduleDO::getStatus, 1)
+                                .list()
+                                .stream()
+                                .mapToInt(s -> s.getCreditHours() != null ? s.getCreditHours() : 0)
+                                .sum();
+                        dto.setScheduledHours(scheduledHours);
+                    } else {
+                        dto.setScheduledHours(0);
+                    }
+
+                    return dto;
+                })
+                // 按排课状态筛选（在DTO转换后过滤）
+                .filter(dto -> {
+                    if (scheduledStatus == null) {
+                        return true;  // 不过滤
+                    }
+                    return dto.getScheduledStatus().equals(scheduledStatus);
+                })
                 .collect(Collectors.toList());
 
         // 构建返回结果
         PageDTO<TeachingClassInfoDTO> result = new PageDTO<>();
         result.setPage(page);
         result.setSize(size);
-        result.setTotal((int) pageResult.getTotal());
-        result.setRecords(teachingClassInfoList);
+        result.setTotal(dtoList.size());  // 注意：筛选后总数会变化
+        result.setRecords(dtoList);
 
         return result;
     }
@@ -173,6 +209,8 @@ public class TeachingClassServiceImpl implements TeachingClassService {
         teachingClass.setTeacherUuid(getData.getTeacherUuid());
         teachingClass.setSemesterUuid(getData.getSemesterUuid());
         teachingClass.setTeachingClassName(getData.getTeachingClassName());
+        teachingClass.setWeeklySessions(getData.getWeeklySessions());
+        teachingClass.setSectionsPerSession(getData.getSectionsPerSession());
 
         // 保存更新
         boolean updated = teachingClassDAO.updateById(teachingClass);
@@ -229,7 +267,9 @@ public class TeachingClassServiceImpl implements TeachingClassService {
         TeachingClassInfoDTO dto = new TeachingClassInfoDTO();
         dto.setTeachingClassUuid(teachingClassDO.getTeachingClassUuid());
         dto.setTeachingClassName(teachingClassDO.getTeachingClassName());
-        dto.setTeachingClassHours(teachingClassDO.getTeachingClassHours());  // 修复：添加学时字段映射
+        dto.setTeachingClassHours(teachingClassDO.getTeachingClassHours());
+        dto.setWeeklySessions(teachingClassDO.getWeeklySessions());
+        dto.setSectionsPerSession(teachingClassDO.getSectionsPerSession());
 
         // 获取课程名称
         CourseDO courseDO = courseDAO.getById(teachingClassDO.getCourseUuid());

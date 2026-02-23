@@ -51,4 +51,16 @@ public class TeachingClassDO {
      */
     @TableField("teaching_class_hours")
     private Integer teachingClassHours;
+
+    /**
+     * 每周上课次数
+     */
+    @TableField("weekly_sessions")
+    private Integer weeklySessions;
+
+    /**
+     * 每次上课节次数 (默认2节)
+     */
+    @TableField("sections_per_session")
+    private Integer sectionsPerSession;
 }

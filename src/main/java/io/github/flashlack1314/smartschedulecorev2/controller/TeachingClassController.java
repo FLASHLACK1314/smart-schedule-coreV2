@@ -45,12 +45,13 @@ public class TeachingClassController {
     /**
      * 分页查询教学班
      *
-     * @param token         Token
-     * @param page          页码
-     * @param size          每页数量
-     * @param courseUuid    课程UUID
-     * @param teacherUuid   教师UUID
-     * @param semesterUuid  学期UUID
+     * @param token           Token
+     * @param page            页码
+     * @param size            每页数量
+     * @param courseUuid      课程UUID
+     * @param teacherUuid     教师UUID
+     * @param semesterUuid    学期UUID
+     * @param scheduledStatus 排课状态筛选：null-全部, 0-未排课, 1-已排课
      * @return 分页结果
      */
     @GetMapping("/getPage")
@@ -61,10 +62,11 @@ public class TeachingClassController {
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(value = "course_uuid", required = false) String courseUuid,
             @RequestParam(value = "teacher_uuid", required = false) String teacherUuid,
-            @RequestParam(value = "semester_uuid", required = false) String semesterUuid
+            @RequestParam(value = "semester_uuid", required = false) String semesterUuid,
+            @RequestParam(value = "scheduled_status", required = false) Integer scheduledStatus
     ) {
         PageDTO<TeachingClassInfoDTO> result = teachingClassService.getTeachingClassPage(
-                page, size, courseUuid, teacherUuid, semesterUuid);
+                page, size, courseUuid, teacherUuid, semesterUuid, scheduledStatus);
         return ResultUtil.success("获取教学班分页信息成功", result);
     }
 
