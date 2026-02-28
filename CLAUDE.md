@@ -144,3 +144,113 @@ java -jar target/smart-schedule-coreV2-0.0.1-SNAPSHOT.jar
 3. **主键统一使用 String 类型存储 32 位 UUID**
 4. **链式调用**：所有 DO 类支持链式调用（`@Accessors(chain = true)`）
 5. **日志使用**：DAO 层统一使用 `@Slf4j` 注解
+
+## 遗传算法模块
+
+项目使用遗传算法实现自动排课功能，位于 `algorithm/` 包。
+
+### 目录结构
+```
+algorithm/
+├── entity/           # 算法实体类
+│   ├── TimeSlot.java           # 时间槽
+│   ├── CourseAppointment.java  # 课程安排
+│   └── Chromosome.java         # 染色体（排课方案）
+├── dto/              # 数据传输对象
+│   ├── ScheduleContext.java    # 排课上下文
+│   ├── ScheduleResult.java     # 排课结果
+│   ├── ConflictReport.java     # 冲突报告
+│   ├── Conflict.java           # 冲突实体
+│   └── AutoScheduleResult.java # 自动排课结果
+├── core/             # 核心算法组件
+│   ├── GeneticAlgorithm.java   # 遗传算法主类
+│   ├── FitnessCalculator.java  # 适应度计算
+│   ├── ConflictDetector.java   # 冲突检测
+│   └── HoursCalculator.java    # 学时计算
+└── util/             # 工具类
+    └── TimeSlotGenerator.java  # 时间槽生成器
+```
+
+### 核心组件
+- `GeneticAlgorithm` - 遗传算法主类，实现选择、交叉、变异操作
+- `FitnessCalculator` - 适应度计算，评估排课方案质量
+- `ConflictDetector` - 冲突检测，识别硬约束和软约束冲突
+- `TimeSlotGenerator` - 时间槽生成器
+
+### 数据结构
+- `Chromosome` - 染色体，表示一个完整的排课方案
+- `TimeSlot` - 时间槽，包含星期、节次、周次信息
+- `CourseAppointment` - 课程安排，关联教学班、教师、教室、时间
+
+### 算法参数
+默认参数可在调用时调整：
+- 种群大小：100
+- 最大迭代：500 代
+- 交叉概率：0.8
+- 变异概率：0.2
+- 精英保留：10 个
+
+### 硬约束类型
+- 教师时间冲突
+- 教室时间冲突
+- 班级时间冲突
+- 教室容量约束
+- 教室类型匹配
+- 教师资格约束
+
+## 服务层架构
+
+### 核心服务
+- `AuthService` - 用户认证服务
+- `UserService` - 用户管理服务
+- `TokenService` - Token 管理服务
+- `AutoScheduleService` - 自动排课服务（遗传算法调用入口）
+
+### 服务实现位置
+`src/main/java/io/github/flashlack1314/smartschedulecorev2/service/`
+
+### 调用示例
+自动排课通过 `AutoScheduleController` 的 API 接口调用，或直接使用 `AutoScheduleService`。
+
+## 认证授权
+
+### Token 配置
+配置前缀：`app.token`
+- `secret` - Token 密钥
+- `expiration` - 过期时间
+
+### 权限控制
+使用 `@RequireRole` 注解控制接口权限：
+```java
+@RequireRole(UserType.ACADEMIC_ADMIN)
+public void someMethod() { ... }
+```
+
+### 用户类型
+定义在 `UserType` 枚举中：
+- SYSTEM_ADMIN - 系统管理员
+- ACADEMIC_ADMIN - 教务管理员
+- TEACHER - 教师
+- STUDENT - 学生
+
+## API 接口
+
+### 控制器位置
+`src/main/java/io/github/flashlack1314/smartschedulecorev2/controller/`
+
+### 主要接口
+- `AutoScheduleController` - 自动排课 API
+- `ScheduleController` - 排课管理
+- `TeachingClassController` - 教学班管理
+- `CourseController` - 课程管理
+- `TeacherController` - 教师管理
+- `ClassroomController` - 教室管理
+- `StudentController` - 学生管理
+- 其他实体 CRUD 控制器
+
+### 接口命名规范
+- 查询列表：`GET /api/{entity}/list`
+- 查询详情：`GET /api/{entity}/{id}`
+- 创建：`POST /api/{entity}`
+- 更新：`PUT /api/{entity}`
+- 删除：`DELETE /api/{entity}/{id}`
