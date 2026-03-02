@@ -1,13 +1,10 @@
 package io.github.flashlack1314.smartschedulecorev2.controller;
 
 import com.xlf.utility.BaseResponse;
-import com.xlf.utility.ResultUtil;
 import io.github.flashlack1314.smartschedulecorev2.annotation.RequireRole;
 import io.github.flashlack1314.smartschedulecorev2.algorithm.dto.AutoScheduleResult;
 import io.github.flashlack1314.smartschedulecorev2.enums.UserType;
 import io.github.flashlack1314.smartschedulecorev2.model.vo.AutoScheduleVO;
-import io.github.flashlack1314.smartschedulecorev2.service.AutoScheduleService;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -19,11 +16,8 @@ import org.springframework.web.bind.annotation.*;
  */
 @Slf4j
 @RestController
-@RequiredArgsConstructor
 @RequestMapping("/v1/auto-schedule")
 public class AutoScheduleController {
-
-    private final AutoScheduleService autoScheduleService;
 
     /**
      * 执行自动排课
@@ -38,18 +32,8 @@ public class AutoScheduleController {
             @RequestHeader("Authorization") String token,
             @RequestBody AutoScheduleVO request
     ) {
-        log.info("收到自动排课请求，学期UUID: {}", request.getSemesterUuid());
-
-        AutoScheduleResult result = autoScheduleService.autoSchedule(request);
-
-        // 自动保存为预览状态
-        autoScheduleService.saveScheduleResultAsPreview(result, request.getSemesterUuid());
-
-        String message = result.isSuccess()
-                ? "自动排课成功，已生成预览方案"
-                : "自动排课完成，但存在冲突或未完成排课，请检查结果";
-
-        return ResultUtil.success(message, result);
+        // TODO: 实现自动排课逻辑
+        return null;
     }
 
     /**
@@ -65,10 +49,8 @@ public class AutoScheduleController {
             @RequestHeader("Authorization") String token,
             @RequestParam("semester_uuid") String semesterUuid
     ) {
-        // 注意：此接口需要配合已有的排课结果使用
-        // 通常在执行自动排课后自动调用，此端点用于手动触发
-        autoScheduleService.clearPreviewSchedules(semesterUuid);
-        return ResultUtil.success("清除预览成功，请重新执行自动排课");
+        // TODO: 实现保存预览逻辑
+        return null;
     }
 
     /**
@@ -84,9 +66,8 @@ public class AutoScheduleController {
             @RequestHeader("Authorization") String token,
             @RequestParam("semester_uuid") String semesterUuid
     ) {
-        log.info("确认排课方案，学期UUID: {}", semesterUuid);
-        autoScheduleService.confirmSchedule(semesterUuid);
-        return ResultUtil.success("确认排课方案成功");
+        // TODO: 实现确认排课方案逻辑
+        return null;
     }
 
     /**
@@ -102,9 +83,8 @@ public class AutoScheduleController {
             @RequestHeader("Authorization") String token,
             @RequestParam("semester_uuid") String semesterUuid
     ) {
-        log.info("清除预览排课方案，学期UUID: {}", semesterUuid);
-        autoScheduleService.clearPreviewSchedules(semesterUuid);
-        return ResultUtil.success("清除预览排课方案成功");
+        // TODO: 实现清除预览逻辑
+        return null;
     }
 
     /**
@@ -120,8 +100,7 @@ public class AutoScheduleController {
             @RequestHeader("Authorization") String token,
             @RequestParam("semester_uuid") String semesterUuid
     ) {
-        AutoScheduleResult.ScheduleStatistics statistics =
-                autoScheduleService.getScheduleStatistics(semesterUuid);
-        return ResultUtil.success("获取排课统计信息成功", statistics);
+        // TODO: 实现获取统计信息逻辑
+        return null;
     }
 }

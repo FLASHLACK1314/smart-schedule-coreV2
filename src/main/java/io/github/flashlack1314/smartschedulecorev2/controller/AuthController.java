@@ -36,6 +36,7 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<BaseResponse<GetUserLoginDTO>> userLogin(
             @Valid @RequestBody LoginVO getData) {
+        log.info("用户登录请求: userType={}, userName={}", getData.getUserType(), getData.getUserName());
         GetUserLoginDTO result = authService.login(
                 getData.getUserType(), getData.getUserName(), getData.getPassword());
         return ResultUtil.success("登录成功", result);
