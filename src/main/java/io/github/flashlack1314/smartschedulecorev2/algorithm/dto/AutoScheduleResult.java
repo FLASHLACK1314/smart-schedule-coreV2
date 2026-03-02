@@ -1,6 +1,7 @@
 package io.github.flashlack1314.smartschedulecorev2.algorithm.dto;
 
 import io.github.flashlack1314.smartschedulecorev2.algorithm.entity.CourseAppointment;
+import io.github.flashlack1314.smartschedulecorev2.algorithm.entity.TimeSlot;
 import lombok.Data;
 
 import java.util.List;
@@ -19,9 +20,9 @@ public class AutoScheduleResult {
     private String semesterUuid;
 
     /**
-     * 排课方案：教学班UUID -> 课程安排列表
+     * 排课方案：时间槽 -> 该时间段的所有课程安排
      */
-    private Map<String, List<CourseAppointment>> scheduleMap;
+    private Map<TimeSlot, List<CourseAppointment>> scheduleMap;
 
     /**
      * 总体适应度分数

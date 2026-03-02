@@ -1,10 +1,13 @@
 package io.github.flashlack1314.smartschedulecorev2.controller;
 
 import com.xlf.utility.BaseResponse;
+import com.xlf.utility.ResultUtil;
 import io.github.flashlack1314.smartschedulecorev2.annotation.RequireRole;
 import io.github.flashlack1314.smartschedulecorev2.algorithm.dto.AutoScheduleResult;
 import io.github.flashlack1314.smartschedulecorev2.enums.UserType;
 import io.github.flashlack1314.smartschedulecorev2.model.vo.AutoScheduleVO;
+import io.github.flashlack1314.smartschedulecorev2.service.AutoScheduleService;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -16,14 +19,17 @@ import org.springframework.web.bind.annotation.*;
  */
 @Slf4j
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/v1/auto-schedule")
 public class AutoScheduleController {
+
+    private final AutoScheduleService autoScheduleService;
 
     /**
      * 执行自动排课
      *
-     * @param token   Token
-     * @param    autoScheduleVO 排课参数
+     * @param token          Token
+     * @param autoScheduleVO 排课参数
      * @return 排课结果
      */
     @PostMapping("/execute")
@@ -32,8 +38,9 @@ public class AutoScheduleController {
             @RequestHeader("Authorization") String token,
             @RequestBody AutoScheduleVO autoScheduleVO
     ) {
-        // TODO: 实现自动排课逻辑
-        return null;
+        log.info("执行自动排课，请求参数: {}", autoScheduleVO);
+        AutoScheduleResult result = autoScheduleService.execute(autoScheduleVO);
+        return ResultUtil.success("自动排课执行成功", result);
     }
 
     /**
@@ -41,16 +48,19 @@ public class AutoScheduleController {
      *
      * @param token        Token
      * @param semesterUuid 学期UUID
+     * @param result       排课结果
      * @return 保存结果
      */
     @PostMapping("/save-preview")
     @RequireRole({UserType.SYSTEM_ADMIN, UserType.ACADEMIC_ADMIN})
     public ResponseEntity<BaseResponse<Void>> saveAsPreview(
             @RequestHeader("Authorization") String token,
-            @RequestParam("semester_uuid") String semesterUuid
+            @RequestParam("semester_uuid") String semesterUuid,
+            @RequestBody AutoScheduleResult result
     ) {
-        // TODO: 实现保存预览逻辑
-        return null;
+        log.info("保存预览方案，学期UUID: {}", semesterUuid);
+        autoScheduleService.saveAsPreview(semesterUuid, result);
+        return ResultUtil.success("保存预览成功");
     }
 
     /**
@@ -66,8 +76,9 @@ public class AutoScheduleController {
             @RequestHeader("Authorization") String token,
             @RequestParam("semester_uuid") String semesterUuid
     ) {
-        // TODO: 实现确认排课方案逻辑
-        return null;
+        log.info("确认排课方案，学期UUID: {}", semesterUuid);
+        autoScheduleService.confirmSchedule(semesterUuid);
+        return ResultUtil.success("确认排课方案成功");
     }
 
     /**
@@ -83,8 +94,9 @@ public class AutoScheduleController {
             @RequestHeader("Authorization") String token,
             @RequestParam("semester_uuid") String semesterUuid
     ) {
-        // TODO: 实现清除预览逻辑
-        return null;
+        log.info("清除预览方案，学期UUID: {}", semesterUuid);
+        autoScheduleService.clearPreview(semesterUuid);
+        return ResultUtil.success("清除预览成功");
     }
 
     /**
@@ -100,7 +112,8 @@ public class AutoScheduleController {
             @RequestHeader("Authorization") String token,
             @RequestParam("semester_uuid") String semesterUuid
     ) {
-        // TODO: 实现获取统计信息逻辑
-        return null;
+        log.info("获取统计信息，学期UUID: {}", semesterUuid);
+        AutoScheduleResult.ScheduleStatistics statistics = autoScheduleService.getStatistics(semesterUuid);
+        return ResultUtil.success("获取统计信息成功", statistics);
     }
 }
