@@ -75,6 +75,15 @@ public class ScheduleContext {
     private Integer hoursPerSession = 2;
 
     /**
+     * 课程-行政班映射（用于合班上课约束）
+     * key: 课程UUID
+     * value: 该课程对应的行政班UUID列表
+     *
+     * 用于确保同一课程对应的多个行政班在同一时间上课
+     */
+    private Map<String, List<String>> courseClassMapping;
+
+    /**
      * 已有排课记录信息
      */
     @Data

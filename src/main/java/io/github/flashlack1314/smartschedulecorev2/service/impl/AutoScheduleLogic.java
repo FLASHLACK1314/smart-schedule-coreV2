@@ -45,6 +45,7 @@ public class AutoScheduleLogic implements AutoScheduleService {
     private final CourseClassroomTypeDAO courseClassroomTypeDAO;
     private final TeachingClassClassDAO teachingClassClassDAO;
     private final StudentDAO studentDAO;
+    private final ClassDAO classDAO;
     private final ConflictDetector conflictDetector;
     private final FitnessCalculator fitnessCalculator;
     private final HoursCalculator hoursCalculator;
@@ -60,6 +61,21 @@ public class AutoScheduleLogic implements AutoScheduleService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public AutoScheduleResult execute(AutoScheduleVO params) {
+        // 0. 参数验证
+        params.validate();
+
+        // 判断使用哪种排课模式
+        boolean useNewMode = params.getCourseClassMapping() != null && !params.getCourseClassMapping().isEmpty();
+
+        if (useNewMode) {
+            log.info("使用按行政班级排课模式");
+            // 解析并创建教学班（新模式）
+            List<String> teachingClassUuids = parseAndCreateTeachingClasses(params);
+            params.setTeachingClassUuids(teachingClassUuids);
+        } else {
+            log.info("使用按教学班排课模式（传统模式）");
+        }
+
         log.info("开始执行自动排课，学期UUID: {}, 教学班数量: {}",
                 params.getSemesterUuid(), params.getTeachingClassUuids().size());
 
@@ -332,6 +348,11 @@ public class AutoScheduleLogic implements AutoScheduleService {
         context.setDaysPerWeek(5);      // 每周5天
         context.setHoursPerSession(2);  // 单次2节
 
+        // 7. 传递课程-行政班映射（用于合班约束）
+        if (params.getCourseClassMapping() != null) {
+            context.setCourseClassMapping(params.getCourseClassMapping());
+        }
+
         return context;
     }
 
@@ -540,5 +561,240 @@ public class AutoScheduleLogic implements AutoScheduleService {
         statistics.setAverageFitness(averageFitness);
 
         return statistics;
+    }
+
+    // ==================== 按行政班级排课新方法 ====================
+
+    /**
+     * 解析并创建教学班（按行政班级排课模式）
+     *
+     * @param params 排课参数
+     * @return 教学班UUID列表
+     */
+    private List<String> parseAndCreateTeachingClasses(AutoScheduleVO params) {
+        List<String> teachingClassUuids = new ArrayList<>();
+        String semesterUuid = params.getSemesterUuid();
+
+        for (Map.Entry<String, List<String>> entry : params.getCourseClassMapping().entrySet()) {
+            String courseUuid = entry.getKey();
+            List<String> classUuids = entry.getValue();
+
+            // 1. 选择教师
+            String teacherUuid = selectTeacherForCourse(courseUuid, params);
+
+            if (teacherUuid == null) {
+                throw new IllegalArgumentException("课程 " + courseUuid + " 没有可用的有资格教师");
+            }
+
+            // 2. 查找或创建教学班
+            String teachingClassUuid = findOrBuildTeachingClass(courseUuid, teacherUuid, semesterUuid, classUuids);
+            teachingClassUuids.add(teachingClassUuid);
+
+            log.info("课程: {}, 教师: {}, 行政班: {} -> 教学班: {}",
+                    courseUuid, teacherUuid, classUuids, teachingClassUuid);
+        }
+
+        return teachingClassUuids;
+    }
+
+    /**
+     * 为课程选择教师
+     *
+     * @param courseUuid 课程UUID
+     * @param params 排课参数
+     * @return 教师UUID
+     */
+    private String selectTeacherForCourse(String courseUuid, AutoScheduleVO params) {
+        // 1. 如果指定了教师，验证后返回
+        if (params.getTeacherAssignment() != null && params.getTeacherAssignment().containsKey(courseUuid)) {
+            String assignedTeacherUuid = params.getTeacherAssignment().get(courseUuid);
+            if (hasQualification(courseUuid, assignedTeacherUuid)) {
+                return assignedTeacherUuid;
+            } else {
+                throw new IllegalArgumentException("指定的教师 " + assignedTeacherUuid + " 没有课程 " + courseUuid + " 的授课资格");
+            }
+        }
+
+        // 2. 查询所有有资格的教师
+        List<CourseQualificationDO> qualifications = courseQualificationDAO.list(
+                new QueryWrapper<CourseQualificationDO>().eq("course_uuid", courseUuid)
+        );
+
+        if (qualifications.isEmpty()) {
+            return null;
+        }
+
+        List<String> qualifiedTeacherUuids = qualifications.stream()
+                .map(CourseQualificationDO::getTeacherUuid)
+                .collect(Collectors.toList());
+
+        // 3. 根据策略选择教师
+        String strategy = params.getTeacherSelectionStrategy();
+        if ("random".equals(strategy)) {
+            return selectRandomTeacher(qualifiedTeacherUuids);
+        } else if ("first".equals(strategy)) {
+            return qualifiedTeacherUuids.get(0);
+        } else {
+            // balanced (默认)
+            return selectBalancedTeacher(qualifiedTeacherUuids, params.getSemesterUuid());
+        }
+    }
+
+    /**
+     * 检查教师是否有课程授课资格
+     */
+    private boolean hasQualification(String courseUuid, String teacherUuid) {
+        Long count = courseQualificationDAO.count(
+                new QueryWrapper<CourseQualificationDO>()
+                        .eq("course_uuid", courseUuid)
+                        .eq("teacher_uuid", teacherUuid)
+        );
+        return count != null && count > 0;
+    }
+
+    /**
+     * 随机选择教师
+     */
+    private String selectRandomTeacher(List<String> teacherUuids) {
+        Random random = new Random();
+        return teacherUuids.get(random.nextInt(teacherUuids.size()));
+    }
+
+    /**
+     * 均衡选择教师（选择当前工作量最少的）
+     */
+    private String selectBalancedTeacher(List<String> teacherUuids, String semesterUuid) {
+        String selectedTeacher = null;
+        int minWorkload = Integer.MAX_VALUE;
+
+        // 查询每个教师当前的工作量
+        for (String teacherUuid : teacherUuids) {
+            // 统计该教师在当前学期的总课时
+            List<ScheduleDO> schedules = scheduleDAO.list(
+                    new QueryWrapper<ScheduleDO>()
+                            .eq("semester_uuid", semesterUuid)
+                            .eq("teacher_uuid", teacherUuid)
+                            .eq("status", 1) // 只统计正式排课
+            );
+
+            int workload = schedules.stream().mapToInt(ScheduleDO::getCreditHours).sum();
+
+            if (workload < minWorkload) {
+                minWorkload = workload;
+                selectedTeacher = teacherUuid;
+            }
+        }
+
+        return selectedTeacher;
+    }
+
+    /**
+     * 查找或构建教学班
+     *
+     * @param courseUuid 课程UUID
+     * @param teacherUuid 教师UUID
+     * @param semesterUuid 学期UUID
+     * @param classUuids 行政班UUID列表
+     * @return 教学班UUID
+     */
+    private String findOrBuildTeachingClass(String courseUuid, String teacherUuid,
+                                              String semesterUuid, List<String> classUuids) {
+        // 1. 排序行政班UUID列表，便于比较
+        List<String> sortedClassUuids = new ArrayList<>(classUuids);
+        Collections.sort(sortedClassUuids);
+
+        // 2. 查询匹配的教学班
+        // 条件：相同课程 + 相同教师 + 相同学期 + 相同行政班组合
+        List<TeachingClassDO> existingClasses = teachingClassDAO.list(
+                new QueryWrapper<TeachingClassDO>()
+                        .eq("course_uuid", courseUuid)
+                        .eq("teacher_uuid", teacherUuid)
+                        .eq("semester_uuid", semesterUuid)
+        );
+
+        // 3. 检查每个现有教学班的行政班组合是否匹配
+        for (TeachingClassDO tc : existingClasses) {
+            List<TeachingClassClassDO> tccList = teachingClassClassDAO.list(
+                    new QueryWrapper<TeachingClassClassDO>()
+                            .eq("teaching_class_uuid", tc.getTeachingClassUuid())
+            );
+
+            List<String> existingClassUuids = tccList.stream()
+                    .map(TeachingClassClassDO::getClassUuid)
+                    .sorted()
+                    .collect(Collectors.toList());
+
+            if (existingClassUuids.equals(sortedClassUuids)) {
+                log.info("复用已有教学班: {}", tc.getTeachingClassUuid());
+                return tc.getTeachingClassUuid();
+            }
+        }
+
+        // 4. 未找到匹配的教学班，创建新的
+        return createNewTeachingClass(courseUuid, teacherUuid, semesterUuid, classUuids);
+    }
+
+    /**
+     * 创建新的教学班
+     *
+     * @param courseUuid 课程UUID
+     * @param teacherUuid 教师UUID
+     * @param semesterUuid 学期UUID
+     * @param classUuids 行政班UUID列表
+     * @return 教学班UUID
+     */
+    private String createNewTeachingClass(String courseUuid, String teacherUuid,
+                                          String semesterUuid, List<String> classUuids) {
+        // 1. 查询课程信息
+        CourseDO course = courseDAO.getById(courseUuid);
+        if (course == null) {
+            throw new IllegalArgumentException("课程不存在: " + courseUuid);
+        }
+
+        // 2. 查询教师信息
+        TeacherDO teacher = teacherDAO.getById(teacherUuid);
+        if (teacher == null) {
+            throw new IllegalArgumentException("教师不存在: " + teacherUuid);
+        }
+
+        // 3. 查询行政班信息
+        List<ClassDO> classes = classDAO.listByIds(classUuids);
+        if (classes.size() != classUuids.size()) {
+            throw new IllegalArgumentException("部分行政班不存在");
+        }
+
+        // 4. 构建教学班名称：课程名-教师名-行政班1+...
+        String classNameStr = classes.stream()
+                .map(ClassDO::getClassName)
+                .collect(Collectors.joining("+"));
+        String teachingClassName = course.getCourseName() + "-" + teacher.getTeacherName() + "-" + classNameStr;
+
+        // 5. 创建教学班
+        TeachingClassDO teachingClass = new TeachingClassDO();
+        teachingClass.setTeachingClassUuid(UUID.randomUUID().toString().replace("-", ""));
+        teachingClass.setCourseUuid(courseUuid);
+        teachingClass.setTeacherUuid(teacherUuid);
+        teachingClass.setSemesterUuid(semesterUuid);
+        teachingClass.setTeachingClassName(teachingClassName);
+        teachingClass.setTeachingClassHours(0);
+        teachingClass.setWeeklySessions(null); // 使用课程默认值
+        teachingClass.setSectionsPerSession(null); // 使用默认值2
+
+        teachingClassDAO.save(teachingClass);
+        log.info("创建教学班: {}", teachingClassName);
+
+        // 6. 批量创建教学班-行政班关联
+        List<TeachingClassClassDO> tccList = new ArrayList<>();
+        for (String classUuid : classUuids) {
+            TeachingClassClassDO tcc = new TeachingClassClassDO();
+            tcc.setTeachingClassClassUuid(UUID.randomUUID().toString().replace("-", ""));
+            tcc.setTeachingClassUuid(teachingClass.getTeachingClassUuid());
+            tcc.setClassUuid(classUuid);
+            tccList.add(tcc);
+        }
+        teachingClassClassDAO.saveBatch(tccList);
+        log.info("创建教学班-行政班关联: {} 条", tccList.size());
+
+        return teachingClass.getTeachingClassUuid();
     }
 }

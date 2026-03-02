@@ -95,7 +95,12 @@ public class Conflict {
         /**
          * 教师工作量不均衡
          */
-        WORKLOAD_IMBALANCE
+        WORKLOAD_IMBALANCE,
+
+        /**
+         * 合班上课时间不一致冲突
+         */
+        COMBINED_CLASS_TIME_CONFLICT
     }
 
     /**

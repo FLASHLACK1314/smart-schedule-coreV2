@@ -160,6 +160,9 @@ public class ConflictDetector {
 
         // 检测教师资格约束
         detectQualificationConflicts(allAppointments, context, report);
+
+        // 检测合班上课约束
+        detectCombinedClassConflicts(chromosome, context, report);
     }
 
     /**
@@ -283,5 +286,65 @@ public class ConflictDetector {
         conflict.setClassroomUuid(appt.getClassroomUuid());
         conflict.setSeverity(severity);
         return conflict;
+    }
+
+    /**
+     * 检测合班上课时间冲突
+     *
+     * 约束规则：同一课程对应的多个行政班必须在同一时间上课
+     */
+    private void detectCombinedClassConflicts(Chromosome chromosome, ScheduleContext context, ConflictReport report) {
+        if (context.getCourseClassMapping() == null || context.getCourseClassMapping().isEmpty()) {
+            return;
+        }
+
+        // 按课程UUID分组所有课程安排
+        Map<String, List<CourseAppointment>> appointmentsByCourse = new HashMap<>();
+
+        for (Map.Entry<TimeSlot, List<CourseAppointment>> entry : chromosome.getGenes().entrySet()) {
+            for (CourseAppointment appt : entry.getValue()) {
+                String courseUuid = appt.getCourseUuid();
+                appointmentsByCourse.computeIfAbsent(courseUuid, k -> new ArrayList<>()).add(appt);
+            }
+        }
+
+        // 检查每个课程的教学班时间是否一致
+        for (Map.Entry<String, List<String>> mappingEntry : context.getCourseClassMapping().entrySet()) {
+            String courseUuid = mappingEntry.getKey();
+            List<String> expectedClassUuids = new ArrayList<>(mappingEntry.getValue());
+            Collections.sort(expectedClassUuids);
+
+            List<CourseAppointment> appointments = appointmentsByCourse.get(courseUuid);
+            if (appointments == null || appointments.isEmpty()) {
+                continue;
+            }
+
+            // 检查同一课程是否有多个教学班且时间不同
+            TimeSlot referenceTimeSlot = null;
+            String referenceTeachingClass = null;
+
+            for (CourseAppointment appt : appointments) {
+                List<String> actualClassUuids = new ArrayList<>(appt.getClassUuids());
+                Collections.sort(actualClassUuids);
+
+                // 如果行政班列表匹配，记录参考时间
+                if (actualClassUuids.equals(expectedClassUuids)) {
+                    if (referenceTimeSlot == null) {
+                        referenceTimeSlot = appt.getTimeSlot();
+                        referenceTeachingClass = appt.getTeachingClassUuid();
+                    } else {
+                        // 检查时间是否一致
+                        if (!referenceTimeSlot.equals(appt.getTimeSlot())) {
+                            report.addHardConflict(createConflict(
+                                    Conflict.ConflictType.COMBINED_CLASS_TIME_CONFLICT,
+                                    "课程[" + appt.getCourseName() + "]的合班上课时间不一致，" +
+                                    "教学班[" + referenceTeachingClass + "]和[" + appt.getTeachingClassUuid() + "]应在同一时间上课",
+                                    appt, Conflict.ConflictSeverity.HARD
+                            ));
+                        }
+                    }
+                }
+            }
+        }
     }
 }
