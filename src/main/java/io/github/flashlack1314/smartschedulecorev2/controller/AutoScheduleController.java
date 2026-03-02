@@ -23,14 +23,14 @@ public class AutoScheduleController {
      * 执行自动排课
      *
      * @param token   Token
-     * @param request 排课请求参数
+     * @param    autoScheduleVO 排课参数
      * @return 排课结果
      */
     @PostMapping("/execute")
     @RequireRole({UserType.SYSTEM_ADMIN, UserType.ACADEMIC_ADMIN})
     public ResponseEntity<BaseResponse<AutoScheduleResult>> executeAutoSchedule(
             @RequestHeader("Authorization") String token,
-            @RequestBody AutoScheduleVO request
+            @RequestBody AutoScheduleVO autoScheduleVO
     ) {
         // TODO: 实现自动排课逻辑
         return null;
