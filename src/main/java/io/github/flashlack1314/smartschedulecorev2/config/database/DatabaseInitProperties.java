@@ -24,9 +24,23 @@ import java.util.List;
 public class DatabaseInitProperties {
 
     /**
+     * 数据初始化模式枚举
+     */
+    public enum InitMode {
+        FULL,      // 满数据模式：初始化所有数据（含排课）
+        DEMO,      // 演示数据模式：只初始化到行政班级（不含排课）
+        MINIMAL    // 最小数据模式：只初始化基础数据
+    }
+
+    /**
      * 是否启用数据库初始化
      */
     private boolean enabled = false;
+
+    /**
+     * 数据初始化模式
+     */
+    private InitMode mode = InitMode.FULL;
 
     /**
      * 是否强制重新创建表（生产环境请勿开启）
@@ -61,6 +75,7 @@ public class DatabaseInitProperties {
         }
         log.info("数据库初始化配置加载完成:");
         log.info("  enabled: {}", enabled);
+        log.info("  mode: {}", mode);
         log.info("  dropAndCreate: {}", dropAndCreate);
         log.info("  dropAllOnMissing: {}", dropAllOnMissing);
         log.info("  failFast: {}", failFast);

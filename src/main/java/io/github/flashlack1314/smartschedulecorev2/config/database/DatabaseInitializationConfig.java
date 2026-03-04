@@ -53,7 +53,7 @@ public class DatabaseInitializationConfig {
                     this.createAllTables();
                     log.info("强制重新创建模式完成");
                     log.info("初始化数据库数据");
-                    initializeDatabase.initializeDatabase();
+                    initializeDatabase.initializeDatabase(properties.getMode());
                     return;
                 }
                 // 场景2: 表都存在
@@ -68,7 +68,7 @@ public class DatabaseInitializationConfig {
                     log.warn("drop-all-on-missing模式：删除所有表后重新创建");
                     this.dropAllTables();
                     this.createAllTables();
-                    initializeDatabase.initializeDatabase();
+                    initializeDatabase.initializeDatabase(properties.getMode());
                 } else {
                     this.createMissingTables(missingTables);
                 }
