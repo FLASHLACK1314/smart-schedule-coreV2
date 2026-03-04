@@ -12,7 +12,10 @@
       "Bash(cd \"C:\\\\project\\\\毕设代码\\\\smart-schedule-coreV2\" && ./mvnw test -Dtest=TimeSlotTest -q 2>&1)",
       "Bash(cd \"C:\\\\project\\\\毕设代码\\\\smart-schedule-coreV2\" && ./mvnw test -Dtest=HoursCalculatorTest -q 2>&1)",
       "Bash(cd \"C:\\\\project\\\\毕设代码\\\\smart-schedule-coreV2\" && ./mvnw compile -q 2>&1)",
-      "Bash(head:*)"
+      "Bash(head:*)",
+      "Bash(mvn compile:*)",
+      "Bash(cmd:*)",
+      "Bash(./mvnw.cmd compile:*)"
     ]
   }
 }

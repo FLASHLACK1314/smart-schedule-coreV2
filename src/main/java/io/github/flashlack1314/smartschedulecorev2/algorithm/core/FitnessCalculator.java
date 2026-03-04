@@ -13,6 +13,7 @@ import org.springframework.stereotype.Component;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * 适应度计算器：计算排课方案的适应度
@@ -56,6 +57,13 @@ public class FitnessCalculator {
         double hardPenalty = 0;
         for (Conflict conflict : report.getHardConflicts()) {
             hardPenalty += getPenalty(conflict.getType());
+        }
+
+        // 添加详细日志
+        if (!report.getHardConflicts().isEmpty()) {
+            Map<Conflict.ConflictType, Long> conflictCounts = report.getHardConflicts().stream()
+                    .collect(Collectors.groupingBy(Conflict::getType, Collectors.counting()));
+            log.debug("检测到 {} 个硬约束冲突: {}", report.getHardConflicts().size(), conflictCounts);
         }
 
         // 未完成排课惩罚

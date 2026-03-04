@@ -84,6 +84,15 @@ public class ScheduleContext {
     private Map<String, List<String>> courseClassMapping;
 
     /**
+     * 课程类型 -> 可用教室类型列表的映射
+     * key: 课程类型UUID (sc_course_type.course_type_uuid)
+     * value: 该课程类型可用的教室类型UUID列表 (sc_classroom_type.classroom_type_uuid)
+     *
+     * 从 sc_course_classroom_type 关联表加载，用于确保课程被安排到合适类型的教室
+     */
+    private Map<String, List<String>> courseTypeToClassroomTypes;
+
+    /**
      * 已有排课记录信息
      */
     @Data

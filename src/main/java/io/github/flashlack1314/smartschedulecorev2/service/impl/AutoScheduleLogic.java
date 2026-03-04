@@ -64,20 +64,10 @@ public class AutoScheduleLogic implements AutoScheduleService {
         // 0. 参数验证
         params.validate();
 
-        // 判断使用哪种排课模式
-        boolean useNewMode = params.getCourseClassMapping() != null && !params.getCourseClassMapping().isEmpty();
-
-        if (useNewMode) {
-            log.info("使用按行政班级排课模式");
-            // 解析并创建教学班（新模式）
-            List<String> teachingClassUuids = parseAndCreateTeachingClasses(params);
-            params.setTeachingClassUuids(teachingClassUuids);
-        } else {
-            log.info("使用按教学班排课模式（传统模式）");
-        }
-
+        // 解析并创建教学班
+        List<String> teachingClassUuids = parseAndCreateTeachingClasses(params);
         log.info("开始执行自动排课，学期UUID: {}, 教学班数量: {}",
-                params.getSemesterUuid(), params.getTeachingClassUuids().size());
+                params.getSemesterUuid(), teachingClassUuids.size());
 
         // 1. 检查是否覆盖已有排课
         if (Boolean.TRUE.equals(params.getOverwrite())) {
@@ -85,12 +75,12 @@ public class AutoScheduleLogic implements AutoScheduleService {
             scheduleDAO.remove(
                     new QueryWrapper<ScheduleDO>()
                             .eq("semester_uuid", params.getSemesterUuid())
-                            .in("teaching_class_uuid", params.getTeachingClassUuids())
+                            .in("teaching_class_uuid", teachingClassUuids)
             );
         }
 
         // 2. 构建排课上下文
-        ScheduleContext context = buildScheduleContext(params);
+        ScheduleContext context = buildScheduleContext(params, teachingClassUuids);
 
         // 3. 创建遗传算法实例（手动注入依赖）
         TimeSlotGenerator timeSlotGenerator = new TimeSlotGenerator();
@@ -139,9 +129,9 @@ public class AutoScheduleLogic implements AutoScheduleService {
 
         // 9. 构建统计信息
         AutoScheduleResult.ScheduleStatistics statistics = new AutoScheduleResult.ScheduleStatistics();
-        statistics.setTotalTeachingClasses(params.getTeachingClassUuids().size());
+        statistics.setTotalTeachingClasses(teachingClassUuids.size());
         statistics.setScheduledTeachingClasses(
-                params.getTeachingClassUuids().size() - bestChromosome.getUnscheduledTeachingClasses().size()
+                teachingClassUuids.size() - bestChromosome.getUnscheduledTeachingClasses().size()
         );
 
         int totalSessions = 0;
@@ -166,7 +156,7 @@ public class AutoScheduleLogic implements AutoScheduleService {
     /**
      * 构建排课上下文
      */
-    private ScheduleContext buildScheduleContext(AutoScheduleVO params) {
+    private ScheduleContext buildScheduleContext(AutoScheduleVO params, List<String> teachingClassUuids) {
         ScheduleContext context = new ScheduleContext();
 
         // 1. 查询学期信息
@@ -180,7 +170,7 @@ public class AutoScheduleLogic implements AutoScheduleService {
         context.setEndDate(semester.getEndDate());
 
         // 2. 查询教学班信息
-        List<TeachingClassDO> teachingClasses = teachingClassDAO.listByIds(params.getTeachingClassUuids());
+        List<TeachingClassDO> teachingClasses = teachingClassDAO.listByIds(teachingClassUuids);
         List<ScheduleContext.TeachingClassInfo> teachingClassList = new ArrayList<>();
 
         for (TeachingClassDO tc : teachingClasses) {
@@ -221,14 +211,9 @@ public class AutoScheduleLogic implements AutoScheduleService {
             int hoursPerSession = 2; // 固定2节
             int requiredSessions = hoursCalculator.calculateRequiredSessions(course.getCourseHours(), hoursPerSession);
 
-            // 应用 VO 中的配置覆盖
-            int weeklySessions = (params.getWeeklySessionsConfig() != null)
-                    ? params.getWeeklySessionsConfig().getOrDefault(tc.getTeachingClassUuid(), tc.getWeeklySessions())
-                    : (tc.getWeeklySessions() != null ? tc.getWeeklySessions() : 1);
-
-            int sectionsPerSession = (params.getSectionsPerSessionConfig() != null)
-                    ? params.getSectionsPerSessionConfig().getOrDefault(tc.getTeachingClassUuid(), tc.getSectionsPerSession())
-                    : (tc.getSectionsPerSession() != null ? tc.getSectionsPerSession() : 2);
+            // 使用教学班默认值
+            int weeklySessions = (tc.getWeeklySessions() != null ? tc.getWeeklySessions() : 1);
+            int sectionsPerSession = (tc.getSectionsPerSession() != null ? tc.getSectionsPerSession() : 2);
 
             ScheduleContext.TeachingClassInfo info = new ScheduleContext.TeachingClassInfo();
             info.setTeachingClassUuid(tc.getTeachingClassUuid());
@@ -249,15 +234,11 @@ public class AutoScheduleLogic implements AutoScheduleService {
         }
         context.setTeachingClassList(teachingClassList);
 
-        // 3. 查询教室信息（按教学楼和类型筛选）
+        // 3. 查询教室信息（按教学楼筛选）
         QueryWrapper<ClassroomDO> classroomQuery = new QueryWrapper<>();
 
         if (params.getBuildingUuids() != null && !params.getBuildingUuids().isEmpty()) {
             classroomQuery.in("building_uuid", params.getBuildingUuids());
-        }
-
-        if (params.getClassroomTypeUuids() != null && !params.getClassroomTypeUuids().isEmpty()) {
-            classroomQuery.in("classroom_type_uuid", params.getClassroomTypeUuids());
         }
 
         List<ClassroomDO> classrooms = classroomDAO.list(classroomQuery);
@@ -279,6 +260,19 @@ public class AutoScheduleLogic implements AutoScheduleService {
                         )
                 ));
         context.setAvailableClassrooms(availableClassrooms);
+
+        // 3.1 查询课程类型-教室类型映射关系
+        List<CourseClassroomTypeDO> courseClassroomTypes = courseClassroomTypeDAO.list();
+        Map<String, List<String>> courseTypeToClassroomTypes = courseClassroomTypes.stream()
+                .collect(Collectors.groupingBy(
+                        CourseClassroomTypeDO::getCourseTypeUuid,
+                        Collectors.mapping(
+                                CourseClassroomTypeDO::getClassroomTypeUuid,
+                                Collectors.toList()
+                        )
+                ));
+        context.setCourseTypeToClassroomTypes(courseTypeToClassroomTypes);
+        log.info("加载课程类型-教室类型映射: {} 条", courseClassroomTypes.size());
 
         // 4. 查询教师时间偏好和工作量限制
         Map<String, List<TimeSlot>> teacherTimePreferences = new HashMap<>();
@@ -349,9 +343,7 @@ public class AutoScheduleLogic implements AutoScheduleService {
         context.setHoursPerSession(2);  // 单次2节
 
         // 7. 传递课程-行政班映射（用于合班约束）
-        if (params.getCourseClassMapping() != null) {
-            context.setCourseClassMapping(params.getCourseClassMapping());
-        }
+        context.setCourseClassMapping(params.getCourseClassMapping());
 
         return context;
     }

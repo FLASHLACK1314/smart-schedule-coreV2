@@ -66,6 +66,11 @@ public class CourseAppointment {
     private Integer classroomCapacity;
 
     /**
+     * 教室类型UUID
+     */
+    private String classroomTypeUuid;
+
+    /**
      * 课程类型UUID
      */
     private String courseTypeUuid;
@@ -100,6 +105,7 @@ public class CourseAppointment {
         copy.setClassroomUuid(this.classroomUuid);
         copy.setClassroomName(this.classroomName);
         copy.setClassroomCapacity(this.classroomCapacity);
+        copy.setClassroomTypeUuid(this.classroomTypeUuid);
         copy.setCourseTypeUuid(this.courseTypeUuid);
         copy.setClassUuids(this.classUuids != null ? List.copyOf(this.classUuids) : null);
         copy.setTotalStudents(this.totalStudents);

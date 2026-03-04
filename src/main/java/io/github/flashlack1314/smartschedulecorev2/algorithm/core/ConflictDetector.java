@@ -188,8 +188,41 @@ public class ConflictDetector {
      * @param context 排课上下文，包含课程类型-教室类型映射
      */
     private void detectClassroomTypeConflicts(List<CourseAppointment> appointments, ScheduleContext context, ConflictReport report) {
-        // 此方法需要额外的课程类型-教室类型映射数据
-        // 当前简化实现，后续可以从context获取映射关系进行检测
+        Map<String, List<String>> courseTypeToClassroomTypes = context.getCourseTypeToClassroomTypes();
+        if (courseTypeToClassroomTypes == null || courseTypeToClassroomTypes.isEmpty()) {
+            // 没有映射数据，跳过检测
+            return;
+        }
+
+        for (CourseAppointment appt : appointments) {
+            String courseTypeUuid = appt.getCourseTypeUuid();
+            if (courseTypeUuid == null) {
+                continue;
+            }
+
+            // 获取课程类型允许的教室类型列表
+            List<String> allowedClassroomTypes = courseTypeToClassroomTypes.get(courseTypeUuid);
+            if (allowedClassroomTypes == null || allowedClassroomTypes.isEmpty()) {
+                // 该课程类型没有配置映射关系，跳过
+                continue;
+            }
+
+            // 获取实际使用的教室类型
+            String actualClassroomType = appt.getClassroomTypeUuid();
+            if (actualClassroomType == null) {
+                continue;
+            }
+
+            // 检查教室类型是否匹配
+            if (!allowedClassroomTypes.contains(actualClassroomType)) {
+                report.addHardConflict(createConflict(
+                        Conflict.ConflictType.CLASSROOM_TYPE_MISMATCH,
+                        "课程[" + appt.getCourseName() + "]需要类型为" + allowedClassroomTypes +
+                        "的教室，但被安排到了类型不匹配的教室",
+                        appt, Conflict.ConflictSeverity.HARD
+                ));
+            }
+        }
     }
 
     /**
@@ -212,6 +245,19 @@ public class ConflictDetector {
      */
     public boolean hasConflict(Chromosome chromosome, CourseAppointment appointment, ScheduleContext context) {
         TimeSlot newSlot = appointment.getTimeSlot();
+
+        // 检查教室类型是否匹配
+        if (appointment.getCourseTypeUuid() != null && appointment.getClassroomTypeUuid() != null) {
+            List<String> allowedTypes = context.getCourseTypeToClassroomTypes()
+                    .get(appointment.getCourseTypeUuid());
+            if (allowedTypes != null && !allowedTypes.isEmpty()) {
+                if (!allowedTypes.contains(appointment.getClassroomTypeUuid())) {
+                    log.debug("教室类型不匹配: 课程类型 {} 需要教室类型 {}, 但选择了 {}",
+                            appointment.getCourseTypeUuid(), allowedTypes, appointment.getClassroomTypeUuid());
+                    return true; // 教室类型不匹配视为冲突
+                }
+            }
+        }
 
         // 检查与已有排课的冲突
         if (context.getExistingSchedules() != null) {

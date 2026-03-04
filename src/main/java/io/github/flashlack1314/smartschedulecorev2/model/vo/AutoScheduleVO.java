@@ -23,19 +23,11 @@ public class AutoScheduleVO {
     private String semesterUuid;
 
     /**
-     * 待排课的教学班UUID列表（必填，旧模式）
-     * 优先使用 courseClassMapping，此字段为向后兼容保留
-     */
-    private List<String> teachingClassUuids;
-
-    // ==================== 按行政班级排课（新模式）====================
-
-    /**
-     * 课程-行政班映射（必填，新模式）
+     * 课程-行政班映射（必填）
      * key: 课程UUID
      * value: 该课程对应的行政班UUID列表（支持合班上课）
      *
-     * 当提供此参数时，将按行政班级排课模式执行：
+     * 后端自动：
      * 1. 根据课程-行政班映射智能匹配或创建教学班
      * 2. 从 sc_course_qualification 表查询教师资格并自动分配教师
      * 3. 保证合班上课时，同一课程对应的多个行政班在同一时间上课
@@ -68,25 +60,6 @@ public class AutoScheduleVO {
      * 可用教学楼UUID列表（可选，不传则查询所有）
      */
     private List<String> buildingUuids;
-
-    /**
-     * 可用教室类型UUID列表（可选，不传则使用所有类型）
-     */
-    private List<String> classroomTypeUuids;
-
-    // ==================== 教学班配置覆盖（可选）====================
-
-    /**
-     * 每周上课次数配置（可选，默认使用教学班表中的配置）
-     * 格式：Map<teachingClassUuid, weeklySessions>
-     */
-    private Map<String, Integer> weeklySessionsConfig;
-
-    /**
-     * 每次上课节次数配置（可选，默认使用教学班表中的配置）
-     * 格式：Map<teachingClassUuid, sectionsPerSession>
-     */
-    private Map<String, Integer> sectionsPerSessionConfig;
 
     // ==================== 排课模式配置（可选）====================
 
@@ -142,18 +115,11 @@ public class AutoScheduleVO {
             throw new IllegalArgumentException("学期UUID不能为空");
         }
 
-        // 两种排课模式至少提供一种
-        boolean hasTeachingClassUuids = teachingClassUuids != null && !teachingClassUuids.isEmpty();
-        boolean hasCourseClassMapping = courseClassMapping != null && !courseClassMapping.isEmpty();
-
-        if (!hasTeachingClassUuids && !hasCourseClassMapping) {
-            throw new IllegalArgumentException("必须提供 teachingClassUuids 或 courseClassMapping 其中之一");
+        // 课程-行政班映射必填
+        if (courseClassMapping == null || courseClassMapping.isEmpty()) {
+            throw new IllegalArgumentException("必须提供 courseClassMapping 课程-行政班映射");
         }
-
-        // 优先使用 courseClassMapping 模式
-        if (hasCourseClassMapping) {
-            validateCourseClassMapping();
-        }
+        validateCourseClassMapping();
 
         // 验证教师选择策略
         if (teacherSelectionStrategy != null && !isValidTeacherSelectionStrategy()) {

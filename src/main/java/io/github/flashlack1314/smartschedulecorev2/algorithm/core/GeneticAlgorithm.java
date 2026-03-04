@@ -467,38 +467,67 @@ public class GeneticAlgorithm {
 
     /**
      * 选择合适的教室
+     * 根据课程类型-教室类型映射选择合适类型的教室
      */
     private String selectSuitableClassroom(ScheduleContext.TeachingClassInfo tc, TimeSlot timeSlot) {
         if (context.getAvailableClassrooms() == null || context.getAvailableClassrooms().isEmpty()) {
+            log.warn("没有可用的教室数据");
             return null;
         }
 
-        // 获取该课程类型对应的教室列表
-        List<ScheduleContext.ClassroomInfo> classrooms = context.getAvailableClassrooms().get(tc.getCourseTypeUuid());
+        // 1. 获取该课程类型对应的教室类型列表
+        List<String> allowedClassroomTypes = context.getCourseTypeToClassroomTypes() != null
+                ? context.getCourseTypeToClassroomTypes().get(tc.getCourseTypeUuid())
+                : null;
 
-        if (classrooms == null || classrooms.isEmpty()) {
-            // 如果没有匹配的类型，使用所有可用教室
+        // 2. 收集这些教室类型下的所有教室
+        List<ScheduleContext.ClassroomInfo> classrooms = new ArrayList<>();
+        if (allowedClassroomTypes != null && !allowedClassroomTypes.isEmpty()) {
+            for (String classroomTypeUuid : allowedClassroomTypes) {
+                List<ScheduleContext.ClassroomInfo> typeRooms = context.getAvailableClassrooms()
+                        .get(classroomTypeUuid);
+                if (typeRooms != null) {
+                    classrooms.addAll(typeRooms);
+                }
+            }
+            log.debug("课程类型 {} 找到 {} 个匹配类型的教室",
+                    tc.getCourseTypeUuid(), classrooms.size());
+        } else {
+            log.debug("课程类型 {} 没有配置教室类型映射，使用所有可用教室",
+                    tc.getCourseTypeUuid());
+            // 向后兼容：只有当没有配置映射时才使用所有教室
             classrooms = context.getAvailableClassrooms().values().stream()
                     .flatMap(List::stream)
                     .collect(Collectors.toList());
         }
 
-        // 过滤容量足够的教室
+        // 3. 如果仍然没有教室，记录警告并返回null
+        if (classrooms.isEmpty()) {
+            log.warn("课程类型 {} 找不到任何可用教室", tc.getCourseTypeUuid());
+            return null;
+        }
+
+        // 4. 过滤容量足够的教室
         List<ScheduleContext.ClassroomInfo> suitableClassrooms = classrooms.stream()
                 .filter(c -> c.getCapacity() >= tc.getTotalStudents())
                 .collect(Collectors.toList());
 
         if (suitableClassrooms.isEmpty()) {
+            log.debug("课程 {} 需要 {} 个座位，但没有足够容量的教室，使用所有可用教室",
+                    tc.getCourseName(), tc.getTotalStudents());
             suitableClassrooms = classrooms; // 如果没有足够容量的，使用所有教室
         }
 
         if (suitableClassrooms.isEmpty()) {
+            log.warn("课程 {} 无法找到任何合适的教室", tc.getCourseName());
             return null;
         }
 
-        // 随机选择一个
+        // 5. 随机选择一个
         Random random = new Random();
-        return suitableClassrooms.get(random.nextInt(suitableClassrooms.size())).getClassroomUuid();
+        ScheduleContext.ClassroomInfo selected = suitableClassrooms.get(random.nextInt(suitableClassrooms.size()));
+        log.trace("为课程 {} 选择教室: {}", tc.getCourseName(), selected.getClassroomName());
+        return selected.getClassroomUuid();
     }
 
     /**
@@ -526,6 +555,7 @@ public class GeneticAlgorithm {
                     if (info.getClassroomUuid().equals(classroomUuid)) {
                         appointment.setClassroomName(info.getClassroomName());
                         appointment.setClassroomCapacity(info.getCapacity());
+                        appointment.setClassroomTypeUuid(info.getClassroomTypeUuid());
                         break;
                     }
                 }
