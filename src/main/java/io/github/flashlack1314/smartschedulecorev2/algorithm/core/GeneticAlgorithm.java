@@ -130,6 +130,25 @@ public class GeneticAlgorithm {
     private List<Chromosome> initializePopulation() {
         List<Chromosome> population = new ArrayList<>();
 
+        // 诊断日志：显示课程类型-教室类型映射
+        if (context.getCourseTypeToClassroomTypes() != null) {
+            log.info("课程类型-教室类型映射配置: {} 条", context.getCourseTypeToClassroomTypes().size());
+            for (Map.Entry<String, List<String>> entry : context.getCourseTypeToClassroomTypes().entrySet()) {
+                log.info("  课程类型 {} -> 教室类型: {}", entry.getKey(), entry.getValue());
+            }
+        } else {
+            log.warn("没有配置课程类型-教室类型映射！这可能导致教室类型不匹配");
+        }
+
+        // 诊断日志：显示教学班信息
+        for (ScheduleContext.TeachingClassInfo tc : context.getTeachingClassList()) {
+            List<String> allowedTypes = context.getCourseTypeToClassroomTypes() != null
+                    ? context.getCourseTypeToClassroomTypes().get(tc.getCourseTypeUuid())
+                    : null;
+            log.info("教学班[{}] 课程类型: {}, 允许的教室类型: {}, 学生数: {}",
+                    tc.getTeachingClassName(), tc.getCourseTypeUuid(), allowedTypes, tc.getTotalStudents());
+        }
+
         for (int i = 0; i < populationSize; i++) {
             Chromosome chromosome = new Chromosome();
 
@@ -333,6 +352,8 @@ public class GeneticAlgorithm {
                     String newClassroom = selectSuitableClassroom(tcInfo, target.getTimeSlot());
                     if (newClassroom != null) {
                         target.setClassroomUuid(newClassroom);
+                        // 同步更新 classroomTypeUuid，避免类型不匹配的硬约束冲突
+                        updateClassroomTypeInfo(target, newClassroom);
                     }
                 }
             }
@@ -480,6 +501,12 @@ public class GeneticAlgorithm {
                 ? context.getCourseTypeToClassroomTypes().get(tc.getCourseTypeUuid())
                 : null;
 
+        // 诊断日志
+        if (allowedClassroomTypes == null || allowedClassroomTypes.isEmpty()) {
+            log.warn("课程[{}]的类型[{}]没有配置教室类型映射，将使用所有可用教室（可能导致类型不匹配）",
+                    tc.getCourseName(), tc.getCourseTypeUuid());
+        }
+
         // 2. 收集这些教室类型下的所有教室
         List<ScheduleContext.ClassroomInfo> classrooms = new ArrayList<>();
         if (allowedClassroomTypes != null && !allowedClassroomTypes.isEmpty()) {
@@ -556,6 +583,17 @@ public class GeneticAlgorithm {
                         appointment.setClassroomName(info.getClassroomName());
                         appointment.setClassroomCapacity(info.getCapacity());
                         appointment.setClassroomTypeUuid(info.getClassroomTypeUuid());
+
+                        // 验证教室类型是否匹配
+                        List<String> allowedTypes = context.getCourseTypeToClassroomTypes() != null
+                                ? context.getCourseTypeToClassroomTypes().get(tc.getCourseTypeUuid())
+                                : null;
+                        if (allowedTypes != null && !allowedTypes.isEmpty()
+                                && !allowedTypes.contains(info.getClassroomTypeUuid())) {
+                            log.warn("构建课程安排时教室类型不匹配: 课程[{}]类型[{}]需要教室类型{}, 但选择了教室[{}]类型[{}]",
+                                    tc.getCourseName(), tc.getCourseTypeUuid(), allowedTypes,
+                                    info.getClassroomName(), info.getClassroomTypeUuid());
+                        }
                         break;
                     }
                 }
@@ -576,6 +614,29 @@ public class GeneticAlgorithm {
                 .filter(tc -> tc.getTeachingClassUuid().equals(teachingClassUuid))
                 .findFirst()
                 .orElse(null);
+    }
+
+    /**
+     * 更新课程安排的教室类型信息
+     * 在教室变异后调用，确保 classroomTypeUuid 与新教室同步
+     *
+     * @param appointment   课程安排对象
+     * @param classroomUuid 新教室的 UUID
+     */
+    private void updateClassroomTypeInfo(CourseAppointment appointment, String classroomUuid) {
+        if (context.getAvailableClassrooms() != null) {
+            for (List<ScheduleContext.ClassroomInfo> classrooms : context.getAvailableClassrooms().values()) {
+                for (ScheduleContext.ClassroomInfo info : classrooms) {
+                    if (info.getClassroomUuid().equals(classroomUuid)) {
+                        appointment.setClassroomTypeUuid(info.getClassroomTypeUuid());
+                        appointment.setClassroomName(info.getClassroomName());
+                        appointment.setClassroomCapacity(info.getCapacity());
+                        return;
+                    }
+                }
+            }
+        }
+        log.warn("无法找到教室 {} 的类型信息，classroomTypeUuid 可能不一致", classroomUuid);
     }
 
     /**

@@ -18,6 +18,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -86,12 +87,18 @@ public class CourseServiceImpl implements CourseService {
         // 提取所有课程类型UUID
         Set<String> courseTypeUuids = pageResult.getRecords().stream()
                 .map(CourseDO::getCourseTypeUuid)
+                .filter(uuid -> uuid != null && !uuid.isEmpty())
                 .collect(Collectors.toSet());
 
-        // 批量查询课程类型信息
-        List<CourseTypeDO> courseTypes = courseTypeDAO.listByIds(courseTypeUuids);
-        Map<String, CourseTypeDO> courseTypeMap = courseTypes.stream()
-                .collect(Collectors.toMap(CourseTypeDO::getCourseTypeUuid, ct -> ct));
+        // 批量查询课程类型信息（只有当有类型UUID时才查询）
+        final Map<String, CourseTypeDO> courseTypeMap;
+        if (!courseTypeUuids.isEmpty()) {
+            List<CourseTypeDO> courseTypes = courseTypeDAO.listByIds(courseTypeUuids);
+            courseTypeMap = courseTypes.stream()
+                    .collect(Collectors.toMap(CourseTypeDO::getCourseTypeUuid, ct -> ct));
+        } else {
+            courseTypeMap = new HashMap<>();
+        }
 
         // 转换为DTO并填充类型名称
         List<CourseInfoDTO> courseInfoList = pageResult.getRecords().stream()

@@ -337,55 +337,77 @@ public class ConflictDetector {
     /**
      * 检测合班上课时间冲突
      *
-     * 约束规则：同一课程对应的多个行政班必须在同一时间上课
+     * 约束规则：同一课程对应的不同教学班（但行政班组合相同）必须在同一时间上课
+     * 修复：同一教学班的多次上课（如周一和周三）不应被误判为冲突
      */
     private void detectCombinedClassConflicts(Chromosome chromosome, ScheduleContext context, ConflictReport report) {
         if (context.getCourseClassMapping() == null || context.getCourseClassMapping().isEmpty()) {
             return;
         }
 
-        // 按课程UUID分组所有课程安排
-        Map<String, List<CourseAppointment>> appointmentsByCourse = new HashMap<>();
+        // 按课程UUID分组 -> 按教学班UUID分组（嵌套结构）
+        Map<String, Map<String, List<CourseAppointment>>> appointmentsByCourseAndClass = new HashMap<>();
 
         for (Map.Entry<TimeSlot, List<CourseAppointment>> entry : chromosome.getGenes().entrySet()) {
             for (CourseAppointment appt : entry.getValue()) {
                 String courseUuid = appt.getCourseUuid();
-                appointmentsByCourse.computeIfAbsent(courseUuid, k -> new ArrayList<>()).add(appt);
+                String teachingClassUuid = appt.getTeachingClassUuid();
+                appointmentsByCourseAndClass
+                    .computeIfAbsent(courseUuid, k -> new HashMap<>())
+                    .computeIfAbsent(teachingClassUuid, k -> new ArrayList<>())
+                    .add(appt);
             }
         }
 
-        // 检查每个课程的教学班时间是否一致
+        // 检查每个课程的不同教学班是否有时间冲突
         for (Map.Entry<String, List<String>> mappingEntry : context.getCourseClassMapping().entrySet()) {
             String courseUuid = mappingEntry.getKey();
             List<String> expectedClassUuids = new ArrayList<>(mappingEntry.getValue());
             Collections.sort(expectedClassUuids);
 
-            List<CourseAppointment> appointments = appointmentsByCourse.get(courseUuid);
-            if (appointments == null || appointments.isEmpty()) {
+            Map<String, List<CourseAppointment>> teachingClassMap = appointmentsByCourseAndClass.get(courseUuid);
+            if (teachingClassMap == null || teachingClassMap.isEmpty()) {
                 continue;
             }
 
-            // 检查同一课程是否有多个教学班且时间不同
-            TimeSlot referenceTimeSlot = null;
-            String referenceTeachingClass = null;
+            // 只比较不同的教学班（同一教学班的多次上课不比较）
+            List<String> teachingClassUuids = new ArrayList<>(teachingClassMap.keySet());
+            for (int i = 0; i < teachingClassUuids.size(); i++) {
+                for (int j = i + 1; j < teachingClassUuids.size(); j++) {
+                    String tc1 = teachingClassUuids.get(i);
+                    String tc2 = teachingClassUuids.get(j);
 
-            for (CourseAppointment appt : appointments) {
-                List<String> actualClassUuids = new ArrayList<>(appt.getClassUuids());
-                Collections.sort(actualClassUuids);
+                    List<CourseAppointment> appts1 = teachingClassMap.get(tc1);
+                    List<CourseAppointment> appts2 = teachingClassMap.get(tc2);
 
-                // 如果行政班列表匹配，记录参考时间
-                if (actualClassUuids.equals(expectedClassUuids)) {
-                    if (referenceTimeSlot == null) {
-                        referenceTimeSlot = appt.getTimeSlot();
-                        referenceTeachingClass = appt.getTeachingClassUuid();
-                    } else {
-                        // 检查时间是否一致
-                        if (!referenceTimeSlot.equals(appt.getTimeSlot())) {
+                    // 获取各自的行政班列表
+                    List<String> classes1 = new ArrayList<>(appts1.get(0).getClassUuids());
+                    List<String> classes2 = new ArrayList<>(appts2.get(0).getClassUuids());
+
+                    // 只有当行政班列表完全相同时才需要检查时间一致性（合班约束）
+                    Collections.sort(classes1);
+                    Collections.sort(classes2);
+                    if (!classes1.equals(classes2)) {
+                        continue;
+                    }
+
+                    // 检查两个不同教学班的时间安排是否有交集（合班上课时间应该一致）
+                    // 即：tc1 的每次上课时间，都应该与 tc2 的某次上课时间相同
+                    for (CourseAppointment a1 : appts1) {
+                        boolean hasMatchingTime = false;
+                        for (CourseAppointment a2 : appts2) {
+                            if (a1.getTimeSlot().equals(a2.getTimeSlot())) {
+                                hasMatchingTime = true;
+                                break;
+                            }
+                        }
+                        if (!hasMatchingTime) {
+                            // 不同教学班（相同行政班组合）在不存在匹配的上课时间 - 这是冲突
                             report.addHardConflict(createConflict(
-                                    Conflict.ConflictType.COMBINED_CLASS_TIME_CONFLICT,
-                                    "课程[" + appt.getCourseName() + "]的合班上课时间不一致，" +
-                                    "教学班[" + referenceTeachingClass + "]和[" + appt.getTeachingClassUuid() + "]应在同一时间上课",
-                                    appt, Conflict.ConflictSeverity.HARD
+                                Conflict.ConflictType.COMBINED_CLASS_TIME_CONFLICT,
+                                "课程[" + a1.getCourseName() + "]的合班上课时间不一致，" +
+                                "教学班[" + tc1 + "]和[" + tc2 + "]应在同一时间上课",
+                                a1, Conflict.ConflictSeverity.HARD
                             ));
                         }
                     }

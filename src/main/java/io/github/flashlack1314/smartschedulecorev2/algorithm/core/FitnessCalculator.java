@@ -59,11 +59,21 @@ public class FitnessCalculator {
             hardPenalty += getPenalty(conflict.getType());
         }
 
-        // 添加详细日志
+        // 添加详细日志（使用 INFO 级别以便调试）
         if (!report.getHardConflicts().isEmpty()) {
             Map<Conflict.ConflictType, Long> conflictCounts = report.getHardConflicts().stream()
                     .collect(Collectors.groupingBy(Conflict::getType, Collectors.counting()));
-            log.debug("检测到 {} 个硬约束冲突: {}", report.getHardConflicts().size(), conflictCounts);
+            log.info("检测到 {} 个硬约束冲突，按类型统计: {}", report.getHardConflicts().size(), conflictCounts);
+
+            // 输出每个冲突的详细信息（最多显示前5个）
+            int shown = 0;
+            for (Conflict conflict : report.getHardConflicts()) {
+                if (shown++ >= 5) {
+                    log.info("... 还有 {} 个冲突未显示", report.getHardConflicts().size() - 5);
+                    break;
+                }
+                log.info("  冲突详情: {} - {}", conflict.getType(), conflict.getDescription());
+            }
         }
 
         // 未完成排课惩罚
