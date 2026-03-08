@@ -123,6 +123,12 @@ public class ScheduleContext {
         private Integer weeklySessions;
         private Integer sectionsPerSession;
         private Integer requiredSessions;
+        /**
+         * 需要的上课周数
+         * 公式: ceil(总学时 / (每周次数 × 每次学时))
+         * 例如: 48学时, 每周2次, 每次2节 -> ceil(48/4) = 12周
+         */
+        private Integer requiredWeeks;
     }
 
     /**

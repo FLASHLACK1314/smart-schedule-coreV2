@@ -145,8 +145,9 @@ public class GeneticAlgorithm {
             List<String> allowedTypes = context.getCourseTypeToClassroomTypes() != null
                     ? context.getCourseTypeToClassroomTypes().get(tc.getCourseTypeUuid())
                     : null;
-            log.info("教学班[{}] 课程类型: {}, 允许的教室类型: {}, 学生数: {}",
-                    tc.getTeachingClassName(), tc.getCourseTypeUuid(), allowedTypes, tc.getTotalStudents());
+            log.info("教学班[{}] 课程类型: {}, 允许的教室类型: {}, 学生数: {}, 每周{}次, 需要{}周",
+                    tc.getTeachingClassName(), tc.getCourseTypeUuid(), allowedTypes,
+                    tc.getTotalStudents(), tc.getWeeklySessions(), tc.getRequiredWeeks());
         }
 
         for (int i = 0; i < populationSize; i++) {
@@ -154,44 +155,51 @@ public class GeneticAlgorithm {
 
             // 为每个教学班生成排课安排
             for (ScheduleContext.TeachingClassInfo tc : context.getTeachingClassList()) {
-                // 计算需要的上课次数
-                int requiredSessions = tc.getRequiredSessions();
+                // 使用新的均匀分布时间槽生成逻辑
+                int weeklySessions = tc.getWeeklySessions() != null ? tc.getWeeklySessions() : 1;
+                int requiredWeeks = tc.getRequiredWeeks() != null ? tc.getRequiredWeeks() : 16;
 
-                // 尝试为该教学班安排requiredSessions次上课
+                // 生成均匀分布的周几
+                int daysPerWeek = context.getDaysPerWeek() != null ? context.getDaysPerWeek() : 5;
+                int[] distributedDays = calculateDistributedDays(weeklySessions, daysPerWeek);
+
+                // 为每个时间槽安排课程
                 int scheduledSessions = 0;
-                int attempts = 0;
-                int maxAttempts = requiredSessions * 5;
+                for (int dayOfWeek : distributedDays) {
+                    // 尝试多次找到不冲突的时间槽
+                    boolean scheduled = false;
+                    int maxAttempts = 10;
+                    for (int attempt = 0; attempt < maxAttempts && !scheduled; attempt++) {
+                        // 生成该周几的时间槽（随机节次）
+                        TimeSlot timeSlot = generateTimeSlotForDay(dayOfWeek, requiredWeeks);
 
-                while (scheduledSessions < requiredSessions && attempts < maxAttempts) {
-                    attempts++;
+                        // 随机选择合适教室
+                        String classroomUuid = selectSuitableClassroom(tc, timeSlot);
 
-                    // 随机选择时间槽
-                    TimeSlot timeSlot = selectRandomTimeSlot();
+                        if (classroomUuid == null) {
+                            continue;
+                        }
 
-                    // 随机选择合适教室
-                    String classroomUuid = selectSuitableClassroom(tc, timeSlot);
+                        // 创建课程安排
+                        CourseAppointment appointment = buildAppointment(tc, classroomUuid, timeSlot);
 
-                    if (classroomUuid == null) {
-                        continue;
-                    }
-
-                    // 创建课程安排
-                    CourseAppointment appointment = buildAppointment(tc, classroomUuid, timeSlot);
-
-                    // 检查是否与已有安排冲突
-                    if (!conflictDetector.hasConflict(chromosome, appointment, context)) {
-                        // 添加到染色体
-                        chromosome.getGenes()
-                                .computeIfAbsent(timeSlot, k -> new ArrayList<>())
-                                .add(appointment);
-
-                        scheduledSessions++;
+                        // 检查是否与已有安排冲突
+                        if (!conflictDetector.hasConflict(chromosome, appointment, context)) {
+                            // 添加到染色体
+                            chromosome.getGenes()
+                                    .computeIfAbsent(timeSlot, k -> new ArrayList<>())
+                                    .add(appointment);
+                            scheduledSessions++;
+                            scheduled = true;
+                        }
                     }
                 }
 
                 // 如果未能完成所有排课，记录到未完成列表
-                if (scheduledSessions < requiredSessions) {
+                if (scheduledSessions < weeklySessions) {
                     chromosome.getUnscheduledTeachingClasses().add(tc.getTeachingClassUuid());
+                    log.debug("教学班 {} 仅安排了 {}/{} 次课程",
+                            tc.getTeachingClassName(), scheduledSessions, weeklySessions);
                 }
             }
 
@@ -200,6 +208,124 @@ public class GeneticAlgorithm {
 
         log.info("初始化种群完成，种群大小: {}", population.size());
         return population;
+    }
+
+    /**
+     * 生成均匀分布的时间槽组合
+     * 确保课程在一周内均匀分布（如周一、周四各一次）
+     *
+     * @param weeklySessions 每周上课次数
+     * @param requiredWeeks  需要的周数
+     * @return 均匀分布的时间槽列表
+     */
+    private List<TimeSlot> generateDistributedTimeSlots(int weeklySessions, int requiredWeeks) {
+        List<TimeSlot> slots = new ArrayList<>();
+        if (weeklySessions <= 0) {
+            return slots;
+        }
+
+        int daysPerWeek = context.getDaysPerWeek() != null ? context.getDaysPerWeek() : 5;
+
+        // 计算均匀分布的周几
+        int[] distributedDays = calculateDistributedDays(weeklySessions, daysPerWeek);
+
+        // 为每个周几生成时间槽
+        for (int dayOfWeek : distributedDays) {
+            TimeSlot slot = generateTimeSlotForDay(dayOfWeek, requiredWeeks);
+            if (slot != null) {
+                slots.add(slot);
+            }
+        }
+
+        return slots;
+    }
+
+    /**
+     * 为指定的周几生成时间槽（随机节次）
+     *
+     * @param dayOfWeek     周几（1-5）
+     * @param requiredWeeks 需要的周数
+     * @return 时间槽
+     */
+    private TimeSlot generateTimeSlotForDay(int dayOfWeek, int requiredWeeks) {
+        int sectionsPerDay = context.getSectionsPerDay() != null ? context.getSectionsPerDay() : 12;
+        int semesterWeeks = context.getSemesterWeeks() != null ? context.getSemesterWeeks() : 16;
+
+        // 限制 requiredWeeks 不超过学期周数
+        int actualWeeks = Math.min(requiredWeeks, semesterWeeks);
+
+        TimeSlot slot = new TimeSlot();
+        slot.setDayOfWeek(dayOfWeek);
+
+        // 随机选择节次（每次2节，从奇数节开始）
+        // 可选的起始节次：1, 3, 5, 7, 9, 11（如果每天12节）
+        Random random = new Random();
+        int maxSectionStart = sectionsPerDay - 1; // 确保有2节可用
+        int sectionStart = (random.nextInt(maxSectionStart / 2) * 2) + 1; // 1, 3, 5, 7, 9, 11
+        slot.setSectionStart(sectionStart);
+        slot.setSectionEnd(sectionStart + 1);
+
+        // 生成完整的周次列表 [1, 2, ..., actualWeeks]
+        List<Integer> fullWeeks = IntStream.rangeClosed(1, actualWeeks).boxed().collect(Collectors.toList());
+        slot.setWeeks(fullWeeks);
+
+        // 注意：总学时由 TimeSlot.getTotalHours() 自动计算 (周次数 × 2)
+
+        return slot;
+    }
+
+    /**
+     * 计算均匀分布的周几
+     * 例如: 2次/周 → [1, 4] (周一、周四)
+     *       3次/周 → [1, 3, 5] (周一、周三、周五)
+     *       1次/周 → [1, 2, 3, 4, 5] 中随机选一天
+     *
+     * @param weeklySessions 每周上课次数
+     * @param daysPerWeek    每周上课天数
+     * @return 均匀分布的周几数组（1-5）
+     */
+    private int[] calculateDistributedDays(int weeklySessions, int daysPerWeek) {
+        if (weeklySessions <= 0) {
+            return new int[0];
+        }
+
+        // 确保上课次数不超过天数
+        int sessions = Math.min(weeklySessions, daysPerWeek);
+
+        int[] days = new int[sessions];
+        Random random = new Random();
+
+        if (sessions == 1) {
+            // 1次课：随机选一天
+            days[0] = random.nextInt(daysPerWeek) + 1;
+        } else if (sessions == 2) {
+            // 2次课：分布在周一和周四（间隔2-3天）
+            // 随机选择一个起始点，保持间隔
+            int baseDay = random.nextInt(3) + 1; // 1, 2, 3
+            days[0] = baseDay;
+            days[1] = Math.min(baseDay + 3, daysPerWeek); // 间隔3天
+            if (days[1] == days[0]) {
+                days[1] = Math.min(days[0] + 2, daysPerWeek);
+            }
+        } else if (sessions == 3) {
+            // 3次课：周一、周三、周五（间隔1-2天）
+            days[0] = 1;
+            days[1] = 3;
+            days[2] = 5;
+        } else if (sessions == 4) {
+            // 4次课：周一、周二、周四、周五
+            days[0] = 1;
+            days[1] = 2;
+            days[2] = 4;
+            days[3] = 5;
+        } else {
+            // 5次课或更多：周一到周五均匀分布
+            for (int i = 0; i < sessions; i++) {
+                days[i] = (i % daysPerWeek) + 1;
+            }
+        }
+
+        return days;
     }
 
     /**
@@ -462,7 +588,8 @@ public class GeneticAlgorithm {
     }
 
     /**
-     * 随机选择时间槽
+     * 随机选择时间槽（用于变异操作）
+     * 生成包含完整学期周次的时间槽
      */
     private TimeSlot selectRandomTimeSlot() {
         if (allTimeSlots == null || allTimeSlots.isEmpty()) {
@@ -471,17 +598,18 @@ public class GeneticAlgorithm {
         Random random = new Random();
         TimeSlot baseSlot = allTimeSlots.get(random.nextInt(allTimeSlots.size()));
 
-        // 复制并设置随机周次
+        // 复制时间槽
         TimeSlot slot = new TimeSlot();
         slot.setDayOfWeek(baseSlot.getDayOfWeek());
         slot.setSectionStart(baseSlot.getSectionStart());
         slot.setSectionEnd(baseSlot.getSectionEnd());
 
-        // 随机选择1-5个连续周次
+        // 生成完整的学期周次列表（而非随机1-5周）
         int semesterWeeks = context.getSemesterWeeks() != null ? context.getSemesterWeeks() : 16;
-        int startWeek = random.nextInt(semesterWeeks) + 1;
-        int weekCount = random.nextInt(Math.min(5, semesterWeeks - startWeek + 1)) + 1;
-        slot.setWeeks(IntStream.rangeClosed(startWeek, startWeek + weekCount - 1).boxed().collect(Collectors.toList()));
+        List<Integer> fullWeeks = IntStream.rangeClosed(1, semesterWeeks).boxed().collect(Collectors.toList());
+        slot.setWeeks(fullWeeks);
+
+        // 注意：总学时由 TimeSlot.getTotalHours() 自动计算 (周次数 × 2)
 
         return slot;
     }

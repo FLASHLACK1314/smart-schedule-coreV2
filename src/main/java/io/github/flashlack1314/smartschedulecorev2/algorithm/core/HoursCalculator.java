@@ -49,6 +49,31 @@ public class HoursCalculator {
     }
 
     /**
+     * 计算课程需要的上课周数（新公式）
+     * 公式: ceil(总学时 / (每周次数 × 每次学时))
+     *
+     * @param courseTotalHours 课程总学时
+     * @param weeklySessions   每周上课次数
+     * @param hoursPerSession  每次上课学时（固定为2）
+     * @return 需要的周数
+     */
+    public int calculateRequiredWeeks(Integer courseTotalHours, Integer weeklySessions, Integer hoursPerSession) {
+        if (courseTotalHours == null || courseTotalHours <= 0) {
+            return 0;
+        }
+        if (weeklySessions == null || weeklySessions <= 0) {
+            weeklySessions = 1; // 默认每周1次
+        }
+        if (hoursPerSession == null || hoursPerSession <= 0) {
+            hoursPerSession = 2; // 默认每次2节
+        }
+        // 每周总学时 = 每周次数 × 每次学时
+        int weeklyHours = weeklySessions * hoursPerSession;
+        // 需要的周数 = ceil(总学时 / 每周总学时)
+        return (int) Math.ceil((double) courseTotalHours / weeklyHours);
+    }
+
+    /**
      * 为教学班生成周次分配方案
      * 算法：均匀分布在学期周次中
      *

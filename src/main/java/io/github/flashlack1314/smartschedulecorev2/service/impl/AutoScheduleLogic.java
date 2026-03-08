@@ -207,13 +207,18 @@ public class AutoScheduleLogic implements AutoScheduleService {
                 totalStudents += students.size();
             }
 
-            // 计算需要的上课次数
+            // 计算需要的上课次数和周数
             int hoursPerSession = 2; // 固定2节
-            int requiredSessions = hoursCalculator.calculateRequiredSessions(course.getCourseHours(), hoursPerSession);
-
             // 使用教学班默认值
             int weeklySessions = (tc.getWeeklySessions() != null ? tc.getWeeklySessions() : 1);
             int sectionsPerSession = (tc.getSectionsPerSession() != null ? tc.getSectionsPerSession() : 2);
+
+            // 新逻辑：requiredSessions = 每周上课次数（而非总学时/2）
+            int requiredSessions = weeklySessions;
+
+            // 计算需要的周数：ceil(总学时 / (每周次数 × 每次学时))
+            int requiredWeeks = hoursCalculator.calculateRequiredWeeks(
+                    course.getCourseHours(), weeklySessions, hoursPerSession);
 
             ScheduleContext.TeachingClassInfo info = new ScheduleContext.TeachingClassInfo();
             info.setTeachingClassUuid(tc.getTeachingClassUuid());
@@ -229,6 +234,7 @@ public class AutoScheduleLogic implements AutoScheduleService {
             info.setWeeklySessions(weeklySessions);
             info.setSectionsPerSession(sectionsPerSession);
             info.setRequiredSessions(requiredSessions);
+            info.setRequiredWeeks(requiredWeeks);
 
             teachingClassList.add(info);
         }
@@ -755,11 +761,22 @@ public class AutoScheduleLogic implements AutoScheduleService {
             throw new IllegalArgumentException("部分行政班不存在");
         }
 
-        // 4. 构建教学班名称：课程名-教师名-行政班1+...
-        String classNameStr = classes.stream()
-                .map(ClassDO::getClassName)
-                .collect(Collectors.joining("+"));
-        String teachingClassName = course.getCourseName() + "-" + teacher.getTeacherName() + "-" + classNameStr;
+        // 4. 构建教学班名称：课程名-教师名-行政班数量
+        // 注意：数据库字段限制为64字符，简化命名避免超长
+        String classCountInfo = classUuids.size() + "班";
+        String teachingClassName = course.getCourseName() + "-" + teacher.getTeacherName() + "-" + classCountInfo;
+
+        // 限制名称长度不超过64字符
+        if (teachingClassName.length() > 64) {
+            // 截断课程名，保留教师名和班级信息
+            int maxCourseNameLen = 64 - teacher.getTeacherName().length() - classCountInfo.length() - 2;
+            if (maxCourseNameLen > 0) {
+                String shortCourseName = course.getCourseName().substring(0, Math.min(course.getCourseName().length(), maxCourseNameLen));
+                teachingClassName = shortCourseName + "-" + teacher.getTeacherName() + "-" + classCountInfo;
+            } else {
+                teachingClassName = teachingClassName.substring(0, 64);
+            }
+        }
 
         // 5. 创建教学班
         TeachingClassDO teachingClass = new TeachingClassDO();
