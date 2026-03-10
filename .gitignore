@@ -34,3 +34,7 @@ build/
 
 ### 配置文件 ###
 application-dev.yaml
+
+### Claude Code ###
+.mcp.json
+.claude/
