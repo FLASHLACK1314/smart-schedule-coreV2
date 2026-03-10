@@ -15,6 +15,3 @@ comment on column public.sc_building.building_num is '教学楼编号';
 
 comment on column public.sc_building.building_name is '教学楼名称';
 
-alter table public.sc_building
-    owner to "smart-schedule-core";
-

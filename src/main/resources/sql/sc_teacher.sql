@@ -39,6 +39,3 @@ comment on column public.sc_teacher.like_time is '喜欢时间 (字符串格式)
 
 comment on column public.sc_teacher.is_active is '是否启用（不启用不参与排课）';
 
-alter table public.sc_teacher
-    owner to "smart-schedule-core";
-

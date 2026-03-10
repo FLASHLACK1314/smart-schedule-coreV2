@@ -22,7 +22,3 @@ comment on column public.sc_course_classroom_type.relation_uuid is '关联关系
 comment on column public.sc_course_classroom_type.course_type_uuid is '课程类型UUID';
 
 comment on column public.sc_course_classroom_type.classroom_type_uuid is '教室类型UUID';
-
--- 权限归属
-alter table public.sc_course_classroom_type
-    owner to "smart-schedule-core";

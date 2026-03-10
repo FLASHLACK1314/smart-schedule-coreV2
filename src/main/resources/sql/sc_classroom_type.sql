@@ -16,7 +16,3 @@ comment on column public.sc_classroom_type.classroom_type_uuid is '教室类型U
 comment on column public.sc_classroom_type.type_name is '类型名称';
 
 comment on column public.sc_classroom_type.type_description is '类型描述';
-
--- 权限归属
-alter table public.sc_classroom_type
-    owner to "smart-schedule-core";

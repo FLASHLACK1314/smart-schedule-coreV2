@@ -27,7 +27,3 @@ comment on column public.sc_schedule_conflict.schedule_uuid_b is '排课记录UU
 comment on column public.sc_schedule_conflict.conflict_type is '冲突类型';
 comment on column public.sc_schedule_conflict.severity is '严重程度：1-硬冲突, 0-软冲突';
 comment on column public.sc_schedule_conflict.description is '冲突描述';
-
--- 权限归属
-alter table public.sc_schedule_conflict
-    owner to "smart-schedule-core";

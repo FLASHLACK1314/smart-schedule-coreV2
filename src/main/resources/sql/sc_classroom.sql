@@ -24,7 +24,3 @@ comment on column public.sc_classroom.classroom_name is '教室名称';
 comment on column public.sc_classroom.classroom_capacity is '教室容量';
 
 comment on column public.sc_classroom.classroom_type_uuid is '教室类型UUID';
-
-alter table public.sc_classroom
-    owner to "smart-schedule-core";
-

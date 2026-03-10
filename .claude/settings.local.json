@@ -15,7 +15,13 @@
       "Bash(head:*)",
       "Bash(mvn compile:*)",
       "Bash(cmd:*)",
-      "Bash(./mvnw.cmd compile:*)"
+      "Bash(./mvnw.cmd compile:*)",
+      "mcp__smart-schedule__search_objects",
+      "mcp__smart-schedule__execute_sql"
     ]
-  }
+  },
+  "enabledMcpjsonServers": [
+    "smart-schedule"
+  ],
+  "enableAllProjectMcpServers": true
 }

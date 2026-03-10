@@ -20,6 +20,3 @@ comment on column public.sc_teaching_class_class.teaching_class_class_uuid is '�
 comment on column public.sc_teaching_class_class.teaching_class_uuid is '教学班UUID';
 comment on column public.sc_teaching_class_class.class_uuid is '行政班级UUID';
 
--- 权限归属
-alter table public.sc_teaching_class_class
-    owner to "smart-schedule-core";

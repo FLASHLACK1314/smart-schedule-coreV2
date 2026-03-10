@@ -19,7 +19,3 @@ comment on column public.sc_major.department_uuid is '学院UUID';
 comment on column public.sc_major.major_num is '专业编号';
 
 comment on column public.sc_major.major_name is '专业名称';
-
-alter table public.sc_major
-    owner to "smart-schedule-core";
-

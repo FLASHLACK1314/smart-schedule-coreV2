@@ -20,6 +20,3 @@ comment on column public.sc_student.student_id is '学号 (唯一编码)';
 comment on column public.sc_student.student_name is '学生姓名';
 comment on column public.sc_student.class_uuid is '行政班级UUID (外键)';
 comment on column public.sc_student.student_password is '学生密码 (建议加密存储)';
-
--- 权限归属
-alter table public.sc_student owner to "smart-schedule-core";

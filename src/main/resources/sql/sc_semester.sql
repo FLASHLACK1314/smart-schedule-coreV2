@@ -22,6 +22,3 @@ comment on column public.sc_semester.start_date is '学期开始日期';
 
 comment on column public.sc_semester.end_date is '学期结束日期';
 
-alter table public.sc_semester
-    owner to "smart-schedule-core";
-

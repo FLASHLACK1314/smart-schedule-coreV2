@@ -12,6 +12,3 @@ comment on column public.sc_department.department_uuid is '学院UUID';
 
 comment on column public.sc_department.department_name is '学院名称';
 
-alter table public.sc_department
-    owner to "smart-schedule-core";
-

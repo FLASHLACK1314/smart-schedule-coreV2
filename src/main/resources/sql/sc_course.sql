@@ -23,6 +23,3 @@ comment on column public.sc_course.course_name is '课程名称';
 comment on column public.sc_course.course_type_uuid is '课程类型UUID';
 comment on column public.sc_course.course_credit is '课程学分 (支持半分)';
 comment on column public.sc_course.course_hours is '课程学时 (总课时数)';
-
--- 权限归属
-alter table public.sc_course owner to "smart-schedule-core";

@@ -19,7 +19,3 @@ comment on table public.sc_course_qualification is '课程教师资格关联表'
 comment on column public.sc_course_qualification.course_qualification_uuid is '关联关系UUID';
 comment on column public.sc_course_qualification.course_uuid is '课程UUID';
 comment on column public.sc_course_qualification.teacher_uuid is '教师UUID';
-
--- 权限归属
-alter table public.sc_course_qualification
-    owner to "smart-schedule-core";

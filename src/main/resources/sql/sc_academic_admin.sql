@@ -26,7 +26,3 @@ comment on column public.sc_academic_admin.academic_num is '教务工号 (唯一
 comment on column public.sc_academic_admin.academic_name is '教务名称';
 
 comment on column public.sc_academic_admin.academic_password is '教务密码 (建议加密存储)';
-
--- 权限归属
-alter table public.sc_academic_admin
-    owner to "smart-schedule-core";

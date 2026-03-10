@@ -17,6 +17,4 @@ comment on column public.sc_class.major_uuid is '专业UUID';
 
 comment on column public.sc_class.class_name is '行政班级名称';
 
-alter table public.sc_class
-    owner to "smart-schedule-core";
 

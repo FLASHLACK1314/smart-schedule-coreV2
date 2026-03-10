@@ -16,7 +16,3 @@ comment on column public.sc_course_type.course_type_uuid is '课程类型UUID';
 comment on column public.sc_course_type.type_name is '类型名称';
 
 comment on column public.sc_course_type.type_description is '类型描述';
-
--- 权限归属
-alter table public.sc_course_type
-    owner to "smart-schedule-core";
