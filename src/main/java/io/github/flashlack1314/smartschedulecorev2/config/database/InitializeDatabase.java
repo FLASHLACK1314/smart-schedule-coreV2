@@ -23,6 +23,7 @@ public class InitializeDatabase {
     private final PersonnelInitializer personnelInitializer;
     private final TeachingClassInitializer teachingClassInitializer;
     private final ScheduleInitializer scheduleInitializer;
+    private final ScheduleConflictInitializer scheduleConflictInitializer;
 
     /**
      * 初始化数据库数据
@@ -75,6 +76,9 @@ public class InitializeDatabase {
         List<TeachingClassDO> teachingClasses = teachingClassInitializer.initializeTeachingClasses(courses, teachers, semesters);
         teachingClassInitializer.initializeTeachingClassClasses(teachingClasses, classes);
         scheduleInitializer.initializeSchedules(teachingClasses, semesters, classrooms, courses, teachers);
+
+        // 第七层：排课冲突记录（仅FULL模式）
+        scheduleConflictInitializer.initializeScheduleConflicts(null, semesters);
 
         // 系统管理员
         personnelInitializer.createSystemAdmin();
