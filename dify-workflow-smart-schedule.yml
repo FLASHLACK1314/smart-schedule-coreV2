@@ -1,0 +1,804 @@
+app:
+  description: '智能调课助手：支持查询教师课表、检查时间槽、预览调课方案、确认/取消调课'
+  icon: 📚
+  icon_background: '#E0F2FE'
+  mode: advanced-chat
+  name: 智能调课助手
+  use_icon_as_answer_icon: false
+kind: app
+version: 0.6.0
+workflow:
+  conversation_variables: []
+  environment_variables: []
+  features:
+    file_upload:
+      enabled: false
+    opening_statement: '您好！我是智能调课助手，可以帮您：\n1. 查询教师的排课安排\n2. 检查某个时间是否可用\n3. 预览调课方案\n4. 确认或取消调课\n\n请告诉我您的需求。'
+    retriever_resource:
+      enabled: false
+    sensitive_word_avoidance:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    suggested_questions:
+    - '张三老师周五有什么课？'
+    - '周四下午第5-6节有空教室吗？'
+    - '帮我把李四老师的课从周一调到周三'
+    suggested_questions_after_answer:
+      enabled: true
+    text_to_speech:
+      enabled: false
+  graph:
+    edges:
+    # 开始 -> 问题分类器
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: start
+        targetType: question-classifier
+      id: start-to-classifier
+      source: start
+      sourceHandle: source
+      target: question_classifier
+      targetHandle: target
+      type: custom
+      zIndex: 0
+
+    # 分类1: 查询教师课表 -> 工具
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: question-classifier
+        targetType: tool
+      id: classifier-1-to-query-schedule
+      source: question_classifier
+      sourceHandle: '1'
+      target: tool_query_teacher_schedule
+      targetHandle: target
+      type: custom
+      zIndex: 0
+
+    # 分类2: 检查时间槽 -> 工具
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: question-classifier
+        targetType: tool
+      id: classifier-2-to-check-slot
+      source: question_classifier
+      sourceHandle: '2'
+      target: tool_check_time_slot
+      targetHandle: target
+      type: custom
+      zIndex: 0
+
+    # 分类3: 预览调课 -> 工具
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: question-classifier
+        targetType: tool
+      id: classifier-3-to-preview
+      source: question_classifier
+      sourceHandle: '3'
+      target: tool_preview_schedule
+      targetHandle: target
+      type: custom
+      zIndex: 0
+
+    # 分类4: 确认调课 -> 工具
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: question-classifier
+        targetType: tool
+      id: classifier-4-to-confirm
+      source: question_classifier
+      sourceHandle: '4'
+      target: tool_confirm_schedule
+      targetHandle: target
+      type: custom
+      zIndex: 0
+
+    # 分类5: 取消预览 -> 工具
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: question-classifier
+        targetType: tool
+      id: classifier-5-to-cancel
+      source: question_classifier
+      sourceHandle: '5'
+      target: tool_cancel_preview
+      targetHandle: target
+      type: custom
+      zIndex: 0
+
+    # 各工具 -> 变量聚合器
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: tool
+        targetType: variable-aggregator
+      id: query-schedule-to-aggregator
+      source: tool_query_teacher_schedule
+      sourceHandle: source
+      target: variable_aggregator
+      targetHandle: target
+      type: custom
+      zIndex: 0
+
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: tool
+        targetType: variable-aggregator
+      id: check-slot-to-aggregator
+      source: tool_check_time_slot
+      sourceHandle: source
+      target: variable_aggregator
+      targetHandle: target
+      type: custom
+      zIndex: 0
+
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: tool
+        targetType: variable-aggregator
+      id: preview-to-aggregator
+      source: tool_preview_schedule
+      sourceHandle: source
+      target: variable_aggregator
+      targetHandle: target
+      type: custom
+      zIndex: 0
+
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: tool
+        targetType: variable-aggregator
+      id: confirm-to-aggregator
+      source: tool_confirm_schedule
+      sourceHandle: source
+      target: variable_aggregator
+      targetHandle: target
+      type: custom
+      zIndex: 0
+
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: tool
+        targetType: variable-aggregator
+      id: cancel-to-aggregator
+      source: tool_cancel_preview
+      sourceHandle: source
+      target: variable_aggregator
+      targetHandle: target
+      type: custom
+      zIndex: 0
+
+    # 变量聚合器 -> LLM总结
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: variable-aggregator
+        targetType: llm
+      id: aggregator-to-llm
+      source: variable_aggregator
+      sourceHandle: source
+      target: llm_summary
+      targetHandle: target
+      type: custom
+      zIndex: 0
+
+    # LLM -> 直接回复
+    - data:
+        isInLoop: false
+        sourceType: llm
+        targetType: answer
+      id: llm-to-answer
+      source: llm_summary
+      sourceHandle: source
+      target: direct_answer
+      targetHandle: target
+      type: custom
+      zIndex: 0
+
+    nodes:
+    # 开始节点
+    - data:
+        selected: false
+        title: 开始
+        type: start
+        variables:
+        - default: ''
+          hide: false
+          hint: '请输入学期UUID，用于确定查询范围'
+          label: 学期UUID
+          options: []
+          placeholder: '可选，不填则查询所有学期'
+          required: false
+          type: text-input
+          variable: semester_uuid
+      height: 108
+      id: start
+      position:
+        x: 80
+        y: 200
+      positionAbsolute:
+        x: 80
+        y: 200
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+
+    # 问题分类器
+    - data:
+        classes:
+        - id: '1'
+          name: 查询教师课表
+        - id: '2'
+          name: 检查时间槽可用性
+        - id: '3'
+          name: 预览调课方案
+        - id: '4'
+          name: 确认调课
+        - id: '5'
+          name: 取消预览
+        instructions: |
+          根据用户输入判断意图：
+          - 查询教师课表：用户想查看某教师的排课情况（如"张三老师周五有什么课"）
+          - 检查时间槽可用性：用户想确认某时间是否有空（如"周四下午有空吗"、"教室A周一能用吗"）
+          - 预览调课方案：用户想调整排课并查看预览（如"把张三老师的课调到周三"、"调整排课记录xxx的时间"）
+          - 确认调课：用户确认之前的预览方案（如"确认调课"、"执行预览xxx"）
+          - 取消预览：用户取消之前的预览（如"取消"、"不要了"）
+        model:
+          completion_params:
+            temperature: 0.3
+          mode: chat
+          name: glm-4.7
+          provider: langgenius/openai_api_compatible/openai_api_compatible
+        query_variable_selector:
+        - sys
+        - query
+        selected: false
+        title: 意图识别
+        type: question-classifier
+        vision:
+          enabled: false
+      height: 267
+      id: question_classifier
+      position:
+        x: 380
+        y: 150
+      positionAbsolute:
+        x: 380
+        y: 150
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+
+    # 工具1: 查询教师课表
+    - data:
+        is_team_authorization: true
+        paramSchemas:
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            zh_Hans: 教师姓名，支持模糊匹配
+          label:
+            zh_Hans: teacherName
+          name: teacherName
+          required: true
+          type: string
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            zh_Hans: 星期几（1=周一，2=周二，...，7=周日），可选
+          label:
+            zh_Hans: dayOfWeek
+          name: dayOfWeek
+          required: false
+          type: number
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            zh_Hans: 学期UUID，可选
+          label:
+            zh_Hans: semesterUuid
+          name: semesterUuid
+          required: false
+          type: string
+        params:
+          teacherName: ''
+          dayOfWeek: ''
+          semesterUuid: ''
+        provider_icon:
+          background: '#6366F1'
+          content: 🔗
+        provider_id: smart-schedule
+        provider_name: smart-schedule-mcp-server
+        provider_type: mcp
+        selected: false
+        title: 查询教师课表
+        tool_description: 查询教师特定时间的排课安排。可根据教师姓名查询特定星期几的课程，用于了解教师的时间占用情况。
+        tool_label: queryTeacherScheduleByTime
+        tool_name: queryTeacherScheduleByTime
+        tool_node_version: '2'
+        tool_parameters:
+          teacherName:
+            type: mixed
+            value: '{{#sys.query#}}'
+          dayOfWeek:
+            type: constant
+            value: null
+          semesterUuid:
+            type: mixed
+            value: '{{#start.semester_uuid#}}'
+        type: tool
+      height: 83
+      id: tool_query_teacher_schedule
+      position:
+        x: 700
+        y: 50
+      positionAbsolute:
+        x: 700
+        y: 50
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+
+    # 工具2: 检查时间槽可用性
+    - data:
+        is_team_authorization: true
+        paramSchemas:
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            zh_Hans: 星期几（1=周一，2=周二，...，7=周日）
+          label:
+            zh_Hans: dayOfWeek
+          name: dayOfWeek
+          required: true
+          type: number
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            zh_Hans: 起始节次
+          label:
+            zh_Hans: sectionStart
+          name: sectionStart
+          required: true
+          type: number
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            zh_Hans: 结束节次
+          label:
+            zh_Hans: sectionEnd
+          name: sectionEnd
+          required: true
+          type: number
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            zh_Hans: 教室名称，可选
+          label:
+            zh_Hans: classroomName
+          name: classroomName
+          required: false
+          type: string
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            zh_Hans: 教师姓名，可选
+          label:
+            zh_Hans: teacherName
+          name: teacherName
+          required: false
+          type: string
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            zh_Hans: 学期UUID
+          label:
+            zh_Hans: semesterUuid
+          name: semesterUuid
+          required: true
+          type: string
+        params:
+          dayOfWeek: ''
+          sectionStart: ''
+          sectionEnd: ''
+          classroomName: ''
+          teacherName: ''
+          semesterUuid: ''
+        provider_icon:
+          background: '#6366F1'
+          content: 🔗
+        provider_id: smart-schedule
+        provider_name: smart-schedule-mcp-server
+        provider_type: mcp
+        selected: false
+        title: 检查时间槽
+        tool_description: 检查指定时间槽是否可用。可检查教室和教师在指定时间是否有冲突，用于调课前验证目标时间是否空闲。
+        tool_label: checkTimeSlotAvailability
+        tool_name: checkTimeSlotAvailability
+        tool_node_version: '2'
+        tool_parameters:
+          dayOfWeek:
+            type: mixed
+            value: '{{#sys.query#}}'
+          sectionStart:
+            type: mixed
+            value: '{{#sys.query#}}'
+          sectionEnd:
+            type: mixed
+            value: '{{#sys.query#}}'
+          classroomName:
+            type: mixed
+            value: '{{#sys.query#}}'
+          teacherName:
+            type: mixed
+            value: '{{#sys.query#}}'
+          semesterUuid:
+            type: mixed
+            value: '{{#start.semester_uuid#}}'
+        type: tool
+      height: 83
+      id: tool_check_time_slot
+      position:
+        x: 700
+        y: 170
+      positionAbsolute:
+        x: 700
+        y: 170
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+
+    # 工具3: 预览调课方案
+    - data:
+        is_team_authorization: true
+        paramSchemas:
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            zh_Hans: 原排课记录UUID
+          label:
+            zh_Hans: scheduleUuid
+          name: scheduleUuid
+          required: true
+          type: string
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            zh_Hans: 新星期几（1=周一，2=周二，...，7=周日）
+          label:
+            zh_Hans: newDayOfWeek
+          name: newDayOfWeek
+          required: true
+          type: number
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            zh_Hans: 新起始节次
+          label:
+            zh_Hans: newSectionStart
+          name: newSectionStart
+          required: true
+          type: number
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            zh_Hans: 新结束节次
+          label:
+            zh_Hans: newSectionEnd
+          name: newSectionEnd
+          required: true
+          type: number
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            zh_Hans: 新教室名称，可选
+          label:
+            zh_Hans: newClassroomName
+          name: newClassroomName
+          required: false
+          type: string
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            zh_Hans: 学期UUID
+          label:
+            zh_Hans: semesterUuid
+          name: semesterUuid
+          required: true
+          type: string
+        params:
+          scheduleUuid: ''
+          newDayOfWeek: ''
+          newSectionStart: ''
+          newSectionEnd: ''
+          newClassroomName: ''
+          semesterUuid: ''
+        provider_icon:
+          background: '#6366F1'
+          content: 🔗
+        provider_id: smart-schedule
+        provider_name: smart-schedule-mcp-server
+        provider_type: mcp
+        selected: false
+        title: 预览调课
+        tool_description: 预览调课方案。将原排课调整到新的时间和教室，生成预览方案存入临时区域，返回预览ID供确认或取消。
+        tool_label: previewScheduleChange
+        tool_name: previewScheduleChange
+        tool_node_version: '2'
+        tool_parameters:
+          scheduleUuid:
+            type: mixed
+            value: '{{#sys.query#}}'
+          newDayOfWeek:
+            type: mixed
+            value: '{{#sys.query#}}'
+          newSectionStart:
+            type: mixed
+            value: '{{#sys.query#}}'
+          newSectionEnd:
+            type: mixed
+            value: '{{#sys.query#}}'
+          newClassroomName:
+            type: mixed
+            value: '{{#sys.query#}}'
+          semesterUuid:
+            type: mixed
+            value: '{{#start.semester_uuid#}}'
+        type: tool
+      height: 83
+      id: tool_preview_schedule
+      position:
+        x: 700
+        y: 290
+      positionAbsolute:
+        x: 700
+        y: 290
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+
+    # 工具4: 确认调课
+    - data:
+        is_team_authorization: true
+        paramSchemas:
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            zh_Hans: 预览ID，由 previewScheduleChange 返回
+          label:
+            zh_Hans: previewId
+          name: previewId
+          required: true
+          type: string
+        params:
+          previewId: ''
+        provider_icon:
+          background: '#6366F1'
+          content: 🔗
+        provider_id: smart-schedule
+        provider_name: smart-schedule-mcp-server
+        provider_type: mcp
+        selected: false
+        title: 确认调课
+        tool_description: 确认调课预览方案。将预览区域的调课方案应用到正式排课，完成调课操作。
+        tool_label: confirmScheduleChange
+        tool_name: confirmScheduleChange
+        tool_node_version: '2'
+        tool_parameters:
+          previewId:
+            type: mixed
+            value: '{{#sys.query#}}'
+        type: tool
+      height: 83
+      id: tool_confirm_schedule
+      position:
+        x: 700
+        y: 410
+      positionAbsolute:
+        x: 700
+        y: 410
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+
+    # 工具5: 取消预览
+    - data:
+        is_team_authorization: true
+        paramSchemas:
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            zh_Hans: 预览ID，由 previewScheduleChange 返回
+          label:
+            zh_Hans: previewId
+          name: previewId
+          required: true
+          type: string
+        params:
+          previewId: ''
+        provider_icon:
+          background: '#6366F1'
+          content: 🔗
+        provider_id: smart-schedule
+        provider_name: smart-schedule-mcp-server
+        provider_type: mcp
+        selected: false
+        title: 取消预览
+        tool_description: 取消调课预览。删除预览区域的调课方案，不做任何实际修改。
+        tool_label: cancelPreview
+        tool_name: cancelPreview
+        tool_node_version: '2'
+        tool_parameters:
+          previewId:
+            type: mixed
+            value: '{{#sys.query#}}'
+        type: tool
+      height: 83
+      id: tool_cancel_preview
+      position:
+        x: 700
+        y: 530
+      positionAbsolute:
+        x: 700
+        y: 530
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+
+    # 变量聚合器
+    - data:
+        advanced_settings:
+          group_enabled: false
+        output_type: string
+        selected: false
+        title: 结果聚合
+        type: variable-aggregator
+        variables:
+        - - tool_query_teacher_schedule
+          - text
+        - - tool_check_time_slot
+          - text
+        - - tool_preview_schedule
+          - text
+        - - tool_confirm_schedule
+          - text
+        - - tool_cancel_preview
+          - text
+      height: 134
+      id: variable_aggregator
+      position:
+        x: 1000
+        y: 280
+      positionAbsolute:
+        x: 1000
+        y: 280
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+
+    # LLM 总结
+    - data:
+        context:
+          enabled: true
+          variable_selector:
+          - sys
+          - query
+        memory:
+          query_prompt_template: '{{#sys.query#}}'
+          role_prefix:
+            assistant: ''
+            user: ''
+          window:
+            enabled: true
+            size: 10
+        model:
+          completion_params:
+            temperature: 0.5
+          mode: chat
+          name: glm-4.7
+          provider: langgenius/openai_api_compatible/openai_api_compatible
+        prompt_template:
+        - id: system_prompt
+          role: system
+          text: |
+            你是一个智能排课助手。根据 MCP 工具返回的结果，为用户提供清晰、友好的回复。
+
+            工具返回结果：
+            {{#variable_aggregator.output#}}
+
+            用户原始问题：{{#sys.query#}}
+
+            请根据工具返回的结果，用中文给出清晰的回复。注意：
+            1. 如果是查询结果，整理成易读的格式
+            2. 如果是预览结果，提醒用户预览ID和确认方式
+            3. 如果有冲突或错误，给出建议
+            4. 保持回复简洁明了
+        selected: false
+        title: 结果整理
+        type: llm
+        vision:
+          enabled: false
+      height: 87
+      id: llm_summary
+      position:
+        x: 1300
+        y: 300
+      positionAbsolute:
+        x: 1300
+        y: 300
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+
+    # 直接回复
+    - data:
+        answer: '{{#llm_summary.text#}}'
+        selected: false
+        title: 回复用户
+        type: answer
+        variables: []
+      height: 102
+      id: direct_answer
+      position:
+        x: 1600
+        y: 300
+      positionAbsolute:
+        x: 1600
+        y: 300
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+
+    viewport:
+      x: 0
+      y: 0
+      zoom: 1.0
