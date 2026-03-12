@@ -3,9 +3,15 @@ app:
   icon: 📚
   icon_background: '#E0F2FE'
   mode: advanced-chat
-  name: 智能调课助手
+  name: 智能调课助手V2
   use_icon_as_answer_icon: false
 kind: app
+dependencies:
+- current_identifier: null
+  type: package
+  value:
+    plugin_unique_identifier: langgenius/openai_api_compatible:0.0.36@a45e8cc9bfc9e37ab58c3ee31248bc43792a6653fc011e2433129e2942fbbc27
+    version: null
 version: 0.6.0
 workflow:
   conversation_variables: []
@@ -44,71 +50,136 @@ workflow:
       type: custom
       zIndex: 0
 
-    # 分类1: 查询教师课表 -> 工具
+    # 分类1: 查询教师课表 -> 参数提取器 -> 工具
     - data:
         isInIteration: false
         isInLoop: false
         sourceType: question-classifier
-        targetType: tool
-      id: classifier-1-to-query-schedule
+        targetType: parameter-extractor
+      id: classifier-1-to-extractor-teacher
       source: question_classifier
       sourceHandle: '1'
+      target: extractor_teacher_query
+      targetHandle: target
+      type: custom
+      zIndex: 0
+
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: parameter-extractor
+        targetType: tool
+      id: extractor-teacher-to-query-schedule
+      source: extractor_teacher_query
+      sourceHandle: source
       target: tool_query_teacher_schedule
       targetHandle: target
       type: custom
       zIndex: 0
 
-    # 分类2: 检查时间槽 -> 工具
+    # 分类2: 检查时间槽 -> 参数提取器 -> 工具
     - data:
         isInIteration: false
         isInLoop: false
         sourceType: question-classifier
-        targetType: tool
-      id: classifier-2-to-check-slot
+        targetType: parameter-extractor
+      id: classifier-2-to-extractor-slot
       source: question_classifier
       sourceHandle: '2'
+      target: extractor_time_slot
+      targetHandle: target
+      type: custom
+      zIndex: 0
+
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: parameter-extractor
+        targetType: tool
+      id: extractor-slot-to-check-slot
+      source: extractor_time_slot
+      sourceHandle: source
       target: tool_check_time_slot
       targetHandle: target
       type: custom
       zIndex: 0
 
-    # 分类3: 预览调课 -> 工具
+    # 分类3: 预览调课 -> 参数提取器 -> 工具
     - data:
         isInIteration: false
         isInLoop: false
         sourceType: question-classifier
-        targetType: tool
-      id: classifier-3-to-preview
+        targetType: parameter-extractor
+      id: classifier-3-to-extractor-preview
       source: question_classifier
       sourceHandle: '3'
+      target: extractor_preview
+      targetHandle: target
+      type: custom
+      zIndex: 0
+
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: parameter-extractor
+        targetType: tool
+      id: extractor-preview-to-preview-tool
+      source: extractor_preview
+      sourceHandle: source
       target: tool_preview_schedule
       targetHandle: target
       type: custom
       zIndex: 0
 
-    # 分类4: 确认调课 -> 工具
+    # 分类4: 确认调课 -> 参数提取器 -> 工具
     - data:
         isInIteration: false
         isInLoop: false
         sourceType: question-classifier
-        targetType: tool
-      id: classifier-4-to-confirm
+        targetType: parameter-extractor
+      id: classifier-4-to-extractor-confirm
       source: question_classifier
       sourceHandle: '4'
+      target: extractor_confirm_id
+      targetHandle: target
+      type: custom
+      zIndex: 0
+
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: parameter-extractor
+        targetType: tool
+      id: extractor-confirm-to-confirm-tool
+      source: extractor_confirm_id
+      sourceHandle: source
       target: tool_confirm_schedule
       targetHandle: target
       type: custom
       zIndex: 0
 
-    # 分类5: 取消预览 -> 工具
+    # 分类5: 取消预览 -> 参数提取器 -> 工具
     - data:
         isInIteration: false
         isInLoop: false
         sourceType: question-classifier
-        targetType: tool
-      id: classifier-5-to-cancel
+        targetType: parameter-extractor
+      id: classifier-5-to-extractor-cancel
       source: question_classifier
       sourceHandle: '5'
+      target: extractor_cancel_id
+      targetHandle: target
+      type: custom
+      zIndex: 0
+
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: parameter-extractor
+        targetType: tool
+      id: extractor-cancel-to-cancel-tool
+      source: extractor_cancel_id
+      sourceHandle: source
       target: tool_cancel_preview
       targetHandle: target
       type: custom
@@ -285,7 +356,228 @@ workflow:
       type: custom
       width: 242
 
-    # 工具1: 查询教师课表
+    # 参数提取器1: 提取教师查询参数
+    - data:
+        instruction: '从用户问题中提取教师姓名和星期信息。例如"张教授周一有什么课"提取为teacherName="张教授", dayOfWeek=1。星期转换：周一=1, 周二=2, 周三=3, 周四=4, 周五=5, 周六=6, 周日=7。如果只提到"今天/明天"等相对时间，设为null。'
+        model:
+          completion_params:
+            temperature: 0.1
+          mode: chat
+          name: glm-4.7
+          provider: langgenius/openai_api_compatible/openai_api_compatible
+        parameters:
+        - description: 教师姓名（如张教授、王副教授、李老师）
+          name: teacherName
+          required: true
+          type: string
+        - description: '星期几（1=周一,2=周二,3=周三,4=周四,5=周五,6=周六,7=周日），不指定则为null'
+          name: dayOfWeek
+          required: false
+          type: number
+        query:
+        - sys
+        - query
+        reasoning_mode: prompt
+        selected: false
+        title: 提取教师查询参数
+        type: parameter-extractor
+        vision:
+          enabled: false
+      height: 87
+      id: extractor_teacher_query
+      position:
+        x: 680
+        y: 50
+      positionAbsolute:
+        x: 680
+        y: 50
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+
+    # 参数提取器2: 提取时间槽参数
+    - data:
+        instruction: '从用户问题中提取时间槽检查所需参数。例如"周四下午第5-6节教室A张老师有空吗"提取为dayOfWeek=4, sectionStart=5, sectionEnd=6, classroomName="教室A", teacherName="张老师"。星期转换：周一=1, 周二=2, 周三=3, 周四=4, 周五=5, 周六=6, 周日=7。节次通常是数字，如"第3-4节"表示sectionStart=3, sectionEnd=4。'
+        model:
+          completion_params:
+            temperature: 0.1
+          mode: chat
+          name: glm-4.7
+          provider: langgenius/openai_api_compatible/openai_api_compatible
+        parameters:
+        - description: '星期几（1=周一,2=周二,3=周三,4=周四,5=周五,6=周六,7=周日）'
+          name: dayOfWeek
+          required: true
+          type: number
+        - description: 起始节次（如第3节课则填3）
+          name: sectionStart
+          required: true
+          type: number
+        - description: 结束节次（如第4节课则填4）
+          name: sectionEnd
+          required: true
+          type: number
+        - description: 教室名称（可选）
+          name: classroomName
+          required: false
+          type: string
+        - description: 教师姓名（可选）
+          name: teacherName
+          required: false
+          type: string
+        query:
+        - sys
+        - query
+        reasoning_mode: prompt
+        selected: false
+        title: 提取时间槽参数
+        type: parameter-extractor
+        vision:
+          enabled: false
+      height: 87
+      id: extractor_time_slot
+      position:
+        x: 680
+        y: 170
+      positionAbsolute:
+        x: 680
+        y: 170
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+
+    # 参数提取器3: 提取调课参数
+    - data:
+        instruction: '从用户问题中提取调课所需参数。例如"把排课abc123调到周三第5-6节教室B"提取为scheduleUuid="abc123", newDayOfWeek=3, newSectionStart=5, newSectionEnd=6, newClassroomName="教室B"。星期转换：周一=1, 周二=2, 周三=3, 周四=4, 周五=5, 周六=6, 周日=7。排课UUID通常是用户之前查询时获得的。'
+        model:
+          completion_params:
+            temperature: 0.1
+          mode: chat
+          name: glm-4.7
+          provider: langgenius/openai_api_compatible/openai_api_compatible
+        parameters:
+        - description: 原排课记录UUID
+          name: scheduleUuid
+          required: true
+          type: string
+        - description: '新星期几（1=周一,2=周二,3=周三,4=周四,5=周五,6=周六,7=周日）'
+          name: newDayOfWeek
+          required: true
+          type: number
+        - description: 新起始节次
+          name: newSectionStart
+          required: true
+          type: number
+        - description: 新结束节次
+          name: newSectionEnd
+          required: true
+          type: number
+        - description: 新教室名称（可选）
+          name: newClassroomName
+          required: false
+          type: string
+        query:
+        - sys
+        - query
+        reasoning_mode: prompt
+        selected: false
+        title: 提取调课参数
+        type: parameter-extractor
+        vision:
+          enabled: false
+      height: 87
+      id: extractor_preview
+      position:
+        x: 680
+        y: 290
+      positionAbsolute:
+        x: 680
+        y: 290
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+
+    # 参数提取器4: 提取确认预览ID
+    - data:
+        instruction: '从用户问题中提取预览ID。例如"确认预览xyz789"或"执行xyz789"提取为previewId="xyz789"。预览ID通常是之前调课预览时返回的。'
+        model:
+          completion_params:
+            temperature: 0.1
+          mode: chat
+          name: glm-4.7
+          provider: langgenius/openai_api_compatible/openai_api_compatible
+        parameters:
+        - description: 预览ID，由previewScheduleChange返回
+          name: previewId
+          required: true
+          type: string
+        query:
+        - sys
+        - query
+        reasoning_mode: prompt
+        selected: false
+        title: 提取确认预览ID
+        type: parameter-extractor
+        vision:
+          enabled: false
+      height: 87
+      id: extractor_confirm_id
+      position:
+        x: 680
+        y: 410
+      positionAbsolute:
+        x: 680
+        y: 410
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+
+    # 参数提取器5: 提取取消预览ID
+    - data:
+        instruction: '从用户问题中提取预览ID。例如"取消预览xyz789"提取为previewId="xyz789"。预览ID通常是之前调课预览时返回的。'
+        model:
+          completion_params:
+            temperature: 0.1
+          mode: chat
+          name: glm-4.7
+          provider: langgenius/openai_api_compatible/openai_api_compatible
+        parameters:
+        - description: 预览ID，由previewScheduleChange返回
+          name: previewId
+          required: true
+          type: string
+        query:
+        - sys
+        - query
+        reasoning_mode: prompt
+        selected: false
+        title: 提取取消预览ID
+        type: parameter-extractor
+        vision:
+          enabled: false
+      height: 87
+      id: extractor_cancel_id
+      position:
+        x: 680
+        y: 530
+      positionAbsolute:
+        x: 680
+        y: 530
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+
+    # 工具1: 查询教师课表（参数引用改为从提取器获取）
     - data:
         is_team_authorization: true
         paramSchemas:
@@ -323,14 +615,17 @@ workflow:
           teacherName: ''
           dayOfWeek: ''
           semesterUuid: ''
+        plugin_id: ''
+        plugin_unique_identifier: ''
         provider_icon:
           background: '#6366F1'
           content: 🔗
         provider_id: smart-schedule
         provider_name: smart-schedule-mcp-server
         provider_type: mcp
-        selected: false
+        selected: true
         title: 查询教师课表
+        tool_configurations: {}
         tool_description: 查询教师特定时间的排课安排。可根据教师姓名查询特定星期几的课程，用于了解教师的时间占用情况。
         tool_label: queryTeacherScheduleByTime
         tool_name: queryTeacherScheduleByTime
@@ -338,10 +633,10 @@ workflow:
         tool_parameters:
           teacherName:
             type: mixed
-            value: '{{#sys.query#}}'
+            value: '{{#extractor_teacher_query.teacherName#}}'
           dayOfWeek:
-            type: constant
-            value: null
+            type: mixed
+            value: '{{#extractor_teacher_query.dayOfWeek#}}'
           semesterUuid:
             type: mixed
             value: '{{#start.semester_uuid#}}'
@@ -349,10 +644,10 @@ workflow:
       height: 83
       id: tool_query_teacher_schedule
       position:
-        x: 700
+        x: 980
         y: 50
       positionAbsolute:
-        x: 700
+        x: 980
         y: 50
       selected: false
       sourcePosition: right
@@ -360,7 +655,7 @@ workflow:
       type: custom
       width: 242
 
-    # 工具2: 检查时间槽可用性
+    # 工具2: 检查时间槽可用性（参数引用改为从提取器获取）
     - data:
         is_team_authorization: true
         paramSchemas:
@@ -431,14 +726,17 @@ workflow:
           classroomName: ''
           teacherName: ''
           semesterUuid: ''
+        plugin_id: ''
+        plugin_unique_identifier: ''
         provider_icon:
           background: '#6366F1'
           content: 🔗
         provider_id: smart-schedule
         provider_name: smart-schedule-mcp-server
         provider_type: mcp
-        selected: false
+        selected: true
         title: 检查时间槽
+        tool_configurations: {}
         tool_description: 检查指定时间槽是否可用。可检查教室和教师在指定时间是否有冲突，用于调课前验证目标时间是否空闲。
         tool_label: checkTimeSlotAvailability
         tool_name: checkTimeSlotAvailability
@@ -446,19 +744,19 @@ workflow:
         tool_parameters:
           dayOfWeek:
             type: mixed
-            value: '{{#sys.query#}}'
+            value: '{{#extractor_time_slot.dayOfWeek#}}'
           sectionStart:
             type: mixed
-            value: '{{#sys.query#}}'
+            value: '{{#extractor_time_slot.sectionStart#}}'
           sectionEnd:
             type: mixed
-            value: '{{#sys.query#}}'
+            value: '{{#extractor_time_slot.sectionEnd#}}'
           classroomName:
             type: mixed
-            value: '{{#sys.query#}}'
+            value: '{{#extractor_time_slot.classroomName#}}'
           teacherName:
             type: mixed
-            value: '{{#sys.query#}}'
+            value: '{{#extractor_time_slot.teacherName#}}'
           semesterUuid:
             type: mixed
             value: '{{#start.semester_uuid#}}'
@@ -466,10 +764,10 @@ workflow:
       height: 83
       id: tool_check_time_slot
       position:
-        x: 700
+        x: 980
         y: 170
       positionAbsolute:
-        x: 700
+        x: 980
         y: 170
       selected: false
       sourcePosition: right
@@ -477,7 +775,7 @@ workflow:
       type: custom
       width: 242
 
-    # 工具3: 预览调课方案
+    # 工具3: 预览调课方案（参数引用改为从提取器获取）
     - data:
         is_team_authorization: true
         paramSchemas:
@@ -548,14 +846,17 @@ workflow:
           newSectionEnd: ''
           newClassroomName: ''
           semesterUuid: ''
+        plugin_id: ''
+        plugin_unique_identifier: ''
         provider_icon:
           background: '#6366F1'
           content: 🔗
         provider_id: smart-schedule
         provider_name: smart-schedule-mcp-server
         provider_type: mcp
-        selected: false
+        selected: true
         title: 预览调课
+        tool_configurations: {}
         tool_description: 预览调课方案。将原排课调整到新的时间和教室，生成预览方案存入临时区域，返回预览ID供确认或取消。
         tool_label: previewScheduleChange
         tool_name: previewScheduleChange
@@ -563,19 +864,19 @@ workflow:
         tool_parameters:
           scheduleUuid:
             type: mixed
-            value: '{{#sys.query#}}'
+            value: '{{#extractor_preview.scheduleUuid#}}'
           newDayOfWeek:
             type: mixed
-            value: '{{#sys.query#}}'
+            value: '{{#extractor_preview.newDayOfWeek#}}'
           newSectionStart:
             type: mixed
-            value: '{{#sys.query#}}'
+            value: '{{#extractor_preview.newSectionStart#}}'
           newSectionEnd:
             type: mixed
-            value: '{{#sys.query#}}'
+            value: '{{#extractor_preview.newSectionEnd#}}'
           newClassroomName:
             type: mixed
-            value: '{{#sys.query#}}'
+            value: '{{#extractor_preview.newClassroomName#}}'
           semesterUuid:
             type: mixed
             value: '{{#start.semester_uuid#}}'
@@ -583,10 +884,10 @@ workflow:
       height: 83
       id: tool_preview_schedule
       position:
-        x: 700
+        x: 980
         y: 290
       positionAbsolute:
-        x: 700
+        x: 980
         y: 290
       selected: false
       sourcePosition: right
@@ -594,7 +895,7 @@ workflow:
       type: custom
       width: 242
 
-    # 工具4: 确认调课
+    # 工具4: 确认调课（参数引用改为从提取器获取）
     - data:
         is_team_authorization: true
         paramSchemas:
@@ -610,14 +911,17 @@ workflow:
           type: string
         params:
           previewId: ''
+        plugin_id: ''
+        plugin_unique_identifier: ''
         provider_icon:
           background: '#6366F1'
           content: 🔗
         provider_id: smart-schedule
         provider_name: smart-schedule-mcp-server
         provider_type: mcp
-        selected: false
+        selected: true
         title: 确认调课
+        tool_configurations: {}
         tool_description: 确认调课预览方案。将预览区域的调课方案应用到正式排课，完成调课操作。
         tool_label: confirmScheduleChange
         tool_name: confirmScheduleChange
@@ -625,15 +929,15 @@ workflow:
         tool_parameters:
           previewId:
             type: mixed
-            value: '{{#sys.query#}}'
+            value: '{{#extractor_confirm_id.previewId#}}'
         type: tool
       height: 83
       id: tool_confirm_schedule
       position:
-        x: 700
+        x: 980
         y: 410
       positionAbsolute:
-        x: 700
+        x: 980
         y: 410
       selected: false
       sourcePosition: right
@@ -641,7 +945,7 @@ workflow:
       type: custom
       width: 242
 
-    # 工具5: 取消预览
+    # 工具5: 取消预览（参数引用改为从提取器获取）
     - data:
         is_team_authorization: true
         paramSchemas:
@@ -657,14 +961,17 @@ workflow:
           type: string
         params:
           previewId: ''
+        plugin_id: ''
+        plugin_unique_identifier: ''
         provider_icon:
           background: '#6366F1'
           content: 🔗
         provider_id: smart-schedule
         provider_name: smart-schedule-mcp-server
         provider_type: mcp
-        selected: false
+        selected: true
         title: 取消预览
+        tool_configurations: {}
         tool_description: 取消调课预览。删除预览区域的调课方案，不做任何实际修改。
         tool_label: cancelPreview
         tool_name: cancelPreview
@@ -672,15 +979,15 @@ workflow:
         tool_parameters:
           previewId:
             type: mixed
-            value: '{{#sys.query#}}'
+            value: '{{#extractor_cancel_id.previewId#}}'
         type: tool
       height: 83
       id: tool_cancel_preview
       position:
-        x: 700
+        x: 980
         y: 530
       positionAbsolute:
-        x: 700
+        x: 980
         y: 530
       selected: false
       sourcePosition: right
@@ -692,6 +999,7 @@ workflow:
     - data:
         advanced_settings:
           group_enabled: false
+          groups: []
         output_type: string
         selected: false
         title: 结果聚合
@@ -710,10 +1018,10 @@ workflow:
       height: 134
       id: variable_aggregator
       position:
-        x: 1000
+        x: 1280
         y: 280
       positionAbsolute:
-        x: 1000
+        x: 1280
         y: 280
       selected: false
       sourcePosition: right
@@ -766,10 +1074,10 @@ workflow:
       height: 87
       id: llm_summary
       position:
-        x: 1300
+        x: 1580
         y: 300
       positionAbsolute:
-        x: 1300
+        x: 1580
         y: 300
       selected: false
       sourcePosition: right
@@ -787,10 +1095,10 @@ workflow:
       height: 102
       id: direct_answer
       position:
-        x: 1600
+        x: 1880
         y: 300
       positionAbsolute:
-        x: 1600
+        x: 1880
         y: 300
       selected: false
       sourcePosition: right

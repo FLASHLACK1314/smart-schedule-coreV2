@@ -67,6 +67,11 @@ public class EduScheduleTool {
             return "【错误】请提供教师姓名。";
         }
 
+        // 将 0 或无效边界值视为未指定（兼容 Dify 参数提取器可能返回 0 的情况）
+        if (dayOfWeek != null && dayOfWeek == 0) {
+            dayOfWeek = null;
+        }
+
         // 验证星期几参数
         if (dayOfWeek != null && (dayOfWeek < 1 || dayOfWeek > 7)) {
             return "【错误】星期几参数必须在1-7之间。";
