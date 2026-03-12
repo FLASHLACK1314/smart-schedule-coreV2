@@ -1,6 +1,6 @@
 package io.github.flashlack1314.smartschedulecorev2.mcp.config;
 
-import io.github.flashlack1314.smartschedulecorev2.mcp.EduScheduleTool;
+import io.github.flashlack1314.smartschedulecorev2.mcp.tools.EduScheduleTool;
 import io.github.flashlack1314.smartschedulecorev2.mcp.tools.QueryTools;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

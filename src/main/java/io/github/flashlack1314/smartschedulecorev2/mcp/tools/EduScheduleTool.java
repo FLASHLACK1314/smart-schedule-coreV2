@@ -1,4 +1,4 @@
-package io.github.flashlack1314.smartschedulecorev2.mcp;
+package io.github.flashlack1314.smartschedulecorev2.mcp.tools;
 
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.stereotype.Service;
