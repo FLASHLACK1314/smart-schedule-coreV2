@@ -107,35 +107,83 @@ java -jar target/smart-schedule-coreV2-0.0.1-SNAPSHOT.jar
 
 项目包含自动数据库初始化功能：
 
-- 配置类：`DatabaseInitProperties`
-- 实现：`DatabaseInitializationConfig`
+- 配置属性：`config/database/DatabaseInitProperties.java`
+- 初始化实现：`config/database/DatabaseInitializationConfig.java`
+- 数据初始化：`config/database/InitializeDatabase.java`
 - SQL 文件位置：`src/main/resources/sql/*.sql`
-- 表依赖顺序在 `DatabaseInitProperties.initializeDefaultTables()` 中定义
 
 配置前缀：`database.init`
 - `enabled`：是否启用数据库初始化
+- `mode`：数据初始化模式（枚举值，见下文）
 - `dropAndCreate`：是否强制重新创建表（生产环境请勿开启）
 - `dropAllOnMissing`：是否在发现缺失表时删除所有表重建
 - `failFast`：是否初始化失败时终止应用启动
 
-### 依赖说明
-
-项目使用 `com.x-lf.utility:general-utils:1.0.9-beta.2.5` 库，该库已包含：
-- MyBatis Plus 功能
-- JSONB 类型处理器
-- 其他通用工具类
-
-因此不需要单独添加 MyBatis Plus 依赖。
+**初始化模式**：
+- `FULL` - 满数据模式：初始化所有数据（含排课）
+- `DEMO` - 演示数据模式：只初始化到行政班级（不含排课）
+- `MINIMAL` - 最小数据模式：只初始化基础数据
 
 ## 表创建顺序
 
 表必须按依赖顺序创建（在 `DatabaseInitProperties` 中定义）：
 
-1. **基础表**（无外键）：department, building, semester, teacher, course, course_type, system_admin
-2. **二级依赖**：major, classroom, classroom_type, course_classroom_type, academic_admin, course_qualification
-3. **三级依赖**：class, student, teaching_class
-4. **四级依赖**：teaching_class_class, schedule
-5. **五级依赖**：schedule_conflict
+1. **基础表**（无外键）：department, building, semester, course_type, classroom_type, system_admin
+2. **二级依赖**：major, academic_admin, teacher
+3. **三级依赖**：course_classroom_type, course, course_qualification, classroom
+4. **四级依赖**：class, student
+5. **五级依赖**：teaching_class, teaching_class_class, schedule
+6. **六级依赖**：schedule_conflict
+
+## MCP 工具集成
+
+项目集成了 Spring AI MCP Server，允许外部 AI 应用（如 Dify）通过 MCP 协议调用排课相关功能。
+
+### 依赖配置
+
+```xml
+<!-- Spring AI BOM -->
+<dependency>
+    <groupId>org.springframework.ai</groupId>
+    <artifactId>spring-ai-bom</artifactId>
+    <version>1.0.0</version>
+    <type>pom</type>
+    <scope>import</scope>
+</dependency>
+
+<!-- MCP Server 依赖 -->
+<dependency>
+    <groupId>org.springframework.ai</groupId>
+    <artifactId>spring-ai-starter-mcp-server</artifactId>
+</dependency>
+<dependency>
+    <groupId>org.springframework.ai</groupId>
+    <artifactId>spring-ai-starter-mcp-server-webmvc</artifactId>
+</dependency>
+```
+
+### 工具列表
+
+**QueryTools**（查询工具类）：
+- `queryConflicts(semesterUuid, limit)` - 查询排课冲突记录，返回冲突类型、严重程度和描述
+- `queryTeacherSchedule(teacherName, semesterUuid)` - 查询教师课表，支持姓名模糊匹配
+- `queryClassroomOccupancy(classroomName, semesterUuid)` - 查询教室占用情况
+
+**EduScheduleTool**（排课工具类）：
+- `checkAndPreview(teacher, time, room)` - 检测排课冲突并存入预览区
+
+### 关键文件
+
+- `mcp/config/McpConfig.java` - MCP 工具配置类，注册工具到 Spring AI
+- `mcp/tools/QueryTools.java` - 查询工具类
+- `mcp/tools/EduScheduleTool.java` - 排课工具类
+
+### 开发指南
+
+添加新的 MCP 工具：
+1. 在 `mcp/tools/` 目录下创建工具类
+2. 使用 `@Service` 和 `@Tool` 注解标注方法
+3. 在 `McpConfig.toolProvider()` 中注册工具对象
 
 ## 开发注意事项
 
@@ -144,6 +192,15 @@ java -jar target/smart-schedule-coreV2-0.0.1-SNAPSHOT.jar
 3. **主键统一使用 String 类型存储 32 位 UUID**
 4. **链式调用**：所有 DO 类支持链式调用（`@Accessors(chain = true)`）
 5. **日志使用**：DAO 层统一使用 `@Slf4j` 注解
+
+## 依赖说明
+
+项目使用 `com.x-lf.utility:general-utils:1.0.9-beta.2.5` 库，该库已包含：
+- MyBatis Plus 功能
+- JSONB 类型处理器
+- 其他通用工具类
+
+因此不需要单独添加 MyBatis Plus 依赖。
 
 ## 遗传算法模块
 
@@ -189,6 +246,7 @@ algorithm/
 - 交叉概率：0.8
 - 变异概率：0.2
 - 精英保留：10 个
+- 基因保护率：0.3
 
 ### 硬约束类型
 - 教师时间冲突
