@@ -14,6 +14,7 @@ import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -92,7 +93,8 @@ public class EduScheduleTool {
             // 2. 查询该教师的排课记录
             LambdaQueryWrapper<ScheduleDO> scheduleQuery = new LambdaQueryWrapper<>();
             scheduleQuery.eq(ScheduleDO::getTeacherUuid, teacher.getTeacherUuid());
-            scheduleQuery.eq(ScheduleDO::getStatus, 1); // 只查询正式执行的排课
+            // 只查询正式执行的排课
+            scheduleQuery.eq(ScheduleDO::getStatus, 1);
 
             if (dayOfWeek != null) {
                 scheduleQuery.eq(ScheduleDO::getDayOfWeek, dayOfWeek);
@@ -454,7 +456,342 @@ public class EduScheduleTool {
         }
     }
 
+    // ==================== 智能调课工具（自然语言友好） ====================
+
+    /**
+     * 根据自然语言参数预览调课方案
+     * 内部自动查找排课UUID，支持多匹配场景返回选择列表
+     *
+     * @param teacherName        教师姓名（模糊匹配）
+     * @param originalDayOfWeek  原排课星期几（可选，1-7）
+     * @param originalSectionStart 原排课起始节次（可选）
+     * @param originalSectionEnd   原排课结束节次（可选）
+     * @param courseNameKeyword  课程名关键词（可选）
+     * @param newDayOfWeek       目标星期几（必填）
+     * @param newSectionStart    目标起始节次（必填）
+     * @param newSectionEnd      目标结束节次（必填）
+     * @param newClassroomName   目标教室名称（可选，不填保持原教室）
+     * @param semesterUuid       学期UUID（必填）
+     * @return 预览结果或选择列表
+     */
+    @Tool(description = "根据教师姓名和时间信息预览调课方案。当用户说'把张三老师周五的课调到周四下午'时使用此工具。" +
+            "系统会自动查找匹配的排课记录：如果只有一条匹配则直接返回预览；如果有多条匹配则返回选择列表供用户选择。")
+    public String previewScheduleChangeByInfo(
+            @ToolParam(description = "教师姓名，支持模糊匹配（如'张三'、'张教授'）") String teacherName,
+            @ToolParam(description = "原排课星期几（1=周一，2=周二，...，7=周日），不填则查所有", required = false) Integer originalDayOfWeek,
+            @ToolParam(description = "原排课起始节次，不填则不限制", required = false) Integer originalSectionStart,
+            @ToolParam(description = "原排课结束节次，不填则不限制", required = false) Integer originalSectionEnd,
+            @ToolParam(description = "课程名关键词（如'高数'、'英语'），可选", required = false) String courseNameKeyword,
+            @ToolParam(description = "目标星期几（1=周一，2=周二，...，7=周日）") Integer newDayOfWeek,
+            @ToolParam(description = "目标起始节次") Integer newSectionStart,
+            @ToolParam(description = "目标结束节次") Integer newSectionEnd,
+            @ToolParam(description = "目标教室名称，不填则保持原教室", required = false) String newClassroomName,
+            @ToolParam(description = "学期UUID") String semesterUuid) {
+
+        // 参数验证
+        if (!StringUtils.hasText(teacherName)) {
+            return "【错误】请提供教师姓名。";
+        }
+        if (newDayOfWeek == null || newDayOfWeek < 1 || newDayOfWeek > 7) {
+            return "【错误】目标星期几参数必须在1-7之间。";
+        }
+        if (newSectionStart == null || newSectionEnd == null || newSectionStart > newSectionEnd) {
+            return "【错误】目标节次参数无效，起始节次不能大于结束节次。";
+        }
+        if (!StringUtils.hasText(semesterUuid)) {
+            return "【错误】请提供学期UUID。";
+        }
+
+        // 将 0 或无效边界值视为未指定（兼容 Dify 参数提取器可能返回 0 的情况）
+        if (originalDayOfWeek != null && originalDayOfWeek <= 0) {
+            originalDayOfWeek = null;
+        }
+        if (originalSectionStart != null && originalSectionStart <= 0) {
+            originalSectionStart = null;
+        }
+        if (originalSectionEnd != null && originalSectionEnd <= 0) {
+            originalSectionEnd = null;
+        }
+
+        // 查找匹配的排课记录
+        List<ScheduleDO> matchedSchedules = findSchedulesByCondition(
+                teacherName, originalDayOfWeek, originalSectionStart, originalSectionEnd,
+                courseNameKeyword, semesterUuid);
+
+        if (matchedSchedules.isEmpty()) {
+            return buildNoMatchResult(teacherName, originalDayOfWeek, originalSectionStart, originalSectionEnd, courseNameKeyword);
+        }
+
+        // 唯一匹配：直接生成预览
+        if (matchedSchedules.size() == 1) {
+            ScheduleDO schedule = matchedSchedules.get(0);
+            return previewScheduleChange(
+                    schedule.getScheduleUuid(),
+                    newDayOfWeek,
+                    newSectionStart,
+                    newSectionEnd,
+                    newClassroomName,
+                    semesterUuid);
+        }
+
+        // 多个匹配：返回选择列表
+        return buildSelectionList(matchedSchedules, semesterUuid, newDayOfWeek, newSectionStart, newSectionEnd, newClassroomName);
+    }
+
+    /**
+     * 根据选择码预览调课方案
+     * 当用户从多个匹配项中选择后，使用选择码生成预览
+     *
+     * @param selectionCode   选择码（从列表中获取）
+     * @param newDayOfWeek    目标星期几
+     * @param newSectionStart 目标起始节次
+     * @param newSectionEnd   目标结束节次
+     * @param newClassroomName 目标教室名称（可选）
+     * @param semesterUuid    学期UUID
+     * @return 预览结果
+     */
+    @Tool(description = "根据选择码预览调课方案。当系统返回多个匹配项后，用户选择其中一个时使用。" +
+            "选择码从之前返回的选择列表中获取。⚠️ 注意：此工具仅用于用户从选择列表中选取的场景，" +
+            "如果用户是首次提出调课需求（如'把张教授的课调到周四'），请使用 previewScheduleChangeByInfo 工具。")
+    public String previewBySelectionCode(
+            @ToolParam(description = "选择码，从选择列表中获取（如'A1B2C3D4'）。如果用户没有提供选择码，请留空。") String selectionCode,
+            @ToolParam(description = "选择序号，用户说'第一个/第二门'时使用。如果用户没有明确说序号，请留空。", required = false) Integer choiceIndex,
+            @ToolParam(description = "目标星期几（1=周一，2=周二，...，7=周日）") Integer newDayOfWeek,
+            @ToolParam(description = "目标起始节次") Integer newSectionStart,
+            @ToolParam(description = "目标结束节次") Integer newSectionEnd,
+            @ToolParam(description = "目标教室名称，不填则保持原教室", required = false) String newClassroomName,
+            @ToolParam(description = "学期UUID") String semesterUuid) {
+
+        // 参数验证：选择码和选择序号至少需要一个
+        if (!StringUtils.hasText(selectionCode) && choiceIndex == null) {
+            return "【提示】此功能用于从选择列表中选取排课记录。\n\n" +
+                   "您似乎是想直接调课而不是从列表选择？\n" +
+                   "请直接描述您的调课需求，例如：\n" +
+                   "- \"把张教授周五的课调到周四下午第5-6节\"\n" +
+                   "- \"将王老师周一第3-4节的数学课调整到周三\"\n\n" +
+                   "如果您确实是想从列表中选择，请告诉我选择码或序号（如\"选择A1B2C3D4\"或\"第一门\"）。";
+        }
+        if (newDayOfWeek == null || newDayOfWeek < 1 || newDayOfWeek > 7) {
+            return "【错误】目标星期几参数必须在1-7之间。";
+        }
+        if (newSectionStart == null || newSectionEnd == null || newSectionStart > newSectionEnd) {
+            return "【错误】目标节次参数无效，起始节次不能大于结束节次。";
+        }
+        if (!StringUtils.hasText(semesterUuid)) {
+            return "【错误】请提供学期UUID。";
+        }
+
+        // 从 Redis 获取排课UUID
+        String scheduleUuid = null;
+
+        if (StringUtils.hasText(selectionCode)) {
+            // 通过选择码获取
+            scheduleUuid = getScheduleUuidFromSelectionCode(selectionCode, semesterUuid);
+            if (scheduleUuid == null) {
+                return String.format("【错误】选择码无效或已过期：%s。请重新查询排课列表。", selectionCode);
+            }
+        } else if (choiceIndex != null && choiceIndex > 0) {
+            // 通过序号获取
+            scheduleUuid = getScheduleUuidByIndex(choiceIndex, semesterUuid);
+            if (scheduleUuid == null) {
+                return String.format("【错误】序号 %d 无效或选择列表已过期。请重新查询排课列表。", choiceIndex);
+            }
+        }
+
+        // 调用原有预览方法
+        return previewScheduleChange(scheduleUuid, newDayOfWeek, newSectionStart, newSectionEnd, newClassroomName, semesterUuid);
+    }
+
+    /**
+     * 构建无匹配结果提示
+     */
+    private String buildNoMatchResult(String teacherName, Integer dayOfWeek,
+                                       Integer sectionStart, Integer sectionEnd,
+                                       String courseNameKeyword) {
+        StringBuilder result = new StringBuilder();
+        result.append("【未找到匹配的排课记录】\n");
+        result.append(String.format("教师：%s\n", teacherName));
+
+        if (dayOfWeek != null) {
+            result.append(String.format("筛选星期：%s\n", getDayOfWeekStr(dayOfWeek)));
+        }
+        if (sectionStart != null && sectionEnd != null) {
+            result.append(String.format("筛选节次：第%d-%d节\n", sectionStart, sectionEnd));
+        }
+        if (StringUtils.hasText(courseNameKeyword)) {
+            result.append(String.format("筛选课程关键词：%s\n", courseNameKeyword));
+        }
+
+        result.append("\n请尝试：\n");
+        result.append("1. 减少筛选条件（如不指定节次、课程名）\n");
+        result.append("2. 确认教师姓名是否正确\n");
+        result.append("3. 确认学期UUID是否正确\n");
+
+        return result.toString();
+    }
+
+    /**
+     * 构建选择列表
+     */
+    private String buildSelectionList(List<ScheduleDO> schedules, String semesterUuid,
+                                       Integer newDayOfWeek, Integer newSectionStart,
+                                       Integer newSectionEnd, String newClassroomName) {
+        StringBuilder result = new StringBuilder();
+        result.append("【找到多个匹配的排课记录，请选择】\n");
+        result.append(String.format("匹配数量：%d 条\n\n", schedules.size()));
+
+        // 清空之前的序号列表，重新存储
+        String listKey = "schedule:selection:list:" + semesterUuid;
+        redisTemplate.delete(listKey);
+
+        int index = 1;
+        for (ScheduleDO schedule : schedules) {
+            String selectionCode = generateSelectionCode(schedule.getScheduleUuid());
+            // 存储选择码映射
+            storeSelectionCodeMapping(selectionCode, schedule.getScheduleUuid(), semesterUuid);
+            // 存储到序号列表（支持"第X门"的选择方式）
+            redisTemplate.opsForList().rightPush(listKey, schedule.getScheduleUuid());
+
+            String courseName = getCourseName(schedule.getCourseUuid());
+            String classroomName = getClassroomName(schedule.getClassroomUuid());
+            String dayOfWeekStr = getDayOfWeekStr(schedule.getDayOfWeek());
+
+            result.append(String.format("[%d] %s | %s 第%d-%d节 | %s | %s (选择码: %s)\n",
+                    index,
+                    courseName,
+                    dayOfWeekStr,
+                    schedule.getSectionStart(),
+                    schedule.getSectionEnd(),
+                    classroomName,
+                    schedule.getWeeksJson() != null ? "周次：" + schedule.getWeeksJson() : "",
+                    selectionCode));
+
+            if (index++ >= 10) {
+                result.append("... 还有更多记录，请增加筛选条件缩小范围\n");
+                break;
+            }
+        }
+
+        // 设置列表过期时间
+        redisTemplate.expire(listKey, PREVIEW_EXPIRE_MINUTES, TimeUnit.MINUTES);
+
+        result.append("\n请告诉我要调整哪一门课，例如：\"选择第1门\" 或 \"选择 A1B2C3D4\"\n");
+        result.append(String.format("\n目标时间：%s 第%d-%d节",
+                getDayOfWeekStr(newDayOfWeek), newSectionStart, newSectionEnd));
+        if (StringUtils.hasText(newClassroomName)) {
+            result.append(String.format("，教室：%s", newClassroomName));
+        }
+
+        return result.toString();
+    }
+
     // ==================== 辅助方法 ====================
+
+    /**
+     * 根据条件查找排课列表
+     * 支持教师姓名、星期、节次、课程名关键词等多条件组合查询
+     *
+     * @param teacherName       教师姓名（模糊匹配）
+     * @param dayOfWeek         星期几（可选）
+     * @param sectionStart      起始节次（可选）
+     * @param sectionEnd        结束节次（可选）
+     * @param courseNameKeyword 课程名关键词（可选）
+     * @param semesterUuid      学期UUID
+     * @return 匹配的排课列表
+     */
+    private List<ScheduleDO> findSchedulesByCondition(String teacherName, Integer dayOfWeek,
+                                                       Integer sectionStart, Integer sectionEnd,
+                                                       String courseNameKeyword, String semesterUuid) {
+        // 1. 查找教师
+        if (!StringUtils.hasText(teacherName)) {
+            return new ArrayList<>();
+        }
+
+        LambdaQueryWrapper<TeacherDO> teacherQuery = new LambdaQueryWrapper<>();
+        teacherQuery.like(TeacherDO::getTeacherName, teacherName);
+        List<TeacherDO> teachers = teacherDAO.list(teacherQuery);
+
+        if (teachers.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        List<ScheduleDO> allSchedules = new ArrayList<>();
+
+        for (TeacherDO teacher : teachers) {
+            // 2. 查询该教师的排课记录
+            LambdaQueryWrapper<ScheduleDO> scheduleQuery = new LambdaQueryWrapper<>();
+            scheduleQuery.eq(ScheduleDO::getTeacherUuid, teacher.getTeacherUuid());
+            scheduleQuery.eq(ScheduleDO::getStatus, 1); // 只查询正式执行的排课
+
+            if (dayOfWeek != null && dayOfWeek > 0) {
+                scheduleQuery.eq(ScheduleDO::getDayOfWeek, dayOfWeek);
+            }
+            if (StringUtils.hasText(semesterUuid)) {
+                scheduleQuery.eq(ScheduleDO::getSemesterUuid, semesterUuid);
+            }
+            // 节次筛选：排课的节次范围与查询范围有交集
+            if (sectionStart != null && sectionEnd != null) {
+                scheduleQuery.le(ScheduleDO::getSectionStart, sectionEnd);
+                scheduleQuery.ge(ScheduleDO::getSectionEnd, sectionStart);
+            }
+
+            List<ScheduleDO> schedules = scheduleDAO.list(scheduleQuery);
+            allSchedules.addAll(schedules);
+        }
+
+        // 3. 课程名关键词筛选
+        if (StringUtils.hasText(courseNameKeyword)) {
+            List<ScheduleDO> filtered = new ArrayList<>();
+            for (ScheduleDO schedule : allSchedules) {
+                String courseName = getCourseName(schedule.getCourseUuid());
+                if (courseName.contains(courseNameKeyword)) {
+                    filtered.add(schedule);
+                }
+            }
+            return filtered;
+        }
+
+        return allSchedules;
+    }
+
+    /**
+     * 生成选择码
+     * 将排课UUID编码为简短的选择码
+     */
+    private String generateSelectionCode(String scheduleUuid) {
+        // 使用 Base64 编码简化显示
+        return Base64.getUrlEncoder().withoutPadding()
+                .encodeToString(scheduleUuid.getBytes())
+                .substring(0, 8).toUpperCase();
+    }
+
+    /**
+     * 从选择码解析排课UUID
+     * Redis 中存储选择码与UUID的映射
+     */
+    private String getScheduleUuidFromSelectionCode(String selectionCode, String semesterUuid) {
+        String redisKey = "schedule:selection:" + semesterUuid + ":" + selectionCode;
+        Object obj = redisTemplate.opsForValue().get(redisKey);
+        return obj != null ? obj.toString() : null;
+    }
+
+    /**
+     * 根据序号获取排课UUID
+     * Redis 中存储序号列表的键为 "schedule:selection:list:{semesterUuid}"
+     */
+    private String getScheduleUuidByIndex(int index, String semesterUuid) {
+        String listKey = "schedule:selection:list:" + semesterUuid;
+        Object obj = redisTemplate.opsForList().index(listKey, index - 1); // 序号从1开始，列表索引从0开始
+        return obj != null ? obj.toString() : null;
+    }
+
+    /**
+     * 存储选择码与排课UUID的映射
+     */
+    private void storeSelectionCodeMapping(String selectionCode, String scheduleUuid, String semesterUuid) {
+        String redisKey = "schedule:selection:" + semesterUuid + ":" + selectionCode;
+        redisTemplate.opsForValue().set(redisKey, scheduleUuid, PREVIEW_EXPIRE_MINUTES, TimeUnit.MINUTES);
+    }
 
     /**
      * 查找教室（模糊匹配）

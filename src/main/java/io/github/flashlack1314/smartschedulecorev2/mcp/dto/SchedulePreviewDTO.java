@@ -118,4 +118,62 @@ public class SchedulePreviewDTO {
          */
         private String conflictDescription;
     }
+
+    /**
+     * 排课选择项内部类
+     * 用于多匹配场景下返回可选的排课列表
+     */
+    @Data
+    @Accessors(chain = true)
+    public static class ScheduleSelectionItem {
+        /**
+         * 选择码（用于后续选择操作）
+         */
+        private String selectionCode;
+
+        /**
+         * 排课UUID
+         */
+        private String scheduleUuid;
+
+        /**
+         * 课程名称
+         */
+        private String courseName;
+
+        /**
+         * 教师姓名
+         */
+        private String teacherName;
+
+        /**
+         * 教室名称
+         */
+        private String classroomName;
+
+        /**
+         * 星期几 (1-7)
+         */
+        private Integer dayOfWeek;
+
+        /**
+         * 星期几中文描述
+         */
+        private String dayOfWeekStr;
+
+        /**
+         * 起始节次
+         */
+        private Integer sectionStart;
+
+        /**
+         * 结束节次
+         */
+        private Integer sectionEnd;
+
+        /**
+         * 上课周次
+         */
+        private String weeksJson;
+    }
 }
