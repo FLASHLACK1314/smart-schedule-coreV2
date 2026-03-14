@@ -1,5 +1,6 @@
 package io.github.flashlack1314.smartschedulecorev2.mcp.config;
 
+import io.github.flashlack1314.smartschedulecorev2.mcp.tools.AuthTools;
 import io.github.flashlack1314.smartschedulecorev2.mcp.tools.EduScheduleTool;
 import io.github.flashlack1314.smartschedulecorev2.mcp.tools.QueryTools;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +21,7 @@ import org.springframework.context.annotation.Configuration;
 @RequiredArgsConstructor
 public class McpConfig {
 
+    private final AuthTools authTools;
     private final QueryTools queryTools;
     private final EduScheduleTool eduScheduleTool;
 
@@ -29,9 +31,9 @@ public class McpConfig {
      */
     @Bean
     public ToolCallbackProvider toolProvider() {
-        log.info("注册 MCP 工具: QueryTools, EduScheduleTool");
+        log.info("注册 MCP 工具: AuthTools, QueryTools, EduScheduleTool");
         return MethodToolCallbackProvider.builder()
-                .toolObjects(queryTools, eduScheduleTool)
+                .toolObjects(authTools, queryTools, eduScheduleTool)
                 .build();
     }
 }

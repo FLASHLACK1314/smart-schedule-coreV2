@@ -1,9 +1,9 @@
 app:
-  description: 智能调课助手：支持查询教师课表、检查时间槽、预览调课方案、确认/取消调课
+  description: 智能调课助手：支持查询教师课表、检查时间槽、预览调课方案、确认/取消调课。需要Token认证（仅限系统管理员和教务管理员）。
   icon: 🤖
   icon_background: '#E0F2FE'
   mode: advanced-chat
-  name: 智能调课助手V7
+  name: 智能调课助手V8-带认证
   use_icon_as_answer_icon: false
 dependencies:
   - current_identifier: null
@@ -399,11 +399,44 @@ workflow:
       - data:
           isInLoop: false
           sourceType: start
-          targetType: question-classifier
-        id: start-source-question_classifier-target
+          targetType: tool
+        id: start-source-tool_verify_token-target
         source: start
         sourceHandle: source
+        target: tool_verify_token
+        targetHandle: target
+        type: custom
+        zIndex: 0
+      - data:
+          isInLoop: false
+          sourceType: tool
+          targetType: if-else
+        id: tool_verify_token-source-if_else_auth-target
+        source: tool_verify_token
+        sourceHandle: source
+        target: if_else_auth
+        targetHandle: target
+        type: custom
+        zIndex: 0
+      - data:
+          isInLoop: false
+          sourceType: if-else
+          targetType: question-classifier
+        id: if_else_auth-true-question_classifier-target
+        source: if_else_auth
+        sourceHandle: 'true'
         target: question_classifier
+        targetHandle: target
+        type: custom
+        zIndex: 0
+      - data:
+          isInLoop: false
+          sourceType: if-else
+          targetType: answer
+        id: if_else_auth-false-direct_answer_auth-target
+        source: if_else_auth
+        sourceHandle: 'false'
+        target: direct_answer_auth
         targetHandle: target
         type: custom
         zIndex: 0
@@ -424,6 +457,15 @@ workflow:
           title: 开始
           type: start
           variables:
+            - default: ''
+              hide: false
+              hint: 请输入认证Token（从前端登录获取）
+              label: 认证Token
+              options: []
+              placeholder: 必填，用于身份验证
+              required: true
+              type: text-input
+              variable: token
             - default: ''
               hide: false
               hint: 请输入学期UUID，用于确定查询范围
@@ -1312,6 +1354,102 @@ workflow:
         positionAbsolute:
           x: 1582
           y: 763.9999999999997
+        selected: false
+        sourcePosition: right
+        targetPosition: left
+        type: custom
+        width: 242
+      - data:
+          is_team_authorization: true
+          paramSchemas:
+            - auto_generate: null
+              default: null
+              form: llm
+              human_description:
+                zh_Hans: 认证Token，从前端登录后获取
+              label:
+                zh_Hans: token
+              name: token
+              required: true
+              type: string
+          params:
+            token: ''
+          plugin_id: ''
+          plugin_unique_identifier: ''
+          provider_icon:
+            background: '#6366F1'
+            content: "\U0001F512"
+          provider_id: smart-schedule
+          provider_name: smart-schedule-mcp-server
+          provider_type: mcp
+          selected: false
+          title: Token认证
+          tool_configurations: {}
+          tool_description: 验证用户Token是否有效。用于Dify工作流开始时的身份认证。只有系统管理员(SYSTEM_ADMIN)和教务管理员(ACADEMIC_ADMIN)可以通过验证。
+          tool_label: verifyToken
+          tool_name: verifyToken
+          tool_node_version: '2'
+          tool_parameters:
+            token:
+              type: mixed
+              value: '{{#start.token#}}'
+          type: tool
+        height: 84
+        id: tool_verify_token
+        position:
+          x: 228
+          y: 360
+        positionAbsolute:
+          x: 228
+          y: 360
+        selected: false
+        sourcePosition: right
+        targetPosition: left
+        type: custom
+        width: 242
+      - data:
+          cases:
+            - case_id: 'true'
+              conditions:
+                - comparison_operator: contains
+                  id: auth-success-check
+                  value: "\u3010\u8BA4\u8BC1\u6210\u529F\u3011"
+                  varType: string
+                  variable_selector:
+                    - tool_verify_token
+                    - text
+              id: 'true'
+              logical_operator: and
+          selected: false
+          title: 认证结果判断
+          type: if-else
+        height: 124
+        id: if_else_auth
+        position:
+          x: 500
+          y: 360
+        positionAbsolute:
+          x: 500
+          y: 360
+        selected: false
+        sourcePosition: right
+        targetPosition: left
+        type: custom
+        width: 242
+      - data:
+          answer: '{{#tool_verify_token.text#}}'
+          selected: false
+          title: 认证失败回复
+          type: answer
+          variables: []
+        height: 103
+        id: direct_answer_auth
+        position:
+          x: 500
+          y: 550
+        positionAbsolute:
+          x: 500
+          y: 550
         selected: false
         sourcePosition: right
         targetPosition: left
