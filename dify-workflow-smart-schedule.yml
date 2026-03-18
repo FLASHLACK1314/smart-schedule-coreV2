@@ -1,5 +1,5 @@
 app:
-  description: 智能调课助手：支持查询教师课表、检查时间槽、预览调课方案、确认/取消调课。需要Token认证（仅限系统管理员和教务管理员）。
+  description: 智能调课助手：支持查询教师课表、检查时间槽、预览调课方案、确认/取消调课。
   icon: 🤖
   icon_background: '#E0F2FE'
   mode: advanced-chat
@@ -398,56 +398,23 @@ workflow:
         zIndex: 0
       - data:
           isInLoop: false
-          sourceType: start
-          targetType: tool
-        id: start-source-tool_verify_token-target
-        source: start
-        sourceHandle: source
-        target: tool_verify_token
-        targetHandle: target
-        type: custom
-        zIndex: 0
-      - data:
-          isInLoop: false
-          sourceType: tool
-          targetType: if-else
-        id: tool_verify_token-source-if_else_auth-target
-        source: tool_verify_token
-        sourceHandle: source
-        target: if_else_auth
-        targetHandle: target
-        type: custom
-        zIndex: 0
-      - data:
-          isInLoop: false
-          sourceType: if-else
-          targetType: question-classifier
-        id: if_else_auth-true-question_classifier-target
-        source: if_else_auth
-        sourceHandle: 'true'
-        target: question_classifier
-        targetHandle: target
-        type: custom
-        zIndex: 0
-      - data:
-          isInLoop: false
-          sourceType: if-else
-          targetType: answer
-        id: if_else_auth-false-direct_answer_auth-target
-        source: if_else_auth
-        sourceHandle: 'false'
-        target: direct_answer_auth
-        targetHandle: target
-        type: custom
-        zIndex: 0
-      - data:
-          isInLoop: false
           sourceType: if-else
           targetType: tool
         id: 1773488672374-false-tool_cancel_preview-target
         source: '1773488672374'
         sourceHandle: 'false'
         target: tool_cancel_preview
+        targetHandle: target
+        type: custom
+        zIndex: 0
+      - data:
+          isInLoop: false
+          sourceType: start
+          targetType: question-classifier
+        id: start-source-question_classifier-target
+        source: start
+        sourceHandle: source
+        target: question_classifier
         targetHandle: target
         type: custom
         zIndex: 0
@@ -475,13 +442,13 @@ workflow:
               required: false
               type: text-input
               variable: semester_uuid
-        height: 109
+        height: 135
         id: start
         position:
-          x: 227.9999999999992
+          x: 76.87030244628994
           y: 175.00000000000006
         positionAbsolute:
-          x: 227.9999999999992
+          x: 76.87030244628994
           y: 175.00000000000006
         selected: false
         sourcePosition: right
@@ -785,7 +752,7 @@ workflow:
             - sys
             - query
           reasoning_mode: prompt
-          selected: true
+          selected: false
           title: 提取取消预览ID
           type: parameter-extractor
           vision:
@@ -798,7 +765,7 @@ workflow:
         positionAbsolute:
           x: 973
           y: 662.9999999999998
-        selected: true
+        selected: false
         sourcePosition: right
         targetPosition: left
         type: custom
@@ -1366,102 +1333,6 @@ workflow:
               default: null
               form: llm
               human_description:
-                zh_Hans: 认证Token，从前端登录后获取
-              label:
-                zh_Hans: token
-              name: token
-              required: true
-              type: string
-          params:
-            token: ''
-          plugin_id: ''
-          plugin_unique_identifier: ''
-          provider_icon:
-            background: '#6366F1'
-            content: "\U0001F512"
-          provider_id: smart-schedule
-          provider_name: smart-schedule-mcp-server
-          provider_type: mcp
-          selected: false
-          title: Token认证
-          tool_configurations: {}
-          tool_description: 验证用户Token是否有效。用于Dify工作流开始时的身份认证。只有系统管理员(SYSTEM_ADMIN)和教务管理员(ACADEMIC_ADMIN)可以通过验证。
-          tool_label: verifyToken
-          tool_name: verifyToken
-          tool_node_version: '2'
-          tool_parameters:
-            token:
-              type: mixed
-              value: '{{#start.token#}}'
-          type: tool
-        height: 84
-        id: tool_verify_token
-        position:
-          x: 228
-          y: 360
-        positionAbsolute:
-          x: 228
-          y: 360
-        selected: false
-        sourcePosition: right
-        targetPosition: left
-        type: custom
-        width: 242
-      - data:
-          cases:
-            - case_id: 'true'
-              conditions:
-                - comparison_operator: contains
-                  id: auth-success-check
-                  value: "\u3010\u8BA4\u8BC1\u6210\u529F\u3011"
-                  varType: string
-                  variable_selector:
-                    - tool_verify_token
-                    - text
-              id: 'true'
-              logical_operator: and
-          selected: false
-          title: 认证结果判断
-          type: if-else
-        height: 124
-        id: if_else_auth
-        position:
-          x: 500
-          y: 360
-        positionAbsolute:
-          x: 500
-          y: 360
-        selected: false
-        sourcePosition: right
-        targetPosition: left
-        type: custom
-        width: 242
-      - data:
-          answer: '{{#tool_verify_token.text#}}'
-          selected: false
-          title: 认证失败回复
-          type: answer
-          variables: []
-        height: 103
-        id: direct_answer_auth
-        position:
-          x: 500
-          y: 550
-        positionAbsolute:
-          x: 500
-          y: 550
-        selected: false
-        sourcePosition: right
-        targetPosition: left
-        type: custom
-        width: 242
-      - data:
-          is_team_authorization: true
-          paramSchemas:
-            - auto_generate: null
-              default: null
-              form: llm
-              human_description:
                 zh_Hans: 选择码（8位大写字母数字），用户没有提供则留空
               label:
                 zh_Hans: selectionCode
@@ -1612,7 +1483,7 @@ workflow:
               - text
             - - '1773488712445'
               - text
-        height: 292
+        height: 291
         id: variable_aggregator
         position:
           x: 2234.0000000000014
@@ -1694,7 +1565,7 @@ workflow:
           title: 回复用户
           type: answer
           variables: []
-        height: 103
+        height: 102
         id: direct_answer
         position:
           x: 2872.000000000001
@@ -1766,10 +1637,10 @@ workflow:
         height: 84
         id: '1773486658810'
         position:
-          x: 1863.9999999999998
+          x: 1869.2233033797768
           y: 290
         positionAbsolute:
-          x: 1863.9999999999998
+          x: 1869.2233033797768
           y: 290
         selected: false
         sourcePosition: right
@@ -1884,7 +1755,7 @@ workflow:
           selected: false
           title: 条件分支 2
           type: if-else
-        height: 123
+        height: 124
         id: '1773488672374'
         position:
           x: 1280
@@ -1946,7 +1817,7 @@ workflow:
               type: mixed
               value: '{{#conversation.previewId#}}'
           type: tool
-        height: 83
+        height: 84
         id: '1773488712445'
         position:
           x: 1582
@@ -1960,7 +1831,7 @@ workflow:
         type: custom
         width: 242
     viewport:
-      x: -240.82804537538914
-      y: 116.12153644681439
-      zoom: 1.1486983549970349
+      x: -330.5809409725248
+      y: 98.71171229801499
+      zoom: 1.0472941228206285
   rag_pipeline_variables: []
