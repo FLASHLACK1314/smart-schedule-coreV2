@@ -1,5 +1,5 @@
 app:
-  description: 智能调课助手：支持查询教师课表、检查时间槽、预览调课方案、确认/取消调课。
+  description: 智能调课助手：支持查询教师课表、检查时间槽、预览调课方案、确认/取消调课。需要Token认证（仅限系统管理员和教务管理员）。
   icon: 🤖
   icon_background: '#E0F2FE'
   mode: advanced-chat
@@ -418,21 +418,24 @@ workflow:
         targetHandle: target
         type: custom
         zIndex: 0
+      - data:
+          isInIteration: false
+          isInLoop: false
+          sourceType: question-classifier
+          targetType: answer
+        id: question_classifier-1773902586903-1773902646488-target
+        source: question_classifier
+        sourceHandle: '1773902586903'
+        target: '1773902646488'
+        targetHandle: target
+        type: custom
+        zIndex: 0
     nodes:
       - data:
           selected: false
           title: 开始
           type: start
           variables:
-            - default: ''
-              hide: false
-              hint: 请输入认证Token（从前端登录获取）
-              label: 认证Token
-              options: []
-              placeholder: 必填，用于身份验证
-              required: true
-              type: text-input
-              variable: token
             - default: ''
               hide: false
               hint: 请输入学期UUID，用于确定查询范围
@@ -442,7 +445,7 @@ workflow:
               required: false
               type: text-input
               variable: semester_uuid
-        height: 135
+        height: 109
         id: start
         position:
           x: 76.87030244628994
@@ -469,6 +472,8 @@ workflow:
               name: 取消预览 | 用户取消之前的预览 | 关键词:取消/不要了/放弃/算了 | 示例:取消、不要了、放弃调课
             - id: '6'
               name: 选择排课(从选项中选一个) | 用户从多个选项中选择 | 关键词:选择/第X个/第X门 | 示例:选择A1B2C3D4、第一门、选第二个
+            - id: '1773902586903'
+              name: 用户输入其他内容
           instructions: ''
           model:
             completion_params:
@@ -484,7 +489,7 @@ workflow:
           type: question-classifier
           vision:
             enabled: false
-        height: 322
+        height: 360
         id: question_classifier
         position:
           x: 572.9999999999998
@@ -1830,8 +1835,26 @@ workflow:
         targetPosition: left
         type: custom
         width: 242
+      - data:
+          answer: 您好，请输入相关内容
+          selected: false
+          title: 直接回复 2
+          type: answer
+          variables: []
+        height: 100
+        id: '1773902646488'
+        position:
+          x: 973
+          y: 1031.9999999999998
+        positionAbsolute:
+          x: 973
+          y: 1031.9999999999998
+        sourcePosition: right
+        targetPosition: left
+        type: custom
+        width: 242
     viewport:
-      x: -330.5809409725248
-      y: 98.71171229801499
-      zoom: 1.0472941228206285
+      x: -106.91984925387987
+      y: 42.33888746530033
+      zoom: 1.0472941228206274
   rag_pipeline_variables: []

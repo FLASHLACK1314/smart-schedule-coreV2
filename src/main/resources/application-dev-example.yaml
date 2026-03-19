@@ -1,4 +1,5 @@
-# 开发环境配置
+# 开发环境配置示例
+# 复制此文件为 application-dev.yaml 并修改为实际配置
 server:
   port: 8080
 
@@ -32,6 +33,21 @@ spring:
         name: smart-schedule-mcp-server
         version: 1.0.0
         type: sync
+        instructions: "智能排课系统 MCP 服务，提供排课冲突查询、教师课表查询、教室占用查询等功能"
+        sse-endpoint: /mcp/sse
+        capabilities:
+          tool: true
+          resource: true
+          prompt: true
+          completion: true
+
+# Dify 智能调课助手配置
+dify:
+  base-url: http://your-dify-server/v1
+  api-key: ${DIFY_API_KEY:your-api-key-here}
+  connect-timeout: 5000     # 连接超时 5秒
+  read-timeout: 60000       # 读取超时 60秒（流式模式下此配置不太重要）
+  write-timeout: 30000      # 写入超时 30秒
 
 # ⚠️ 警告：数据库自动初始化配置（仅开发环境使用）
 # enabled: true 时会检查并初始化数据库表，生产环境必须设置为 false！

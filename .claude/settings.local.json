@@ -17,11 +17,14 @@
       "Bash(cmd:*)",
       "Bash(./mvnw.cmd compile:*)",
       "mcp__smart-schedule__search_objects",
-      "mcp__smart-schedule__execute_sql"
+      "mcp__smart-schedule__execute_sql",
+      "WebSearch",
+      "Bash(./mvnw.cmd clean:*)",
+      "Bash(./mvnw compile:*)"
     ]
   },
+  "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": [
     "smart-schedule"
-  ],
-  "enableAllProjectMcpServers": true
+  ]
 }
