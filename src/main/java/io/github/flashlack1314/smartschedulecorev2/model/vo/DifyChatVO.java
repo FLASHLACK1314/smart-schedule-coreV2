@@ -23,4 +23,9 @@ public class DifyChatVO {
      * 会话ID（可选，首次为空，后续对话传入之前返回的会话ID）
      */
     private String conversationId;
+
+    /**
+     * 学期UUID（可选，用于 MCP 工具调用时指定学期上下文）
+     */
+    private String semesterUuid;
 }
