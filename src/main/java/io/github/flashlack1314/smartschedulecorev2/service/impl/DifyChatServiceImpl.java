@@ -1,5 +1,6 @@
 package io.github.flashlack1314.smartschedulecorev2.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.util.UuidUtil;
 import com.xlf.utility.exception.BusinessException;
@@ -64,12 +65,17 @@ public class DifyChatServiceImpl implements DifyChatService {
                     .user(userUuid);
 
             // 如果前端没有传 conversationId，则从数据库查询最新的
+            // forceNew=true 时不自动续接，让 Dify 创建新会话
             String conversationId = getData.getConversationId();
             if (conversationId == null || conversationId.isEmpty()) {
-                DifyConversationDO latestConv = difyConversationDAO.getLatestConversation(userUuid, userType.name());
-                if (latestConv != null) {
-                    conversationId = latestConv.getDifyConversationId();
-                    log.info("从数据库获取最新会话ID: {}", conversationId);
+                if (!Boolean.TRUE.equals(getData.getForceNew())) {
+                    DifyConversationDO latestConv = difyConversationDAO.getLatestConversation(userUuid, userType.name());
+                    if (latestConv != null) {
+                        conversationId = latestConv.getDifyConversationId();
+                        log.info("从数据库获取最新会话ID: {}", conversationId);
+                    }
+                } else {
+                    log.info("forceNew=true，跳过自动续接，将创建新会话");
                 }
             }
 
@@ -118,12 +124,17 @@ public class DifyChatServiceImpl implements DifyChatService {
                 .user(userUuid);
 
         // 如果前端没有传 conversationId，则从数据库查询最新的
+        // forceNew=true 时不自动续接，让 Dify 创建新会话
         String conversationId = getData.getConversationId();
         if (conversationId == null || conversationId.isEmpty()) {
-            DifyConversationDO latestConv = difyConversationDAO.getLatestConversation(userUuid, userType.name());
-            if (latestConv != null) {
-                conversationId = latestConv.getDifyConversationId();
-                log.info("从数据库获取最新会话ID: {}", conversationId);
+            if (!Boolean.TRUE.equals(getData.getForceNew())) {
+                DifyConversationDO latestConv = difyConversationDAO.getLatestConversation(userUuid, userType.name());
+                if (latestConv != null) {
+                    conversationId = latestConv.getDifyConversationId();
+                    log.info("从数据库获取最新会话ID: {}", conversationId);
+                }
+            } else {
+                log.info("forceNew=true，跳过自动续接，将创建新会话");
             }
         }
 
@@ -371,6 +382,14 @@ public class DifyChatServiceImpl implements DifyChatService {
         try {
             difyChatflowClient.deleteConversation(conversationId, userUuid);
             log.info("Dify 会话删除成功 - conversationId: {}", conversationId);
+
+            // 同时清理本地会话记录
+            difyConversationDAO.remove(
+                    new LambdaQueryWrapper<DifyConversationDO>()
+                            .eq(DifyConversationDO::getUserUuid, userUuid)
+                            .eq(DifyConversationDO::getDifyConversationId, conversationId)
+            );
+            log.info("本地会话记录已清理 - conversationId: {}", conversationId);
 
         } catch (IOException | DifyApiException e) {
             log.error("删除 Dify 会话失败 - userUuid: {}, conversationId: {}, error: {}",

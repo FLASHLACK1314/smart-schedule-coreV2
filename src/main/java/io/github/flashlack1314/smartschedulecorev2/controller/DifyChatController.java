@@ -106,17 +106,19 @@ public class DifyChatController {
             @RequestHeader("Authorization") String authHeader,
             @RequestParam("query") String query,
             @RequestParam(value = "conversation_id", required = false) String conversationId,
-            @RequestParam(value = "semester_uuid", required = false) String semesterUuid
+            @RequestParam(value = "semester_uuid", required = false) String semesterUuid,
+            @RequestParam(value = "force_new", required = false, defaultValue = "false") Boolean forceNew
     ) {
         String token = cleanBearerPrefix(authHeader);
         TokenInfoDTO tokenInfo = tokenService.getTokenInfo(token);
         String userUuid = tokenInfo.getUserUuid();
         UserType userType = tokenInfo.getUserType();
-        log.info("Dify 流式聊天请求 - userUuid: {}, userType: {}, conversationId: {}, semesterUuid: {}", userUuid, userType, conversationId, semesterUuid);
+        log.info("Dify 流式聊天请求 - userUuid: {}, userType: {}, conversationId: {}, semesterUuid: {}, forceNew: {}", userUuid, userType, conversationId, semesterUuid, forceNew);
         DifyChatVO chatVO = new DifyChatVO();
         chatVO.setQuery(query);
         chatVO.setConversationId(conversationId);
         chatVO.setSemesterUuid(semesterUuid);
+        chatVO.setForceNew(forceNew);
         return difyChatService.sendMessageStream(userUuid, userType, chatVO);
     }
 

@@ -28,4 +28,10 @@ public class DifyChatVO {
      * 学期UUID（可选，用于 MCP 工具调用时指定学期上下文）
      */
     private String semesterUuid;
+
+    /**
+     * 是否强制创建新会话（可选，默认false）
+     * 当为 true 时，跳过自动续接最近会话的逻辑，让 Dify 创建全新会话
+     */
+    private Boolean forceNew;
 }
