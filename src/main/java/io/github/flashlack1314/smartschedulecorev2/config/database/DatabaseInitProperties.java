@@ -95,6 +95,9 @@ public class DatabaseInitProperties {
         // sc_teacher 已移除 - 现在依赖 sc_department
         tables.add("sc_system_admin");
         tables.add("sc_dify_conversation");  // Dify会话关联表，无外键依赖
+        tables.add("sc_activity_log");       // 活动记录表，无外键依赖
+        tables.add("sc_announcement");       // 系统公告表，无外键依赖
+        tables.add("sc_stats_snapshot");     // 统计快照表，无外键依赖
 
         // 二级依赖
         tables.add("sc_major");
