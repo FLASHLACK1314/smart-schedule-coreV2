@@ -3,7 +3,7 @@ app:
   icon: 🤖
   icon_background: '#E0F2FE'
   mode: advanced-chat
-  name: 智能调课助手V8-带认证
+  name: 智能调课助手V10
   use_icon_as_answer_icon: false
 dependencies:
   - current_identifier: null
@@ -189,11 +189,11 @@ workflow:
           isInIteration: false
           isInLoop: false
           sourceType: tool
-          targetType: variable-aggregator
-        id: query-schedule-to-aggregator
+          targetType: answer
+        id: query-schedule-to-direct-answer
         source: tool_query_teacher_schedule
         sourceHandle: source
-        target: variable_aggregator
+        target: direct_query_schedule_answer
         targetHandle: target
         type: custom
         zIndex: 0
@@ -201,11 +201,11 @@ workflow:
           isInIteration: false
           isInLoop: false
           sourceType: tool
-          targetType: variable-aggregator
-        id: check-slot-to-aggregator
+          targetType: answer
+        id: check-slot-to-direct-answer
         source: tool_check_time_slot
         sourceHandle: source
-        target: variable_aggregator
+        target: direct_check_slot_answer
         targetHandle: target
         type: custom
         zIndex: 0
@@ -1472,10 +1472,6 @@ workflow:
           title: 结果聚合
           type: variable-aggregator
           variables:
-            - - tool_query_teacher_schedule
-              - text
-            - - tool_check_time_slot
-              - text
             - - tool_preview_schedule
               - text
             - - tool_confirm_schedule
@@ -1578,6 +1574,44 @@ workflow:
         positionAbsolute:
           x: 2872.000000000001
           y: 290
+        selected: false
+        sourcePosition: right
+        targetPosition: left
+        type: custom
+        width: 242
+      - data:
+          answer: '{{#tool_query_teacher_schedule.text#}}'
+          selected: false
+          title: 课表查询结果(JSON)
+          type: answer
+          variables: []
+        height: 102
+        id: direct_query_schedule_answer
+        position:
+          x: 1582
+          y: 50
+        positionAbsolute:
+          x: 1582
+          y: 50
+        selected: false
+        sourcePosition: right
+        targetPosition: left
+        type: custom
+        width: 242
+      - data:
+          answer: '{{#tool_check_time_slot.text#}}'
+          selected: false
+          title: 时间槽检测结果(JSON)
+          type: answer
+          variables: []
+        height: 102
+        id: direct_check_slot_answer
+        position:
+          x: 1582
+          y: 170
+        positionAbsolute:
+          x: 1582
+          y: 170
         selected: false
         sourcePosition: right
         targetPosition: left

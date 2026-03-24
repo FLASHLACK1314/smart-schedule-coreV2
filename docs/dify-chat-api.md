@@ -170,6 +170,99 @@ interface Message {
   created_at: number;
 }
 
+// ==================== MCP 工具返回类型 ====================
+
+/**
+ * 教师课表查询结果
+ * 由 queryTeacherScheduleByTime 工具返回，前端收到后用 JSON.parse() 解析渲染表格
+ */
+interface TeacherScheduleQueryDTO {
+  /** 请求是否成功 */
+  success: boolean;
+  /** 错误消息（仅 success=false 时有值） */
+  errorMessage?: string;
+  /** 教师课表列表 */
+  teachers: TeacherSchedule[];
+}
+
+interface TeacherSchedule {
+  teacherUuid: string;
+  teacherName: string;
+  teacherNum: string;
+  /** 筛选条件描述（如 "全部" 或 "周五"） */
+  filterDescription: string;
+  /** 该教师排课数量 */
+  scheduleCount: number;
+  /** 排课列表 */
+  schedules: ScheduleItem[];
+}
+
+interface ScheduleItem {
+  scheduleUuid: string;
+  courseName: string;
+  classroomName: string;
+  /** 星期几 (1-7) */
+  dayOfWeek: number;
+  /** 星期几中文描述（如 "周一"） */
+  dayOfWeekStr: string;
+  /** 起始节次 */
+  sectionStart: number;
+  /** 结束节次 */
+  sectionEnd: number;
+  /** 上课周次 JSON 数组字符串，如 "[1,2,3,4,5]" */
+  weeksJson: string;
+}
+
+/**
+ * 时间槽可用性检测结果
+ * 由 checkTimeSlotAvailability 工具返回，前端收到后用 JSON.parse() 解析渲染检测卡片
+ */
+interface TimeSlotCheckDTO {
+  /** 请求是否成功 */
+  success: boolean;
+  /** 错误消息（仅 success=false 时有值） */
+  errorMessage?: string;
+  /** 检测的时间槽信息 */
+  timeSlot: TimeSlotInfo;
+  /** 检测结果列表（教室和教师各一项） */
+  results: CheckResult[];
+  /** 是否有任何冲突 */
+  hasConflict: boolean;
+  /** 冲突类型汇总列表（如 ["教室冲突", "教师冲突"]） */
+  conflictTypes: string[];
+}
+
+interface TimeSlotInfo {
+  /** 星期几 (1-7) */
+  dayOfWeek: number;
+  /** 星期几中文描述 */
+  dayOfWeekStr: string;
+  /** 起始节次 */
+  sectionStart: number;
+  /** 结束节次 */
+  sectionEnd: number;
+}
+
+interface CheckResult {
+  /** 检测类型："classroom" 或 "teacher" */
+  checkType: string;
+  /** 检测对象名称 */
+  name: string;
+  /** 是否找到该对象 */
+  found: boolean;
+  /** 是否有冲突 */
+  hasConflict: boolean;
+  /** 冲突排课列表（仅 hasConflict=true 时有值） */
+  conflicts?: ConflictItem[];
+}
+
+interface ConflictItem {
+  /** 课程名称 */
+  courseName: string;
+  /** 教师/教室名称 */
+  relatedName: string;
+}
+
 // ==================== SSE 事件类型 ====================
 
 /**
@@ -983,6 +1076,7 @@ export function useDifyChat({ token, semesterUuid }: UseDifyChatOptions) {
       const reader = response.body!.getReader();
       const decoder = new TextDecoder();
       let buffer = '';
+      let fullAnswer = '';
 
       while (true) {
         const { done, value } = await reader.read();
@@ -1000,12 +1094,29 @@ export function useDifyChat({ token, semesterUuid }: UseDifyChatOptions) {
             const data = JSON.parse(line.slice(5).trim());
 
             if (currentEvent === 'message') {
-              setAnswer(prev => prev + (data.answer || ''));
+              fullAnswer += (data.answer || '');
+              // JSON 响应期间不实时渲染，显示 loading 状态
+              // JSON 对象响应以 { 开头
+              if (!fullAnswer.trim().startsWith('{')) {
+                setAnswer(fullAnswer);
+              }
             } else if (currentEvent === 'message_end') {
+              // 拼接完成后判断是否为 JSON 对象
+              const trimmed = fullAnswer.trim();
+              if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+                try {
+                  JSON.parse(trimmed);
+                  // JSON 响应：标记 answer 类型，由上层组件渲染结构化 UI
+                  setAnswer(fullAnswer);
+                } catch {
+                  setAnswer(fullAnswer);
+                }
+              } else {
+                setAnswer(fullAnswer);
+              }
               setConversationId(data.conversation_id);
               setIsLoading(false);
             } else if (currentEvent === 'workflow_finished') {
-              // workflow_finished 不包含 conversation_id，由 message_end 提供
               setIsLoading(false);
             } else if (currentEvent === 'error') {
               throw new Error(data.message);
@@ -1084,7 +1195,194 @@ interface BaseResponse<T> {
 
 ---
 
-## 9. 最佳实践
+## 9. MCP 工具响应格式（重要）
+
+### 概述
+
+Dify 工作流中，MCP 工具的返回值有两种不同的处理路径，导致前端收到的 `answer` 内容格式不同：
+
+| 工具类型 | 处理路径 | 响应格式 | 前端处理方式 |
+|----------|----------|----------|-------------|
+| **查询工具**（课表查询、时间槽检查） | 直达 answer 节点，跳过 LLM | **JSON 字符串** | `JSON.parse()` 解析后渲染结构化组件 |
+| **操作工具**（调课预览/确认/取消） | 经 LLM 总结后输出 | **自然语言文本** | 直接显示，与普通对话一致 |
+
+> **重要**：查询工具在 Java 端将 DTO 序列化为 JSON 字符串返回，Dify 将其放入 `text` 字段。answer 节点通过 `{{#tool_xxx.text#}}` 引用，输出的 `answer` 内容是一个 JSON 对象字符串，如 `{"success":true,"teachers":[...]}`。
+
+### 9.1 查询类工具 —— JSON 响应
+
+以下工具返回 JSON，前端应解析后渲染为结构化 UI：
+
+| 工具名称 | 返回类型 | 建议渲染方式 |
+|----------|----------|-------------|
+| `queryTeacherScheduleByTime` | `TeacherScheduleQueryDTO` | 表格组件 |
+| `checkTimeSlotAvailability` | `TimeSlotCheckDTO` | 检测结果卡片 |
+
+#### 响应示例：教师课表查询
+
+```json
+{
+  "success": true,
+  "errorMessage": null,
+  "teachers": [
+    {
+      "teacherUuid": "abc123...",
+      "teacherName": "张老师",
+      "teacherNum": "T20240001",
+      "filterDescription": "周五",
+      "scheduleCount": 2,
+      "schedules": [
+        {
+          "scheduleUuid": "s001",
+          "courseName": "高等数学",
+          "classroomName": "教1-301",
+          "dayOfWeek": 5,
+          "dayOfWeekStr": "周五",
+          "sectionStart": 1,
+          "sectionEnd": 2,
+          "weeksJson": "[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18]"
+        }
+      ]
+    }
+  ]
+}
+```
+
+#### 响应示例：时间槽检查
+
+```json
+{
+  "success": true,
+  "timeSlot": {
+    "dayOfWeek": 3,
+    "dayOfWeekStr": "周三",
+    "sectionStart": 3,
+    "sectionEnd": 4
+  },
+  "results": [
+    {
+      "checkType": "classroom",
+      "name": "教1-301",
+      "found": true,
+      "hasConflict": true,
+      "conflicts": [
+        {
+          "courseName": "线性代数",
+          "relatedName": "王老师"
+        }
+      ]
+    },
+    {
+      "checkType": "teacher",
+      "name": "张老师",
+      "found": true,
+      "hasConflict": false
+    }
+  ],
+  "hasConflict": true,
+  "conflictTypes": ["教室冲突"]
+}
+```
+
+#### 错误响应示例
+
+```json
+{
+  "success": false,
+  "errorMessage": "请提供教师姓名。"
+}
+```
+
+### 9.2 操作类工具 —— 自然语言文本响应
+
+以下工具返回自然语言文本，由 LLM 总结后输出，前端直接显示即可：
+
+| 工具名称 | 说明 |
+|----------|------|
+| `previewScheduleChange` | 调课预览（含冲突检测结果） |
+| `previewScheduleChangeByInfo` | 按条件智能预览 |
+| `previewBySelectionCode` | 按选择码预览 |
+| `confirmScheduleChange` | 确认调课 |
+| `cancelPreview` | 取消预览 |
+
+### 9.3 前端如何区分响应格式
+
+前端收到完整 `answer` 后，应尝试判断其类型：
+
+```typescript
+function resolveAnswerType(answer: string): 'json' | 'text' {
+  const trimmed = answer.trim();
+  // 以 { 开头、} 结尾，且能成功 JSON.parse 的视为 JSON
+  if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+    try {
+      JSON.parse(trimmed);
+      return 'json';
+    } catch {
+      return 'text';
+    }
+  }
+  return 'text';
+}
+
+/**
+ * 从 answer 中解析 MCP 工具返回的 DTO 对象
+ * answer 内容是 JSON 字符串，直接 JSON.parse 即可
+ */
+function parseToolResponse(answer: string): any | null {
+  try {
+    return JSON.parse(answer.trim());
+  } catch {
+    return null;
+  }
+}
+
+// 使用示例
+const type = resolveAnswerType(fullAnswer);
+if (type === 'json') {
+  const data = parseToolResponse(fullAnswer);
+  if (data?.teachers !== undefined) {
+    // 渲染课表表格
+    renderScheduleTable(data as TeacherScheduleQueryDTO);
+  } else if (data?.timeSlot !== undefined) {
+    // 渲染时间槽检测结果
+    renderTimeSlotCheck(data as TimeSlotCheckDTO);
+  } else if (data?.success === false) {
+    // 显示错误信息
+    renderError(data.errorMessage || '查询失败');
+  }
+} else {
+  // 直接显示自然语言文本
+  renderPlainText(fullAnswer);
+}
+```
+
+> **注意**：`resolveAnswerType()` 判断 JSON 的依据是 answer 以 `{` 开头、`}` 结尾。Java 端将 DTO 序列化为 JSON 字符串后 Dify 放入 `text` 字段，answer 节点原样输出。
+
+### 9.4 SSE 流式场景下的 JSON 响应
+
+在 SSE 流式场景中，JSON 响应的 `message` 事件仍然会逐片段返回。前端需要拼接完所有片段后，在 `message_end` 事件中统一解析：
+
+```typescript
+// 在 message_end 回调中处理完整响应
+case 'message_end':
+  const data = parseToolResponse(fullAnswer);
+  if (data) {
+    // JSON 响应：渲染结构化组件
+    if (data.teachers !== undefined) {
+      renderScheduleTable(data);
+    } else if (data.timeSlot !== undefined) {
+      renderTimeSlotCheck(data);
+    }
+  }
+  // 非 JSON 响应已在 message 事件中逐字渲染，无需额外操作
+  onEnd(event.conversation_id, event.message_id);
+  return;
+```
+
+> **提示**：流式场景下，JSON 片段在拼接过程中不是合法 JSON，因此不适合在 `message` 事件中实时渲染。建议在拼接期间显示 loading 状态（如"正在查询..."），收到完整 JSON 后再一次性渲染结构化组件。判断是否为 JSON 的条件为 `answer.startsWith('{')`（因为 JSON 响应总是以 `{` 开头）。
+
+---
+
+## 10. 最佳实践
 
 ### 选择阻塞还是流式
 
@@ -1093,6 +1391,13 @@ interface BaseResponse<T> {
 | 简单查询 | 阻塞 (`/message`) | 响应快，实现简单 |
 | MCP 工具调用 | 流式 (`/message/stream`) | 可能耗时较长，避免超时 |
 | 需要实时反馈 | 流式 (`/message/stream`) | 用户可以看到逐字输出 |
+
+### 响应格式处理
+
+- 使用 `resolveAnswerType()` 函数（见第 9.3 节）判断 answer 是 JSON 还是文本
+- JSON 响应在流式拼接期间显示 loading 状态，`message_end` 后一次性渲染结构化组件
+- 自然语言文本保持原有的逐字渲染逻辑
+- 对 `JSON.parse()` 做好 try-catch，异常时回退为纯文本显示
 
 ### Token 管理
 

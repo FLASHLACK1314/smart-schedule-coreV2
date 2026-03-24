@@ -37,4 +37,5 @@ application-dev.yaml
 
 ### Claude Code ###
 .mcp.json
+dbhub.toml
 .claude/
