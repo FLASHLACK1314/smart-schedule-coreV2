@@ -8,7 +8,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 构建和运行命令
 
-### Maven 命令
 ```bash
 # 清理并编译项目
 mvn clean compile
@@ -41,61 +40,32 @@ java -jar target/smart-schedule-coreV2-0.0.1-SNAPSHOT.jar
 ## 核心架构
 
 ### 三层架构设计
+
 项目采用 MyBatis Plus 标准三层架构：
 
 1. **DO 层（Model）**：数据对象
-   - 位置：`src/main/java/io/github/flashlack1314/smartschedulecorev2/model/`
+   - 位置：`model/entity/`
    - 命名：`*DO.java`
-   - 使用 `@TableName` 指定表名，`@TableId` 标识主键，`@TableField` 映射字段
+   - 使用 `@TableName`、`@TableId`、`@TableField` 注解
    - 所有 DO 使用 `@Data` 和 `@Accessors(chain = true)` 支持链式调用
 
 2. **Mapper 层**：数据访问接口
-   - 位置：`src/main/java/io/github/flashlack1314/smartschedulecorev2/mapper/`
+   - 位置：`mapper/`
    - 命名：`*Mapper.java`
-   - 继承 `BaseMapper<*DO>`
-   - 使用 `@Mapper` 注解
+   - 继承 `BaseMapper<*DO>`，使用 `@Mapper` 注解
 
 3. **DAO 层**：数据访问服务
-   - 位置：`src/main/java/io/github/flashlack1314/smartschedulecorev2/dao/`
+   - 位置：`dao/`
    - 命名：`*DAO.java`
    - 继承 `ServiceImpl<*Mapper, *DO>` 并实现 `IService<*DO>`
    - 使用 `@Slf4j` 和 `@Repository` 注解
 
-### 数据库设计理念
+### 数据库设计
 
 1. **UUID 主键**：所有表使用 32 位 varchar 类型的 UUID 作为主键
-2. **关联表设计**：对于多对多关系使用独立关联表，而非 JSONB
-   - `sc_course_qualification`：课程-教师多对多关联（原 `sc_course.qualified_teacher_uuids`）
-   - `sc_teaching_class_class`：教学班-行政班多对多关联（原 `sc_teaching_class.class_uuids`）
-3. **JSONB 存储**：仅用于特定场景
-   - `sc_schedule.weeks_json`：上课周次数组（JSONB 类型）
-   - `sc_teacher.like_time`：教师时间偏好（varchar 字符串格式）
-4. **外键约束**：严格的关系完整性约束
-5. **冗余设计**：`sc_schedule` 表冗余存储课程、教师、教室信息以减少 JOIN
-
-### 核心表结构
-
-#### 基础组织架构
-- `sc_semester`（学期）→ `sc_department`（学院）→ `sc_major`（专业）→ `sc_class`（行政班级）
-
-#### 人员管理
-- `sc_student`（学生）- 关联到行政班级
-- `sc_teacher`（教师）- 包含时间偏好和工作量限制
-- `sc_academic_admin`（教务管理）- 关联到学院
-
-#### 教学资源
-- `sc_building`（教学楼）→ `sc_classroom`（教室）
-
-#### 课程与教学组织
-
-- `sc_course`（课程）- 课程基本信息
-- `sc_course_qualification`（课程教师资格）- 课程与教师的多对多关联表
-- `sc_teaching_class`（教学班）- 排课的业务主体，关联课程、教师、学期
-- `sc_teaching_class_class`（教学班-行政班关联）- 教学班与行政班的多对多关联表
-
-#### 排课核心
-- `sc_schedule`（排课记录）- 存储最终课表，包含时间、地点冗余字段
-- `sc_schedule_conflict`（冲突记录）- 记录排课冲突
+2. **关联表设计**：多对多关系使用独立关联表（如 `sc_course_qualification`、`sc_teaching_class_class`）
+3. **JSONB 存储**：仅用于 `sc_schedule.weeks_json` 等特定场景
+4. **冗余设计**：`sc_schedule` 表冗余存储课程、教师、教室信息以减少 JOIN
 
 ### 核心业务概念
 
@@ -103,80 +73,79 @@ java -jar target/smart-schedule-coreV2-0.0.1-SNAPSHOT.jar
 - **行政班级**（`sc_class`）：学生的固定组织单位（如"计科2101班"）
 - **教学班**（`sc_teaching_class`）：临时的上课组织单位（如"高等数学-张老师-计科2101+2102"）
 
-### 数据库初始化
+## API 规范
 
-项目包含自动数据库初始化功能：
+### 接口路径
 
-- 配置属性：`config/database/DatabaseInitProperties.java`
-- 初始化实现：`config/database/DatabaseInitializationConfig.java`
-- 数据初始化：`config/database/InitializeDatabase.java`
-- SQL 文件位置：`src/main/resources/sql/*.sql`
+- 基础路径前缀：`/v1/`（如 `/v1/home/dashboard`、`/v1/dify/chat`）
+- 认证方式：Bearer Token（请求头 `Authorization: Bearer <token>`）
 
-配置前缀：`database.init`
-- `enabled`：是否启用数据库初始化
-- `mode`：数据初始化模式（枚举值，见下文）
-- `dropAndCreate`：是否强制重新创建表（生产环境请勿开启）
-- `dropAllOnMissing`：是否在发现缺失表时删除所有表重建
-- `failFast`：是否初始化失败时终止应用启动
+### 响应格式
+
+项目配置了 Jackson `property-naming-strategy: SNAKE_CASE`，所有 JSON 响应字段使用下划线命名：
+
+```json
+{
+  "output": "Success",
+  "message": "操作成功",
+  "data": {
+    "user_info": { ... },
+    "created_at": "2025-03-25T10:00:00"
+  }
+}
+```
+
+### 权限控制
+
+使用 `@RequireRole` 注解控制接口权限：
+
+```java
+@RequireRole({UserType.ACADEMIC_ADMIN, UserType.SYSTEM_ADMIN})
+public void someMethod() { ... }
+```
+
+用户类型定义在 `UserType` 枚举中：`STUDENT`、`TEACHER`、`ACADEMIC_ADMIN`、`SYSTEM_ADMIN`
+
+## 数据库初始化
+
+项目包含自动数据库初始化功能，配置前缀 `database.init`：
+
+| 配置项 | 说明 |
+|--------|------|
+| `enabled` | 是否启用初始化 |
+| `mode` | 模式：`FULL`/`DEMO`/`MINIMAL` |
+| `drop-and-create` | 是否强制重建表（生产环境禁用） |
 
 **初始化模式**：
-- `FULL` - 满数据模式：初始化所有数据（含排课）
-- `DEMO` - 演示数据模式：只初始化到行政班级（不含排课）
-- `MINIMAL` - 最小数据模式：只初始化基础数据
+- `FULL`：初始化所有数据（含排课、公告、活动日志、统计快照）
+- `DEMO`：初始化到行政班级（不含排课）
+- `MINIMAL`：只初始化基础数据
 
-## 表创建顺序
+### 初始化器
 
-表必须按依赖顺序创建（在 `DatabaseInitProperties` 中定义）：
+位置：`config/database/*Initializer.java`
 
-1. **基础表**（无外键）：department, building, semester, course_type, classroom_type, system_admin
-2. **二级依赖**：major, academic_admin, teacher
-3. **三级依赖**：course_classroom_type, course, course_qualification, classroom
-4. **四级依赖**：class, student
-5. **五级依赖**：teaching_class, teaching_class_class, schedule
-6. **六级依赖**：schedule_conflict
+- `BaseDataInitializer` - 学期、学院、专业、教学楼
+- `PersonnelInitializer` - 教师、学生、教务管理员
+- `CourseResourceInitializer` - 课程、教室
+- `TeachingClassInitializer` - 教学班
+- `ScheduleInitializer` - 排课记录
+- `ScheduleConflictInitializer` - 排课冲突检测
+- `HomeDataInitializer` - 首页数据（公告、活动日志、统计快照）
 
 ## MCP 工具集成
 
-项目集成了 Spring AI MCP Server，允许外部 AI 应用（如 Dify）通过 MCP 协议调用排课相关功能。
-
-### 依赖配置
-
-```xml
-<!-- Spring AI BOM -->
-<dependency>
-    <groupId>org.springframework.ai</groupId>
-    <artifactId>spring-ai-bom</artifactId>
-    <version>1.0.0</version>
-    <type>pom</type>
-    <scope>import</scope>
-</dependency>
-
-<!-- MCP Server 依赖 -->
-<dependency>
-    <groupId>org.springframework.ai</groupId>
-    <artifactId>spring-ai-starter-mcp-server</artifactId>
-</dependency>
-<dependency>
-    <groupId>org.springframework.ai</groupId>
-    <artifactId>spring-ai-starter-mcp-server-webmvc</artifactId>
-</dependency>
-```
+项目集成了 Spring AI MCP Server，允许外部 AI 应用（如 Dify）通过 MCP 协议调用排课功能。
 
 ### 工具列表
 
-**QueryTools**（查询工具类）：
-- `queryConflicts(semesterUuid, limit)` - 查询排课冲突记录，返回冲突类型、严重程度和描述
-- `queryTeacherSchedule(teacherName, semesterUuid)` - 查询教师课表，支持姓名模糊匹配
-- `queryClassroomOccupancy(classroomName, semesterUuid)` - 查询教室占用情况
+**QueryTools**：
+- `queryConflicts(semesterUuid, limit)` - 查询排课冲突记录
+- `queryTeacherSchedule(teacherName, semesterUuid)` - 查询教师课表
+- `queryClassroomOccupancy(classroomName, semesterUuid)` - 查询教室占用
 
-**EduScheduleTool**（排课工具类）：
-- `checkAndPreview(teacher, time, room)` - 检测排课冲突并存入预览区
-
-### 关键文件
-
-- `mcp/config/McpConfig.java` - MCP 工具配置类，注册工具到 Spring AI
-- `mcp/tools/QueryTools.java` - 查询工具类
-- `mcp/tools/EduScheduleTool.java` - 排课工具类
+**EduScheduleTool**：
+- `checkAndPreview(teacher, time, room)` - 检测排课冲突
 
 ### 开发指南
 
@@ -185,130 +154,68 @@ java -jar target/smart-schedule-coreV2-0.0.1-SNAPSHOT.jar
 2. 使用 `@Service` 和 `@Tool` 注解标注方法
 3. 在 `McpConfig.toolProvider()` 中注册工具对象
 
-## 开发注意事项
+## Dify 智能调课助手
 
-1. **所有 DO 类必须包含中文注释**
-2. **关联表优先**：多对多关系使用独立关联表，而非 JSONB 字段
-3. **主键统一使用 String 类型存储 32 位 UUID**
-4. **链式调用**：所有 DO 类支持链式调用（`@Accessors(chain = true)`）
-5. **日志使用**：DAO 层统一使用 `@Slf4j` 注解
+项目集成了 Dify 工作流对话型应用，提供智能调课助手功能。
 
-## 依赖说明
+### 配置
 
-项目使用 `com.x-lf.utility:general-utils:1.0.9-beta.2.5` 库，该库已包含：
-- MyBatis Plus 功能
-- JSONB 类型处理器
-- 其他通用工具类
+```yaml
+dify:
+  base-url: http://xxx/v1
+  api-key: app-xxx
+  connect-timeout: 5000
+  read-timeout: 60000
+```
 
-因此不需要单独添加 MyBatis Plus 依赖。
+### 接口
+
+位置：`controller/DifyChatController.java`，路径：`/v1/dify/chat`
+
+| 接口 | 说明 |
+|------|------|
+| `POST /message` | 发送消息 |
+| `GET /message/stream` | 流式发送消息（SSE） |
+| `GET /conversations` | 获取会话列表 |
+| `GET /conversations/{id}/messages` | 获取会话消息 |
+| `DELETE /conversations/{id}` | 删除会话 |
+| `PUT /conversations/{id}/name` | 重命名会话 |
+
+> 仅限系统管理员和教务管理员访问
 
 ## 遗传算法模块
 
 项目使用遗传算法实现自动排课功能，位于 `algorithm/` 包。
 
-### 目录结构
-```
-algorithm/
-├── entity/           # 算法实体类
-│   ├── TimeSlot.java           # 时间槽
-│   ├── CourseAppointment.java  # 课程安排
-│   └── Chromosome.java         # 染色体（排课方案）
-├── dto/              # 数据传输对象
-│   ├── ScheduleContext.java    # 排课上下文
-│   ├── ScheduleResult.java     # 排课结果
-│   ├── ConflictReport.java     # 冲突报告
-│   ├── Conflict.java           # 冲突实体
-│   └── AutoScheduleResult.java # 自动排课结果
-├── core/             # 核心算法组件
-│   ├── GeneticAlgorithm.java   # 遗传算法主类
-│   ├── FitnessCalculator.java  # 适应度计算
-│   ├── ConflictDetector.java   # 冲突检测
-│   └── HoursCalculator.java    # 学时计算
-└── util/             # 工具类
-    └── TimeSlotGenerator.java  # 时间槽生成器
-```
-
 ### 核心组件
-- `GeneticAlgorithm` - 遗传算法主类，实现选择、交叉、变异操作
-- `FitnessCalculator` - 适应度计算，评估排课方案质量
-- `ConflictDetector` - 冲突检测，识别硬约束和软约束冲突
-- `TimeSlotGenerator` - 时间槽生成器
 
-### 数据结构
-- `Chromosome` - 染色体，表示一个完整的排课方案
-- `TimeSlot` - 时间槽，包含星期、节次、周次信息
-- `CourseAppointment` - 课程安排，关联教学班、教师、教室、时间
+| 类 | 说明 |
+|----|------|
+| `GeneticAlgorithm` | 遗传算法主类，实现选择、交叉、变异 |
+| `FitnessCalculator` | 适应度计算，评估排课方案质量 |
+| `ConflictDetector` | 冲突检测，识别硬约束和软约束 |
+| `TimeSlotGenerator` | 时间槽生成器 |
 
 ### 算法参数
-默认参数可在调用时调整：
+
 - 种群大小：100
 - 最大迭代：500 代
 - 交叉概率：0.8
 - 变异概率：0.2
 - 精英保留：10 个
-- 基因保护率：0.3
 
 ### 硬约束类型
-- 教师时间冲突
-- 教室时间冲突
-- 班级时间冲突
-- 教室容量约束
-- 教室类型匹配
-- 教师资格约束
 
-## 服务层架构
+教师时间冲突、教室时间冲突、班级时间冲突、教室容量约束、教室类型匹配、教师资格约束
 
-### 核心服务
-- `AuthService` - 用户认证服务
-- `UserService` - 用户管理服务
-- `TokenService` - Token 管理服务
-- `AutoScheduleService` - 自动排课服务（遗传算法调用入口）
+## 依赖说明
 
-### 服务实现位置
-`src/main/java/io/github/flashlack1314/smartschedulecorev2/service/`
+项目使用 `com.x-lf.utility:general-utils` 库，已包含 MyBatis Plus、JSONB 类型处理器等功能，无需单独添加 MyBatis Plus 依赖。
 
-### 调用示例
-自动排课通过 `AutoScheduleController` 的 API 接口调用，或直接使用 `AutoScheduleService`。
+## 开发规范
 
-## 认证授权
-
-### Token 配置
-配置前缀：`app.token`
-- `secret` - Token 密钥
-- `expiration` - 过期时间
-
-### 权限控制
-使用 `@RequireRole` 注解控制接口权限：
-```java
-@RequireRole(UserType.ACADEMIC_ADMIN)
-public void someMethod() { ... }
-```
-
-### 用户类型
-定义在 `UserType` 枚举中：
-- SYSTEM_ADMIN - 系统管理员
-- ACADEMIC_ADMIN - 教务管理员
-- TEACHER - 教师
-- STUDENT - 学生
-
-## API 接口
-
-### 控制器位置
-`src/main/java/io/github/flashlack1314/smartschedulecorev2/controller/`
-
-### 主要接口
-- `AutoScheduleController` - 自动排课 API
-- `ScheduleController` - 排课管理
-- `TeachingClassController` - 教学班管理
-- `CourseController` - 课程管理
-- `TeacherController` - 教师管理
-- `ClassroomController` - 教室管理
-- `StudentController` - 学生管理
-- 其他实体 CRUD 控制器
-
-### 接口命名规范
-- 查询列表：`GET /api/{entity}/list`
-- 查询详情：`GET /api/{entity}/{id}`
-- 创建：`POST /api/{entity}`
-- 更新：`PUT /api/{entity}`
-- 删除：`DELETE /api/{entity}/{id}`
+1. **DO 类必须包含中文注释**
+2. **多对多关系使用独立关联表**，而非 JSONB 字段
+3. **主键统一使用 String 类型存储 32 位 UUID**
+4. **JSON 响应字段使用 snake_case**（由 Jackson 配置自动转换）
+5. **DTO/DO 使用链式调用**（`@Accessors(chain = true)`）
