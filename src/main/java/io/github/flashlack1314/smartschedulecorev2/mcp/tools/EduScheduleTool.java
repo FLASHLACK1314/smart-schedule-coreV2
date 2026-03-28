@@ -378,7 +378,7 @@ public class EduScheduleTool {
             result.append("✅ 无冲突，方案可行。\n");
         }
 
-        result.append("\n请确认后使用 confirmScheduleChange 确认，或使用 cancelPreview 取消。");
+        result.append("\n如确认无误，请回复 \"确认调课\"；如需取消，请回复 \"取消预览\"。");
 
         return result.toString();
     }
