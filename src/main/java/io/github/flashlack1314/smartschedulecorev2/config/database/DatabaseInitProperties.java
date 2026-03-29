@@ -122,6 +122,9 @@ public class DatabaseInitProperties {
         // 六级依赖
         tables.add("sc_schedule_conflict");
 
+        // 七级依赖（成绩表依赖学生、教学班、学期）
+        tables.add("sc_score");
+
         // 初始化SQL文件路径
         for (String table : tables) {
             sqlFiles.add("classpath:sql/" + table + ".sql");

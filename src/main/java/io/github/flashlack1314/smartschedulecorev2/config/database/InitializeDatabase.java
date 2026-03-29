@@ -25,6 +25,7 @@ public class InitializeDatabase {
     private final ScheduleInitializer scheduleInitializer;
     private final ScheduleConflictInitializer scheduleConflictInitializer;
     private final HomeDataInitializer homeDataInitializer;
+    private final ScoreInitializer scoreInitializer;
 
     /**
      * 初始化数据库数据
@@ -81,7 +82,10 @@ public class InitializeDatabase {
         // 第七层：排课冲突记录（仅FULL模式）
         scheduleConflictInitializer.initializeScheduleConflicts(null, semesters);
 
-        // 第八层：首页相关数据（仅FULL模式）
+        // 第八层：成绩数据（仅FULL模式）
+        scoreInitializer.initializeScores(students, teachingClasses, semesters);
+
+        // 第九层：首页相关数据（仅FULL模式）
         homeDataInitializer.initializeHomeData();
 
         // 系统管理员
