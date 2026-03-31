@@ -374,6 +374,113 @@
 
 ---
 
+## 5. 发布公告
+
+### 接口信息
+
+| 项目 | 说明 |
+|------|------|
+| 接口路径 | `POST /v1/home/announcements` |
+| 请求方式 | POST |
+| 认证要求 | 需要登录 Token |
+| 权限要求 | **仅限系统管理员和教务管理员** |
+
+### 请求头
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| Authorization | string | 是 | Bearer Token |
+| Content-Type | string | 是 | application/json |
+
+### 请求体
+
+```json
+{
+  "title": "公告标题",
+  "content": "公告内容",
+  "priority": "HIGH",
+  "user_type": "STUDENT"
+}
+```
+
+### 请求参数说明
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| title | string | 是 | 公告标题，建议不超过100字符 |
+| content | string | 是 | 公告内容 |
+| priority | string | 否 | 优先级：HIGH/MEDIUM/LOW，默认为 MEDIUM |
+| user_type | string | 是 | 目标用户类型：STUDENT/TEACHER/ACADEMIC_ADMIN/SYSTEM_ADMIN |
+
+### 响应数据
+
+```json
+{
+  "output": "Success",
+  "message": "发布公告成功",
+  "data": {
+    "id": "ann003",
+    "title": "公告标题",
+    "content": "公告内容",
+    "priority": "HIGH",
+    "created_at": "2025-03-25T16:30:00",
+    "relative_time": "刚刚"
+  }
+}
+```
+
+### 字段说明
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| id | string | 新创建的公告 UUID |
+| title | string | 公告标题 |
+| content | string | 公告内容 |
+| priority | string | 优先级 |
+| created_at | string | 发布时间，ISO 8601 格式 |
+| relative_time | string | 相对时间描述（新发布时为"刚刚"） |
+
+### 错误响应
+
+```json
+{
+  "output": "Fail",
+  "error_message": "无效的用户类型: XXX",
+  "error_code": "BAD_REQUEST"
+}
+```
+
+### 使用示例
+
+**cURL:**
+
+```bash
+curl -X POST 'https://api.example.com/v1/home/announcements' \
+  -H 'Authorization: Bearer your_token_here' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "title": "期末考试安排通知",
+    "content": "本学期期末考试将于6月15日开始，请各位同学提前做好复习准备。",
+    "priority": "HIGH",
+    "user_type": "STUDENT"
+  }'
+```
+
+**JavaScript (axios):**
+
+```javascript
+const response = await axios.post('/v1/home/announcements', {
+  title: '期末考试安排通知',
+  content: '本学期期末考试将于6月15日开始，请各位同学提前做好复习准备。',
+  priority: 'HIGH',
+  user_type: 'STUDENT'
+}, {
+  headers: { Authorization: `Bearer ${token}` }
+})
+```
+
+---
+
 ## 枚举定义
 
 ### 用户类型枚举
@@ -534,6 +641,18 @@ interface AnnouncementResponse {
   announcements: Announcement[]
 }
 
+/** 创建公告请求 */
+interface CreateAnnouncementRequest {
+  /** 公告标题 */
+  title: string
+  /** 公告内容 */
+  content: string
+  /** 优先级（可选，默认 MEDIUM） */
+  priority?: Priority
+  /** 目标用户类型 */
+  user_type: UserType
+}
+
 /** 首页聚合数据 */
 interface Dashboard {
   /** 用户信息 */
@@ -575,6 +694,9 @@ type TodayCoursesResponse = BaseResponse<TodayCourseResponse>
 
 /** 系统公告响应 */
 type AnnouncementsResponse = BaseResponse<AnnouncementResponse>
+
+/** 创建公告响应 */
+type CreateAnnouncementResponse = BaseResponse<Announcement>
 ```
 
 ---
@@ -625,6 +747,7 @@ change_rate = 0  → 显示 "持平 较上周"（灰色/横线）
 | GET /v1/home/activities | ❌ | ✅ | ✅ | ✅ |
 | GET /v1/home/today-courses | ✅ | ✅ | ✅ | ✅ |
 | GET /v1/home/announcements | ✅ | ✅ | ✅ | ✅ |
+| POST /v1/home/announcements | ❌ | ❌ | ✅ | ✅ |
 
 ---
 
@@ -632,4 +755,5 @@ change_rate = 0  → 显示 "持平 较上周"（灰色/横线）
 
 | 版本 | 日期 | 说明 |
 |------|------|------|
+| v1.1 | 2025-03-31 | 新增发布公告接口 |
 | v1.0 | 2025-03-25 | 初始版本 |

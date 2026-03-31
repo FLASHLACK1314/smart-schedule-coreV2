@@ -94,4 +94,23 @@ public class HomeController {
         response.setAnnouncements(announcements);
         return ResultUtil.success("获取系统公告成功", response);
     }
+
+    /**
+     * 发布公告
+     * <p>
+     * 仅限系统管理员和教务管理员使用
+     *
+     * @param token 认证Token
+     * @param dto   公告创建请求DTO
+     * @return 创建的公告信息
+     */
+    @PostMapping("/announcements")
+    @RequireRole({UserType.SYSTEM_ADMIN, UserType.ACADEMIC_ADMIN})
+    public ResponseEntity<BaseResponse<AnnouncementDTO>> createAnnouncement(
+            @RequestHeader("Authorization") String token,
+            @RequestBody CreateAnnouncementDTO dto
+    ) {
+        AnnouncementDTO result = homeService.createAnnouncement(dto);
+        return ResultUtil.success("发布公告成功", result);
+    }
 }

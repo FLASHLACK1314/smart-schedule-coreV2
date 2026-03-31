@@ -43,4 +43,12 @@ public interface HomeService {
      * @return 公告列表
      */
     List<AnnouncementDTO> getAnnouncements(String token, int limit);
+
+    /**
+     * 发布公告
+     *
+     * @param dto 公告创建请求DTO
+     * @return 创建的公告DTO
+     */
+    AnnouncementDTO createAnnouncement(CreateAnnouncementDTO dto);
 }

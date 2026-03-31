@@ -2,6 +2,7 @@ package io.github.flashlack1314.smartschedulecorev2.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import io.github.flashlack1314.smartschedulecorev2.dao.*;
+import io.github.flashlack1314.smartschedulecorev2.enums.Priority;
 import io.github.flashlack1314.smartschedulecorev2.enums.UserType;
 import io.github.flashlack1314.smartschedulecorev2.model.dto.TokenInfoDTO;
 import io.github.flashlack1314.smartschedulecorev2.model.dto.home.*;
@@ -116,6 +117,25 @@ public class HomeServiceImpl implements HomeService {
         return announcements.stream()
                 .map(this::convertToAnnouncementDTO)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public AnnouncementDTO createAnnouncement(CreateAnnouncementDTO dto) {
+        // 校验优先级
+        Priority priority = Priority.fromString(dto.getPriority());
+        dto.setPriority(priority.name());
+
+        // 校验用户类型
+        UserType userType;
+        try {
+            userType = UserType.valueOf(dto.getUserType());
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("无效的用户类型: " + dto.getUserType());
+        }
+
+        // 创建公告
+        AnnouncementDO announcement = announcementDAO.createAnnouncement(dto);
+        return this.convertToAnnouncementDTO(announcement);
     }
 
     /**
