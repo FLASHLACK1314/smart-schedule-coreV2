@@ -3,10 +3,12 @@ package io.github.flashlack1314.smartschedulecorev2.controller;
 import com.xlf.utility.BaseResponse;
 import com.xlf.utility.ResultUtil;
 import io.github.flashlack1314.smartschedulecorev2.annotation.RequireRole;
+import io.github.flashlack1314.smartschedulecorev2.enums.ActionType;
 import io.github.flashlack1314.smartschedulecorev2.enums.UserType;
 import io.github.flashlack1314.smartschedulecorev2.model.dto.PageDTO;
 import io.github.flashlack1314.smartschedulecorev2.model.dto.base.CourseInfoDTO;
 import io.github.flashlack1314.smartschedulecorev2.model.vo.AddCourseVO;
+import io.github.flashlack1314.smartschedulecorev2.service.ActivityLogService;
 import io.github.flashlack1314.smartschedulecorev2.service.CourseService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,6 +26,7 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/v1/course")
 public class CourseController {
     private final CourseService courseService;
+    private final ActivityLogService activityLogService;
 
     /**
      * 添加课程
@@ -39,6 +42,8 @@ public class CourseController {
             @RequestBody AddCourseVO addCourseVO
     ) {
         String courseUuid = courseService.addCourse(addCourseVO);
+        // 记录活动日志
+        activityLogService.logActivity(token, ActionType.ADD_COURSE);
         return ResultUtil.success("添加课程成功", courseUuid);
     }
 
@@ -80,6 +85,8 @@ public class CourseController {
             @RequestBody AddCourseVO addCourseVO
     ) {
         courseService.updateCourse(addCourseVO);
+        // 记录活动日志
+        activityLogService.logActivity(token, ActionType.UPDATE_COURSE);
         return ResultUtil.success("更新课程成功");
     }
 

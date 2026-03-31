@@ -4,8 +4,10 @@ import com.xlf.utility.BaseResponse;
 import com.xlf.utility.ResultUtil;
 import io.github.flashlack1314.smartschedulecorev2.annotation.RequireRole;
 import io.github.flashlack1314.smartschedulecorev2.algorithm.dto.AutoScheduleResult;
+import io.github.flashlack1314.smartschedulecorev2.enums.ActionType;
 import io.github.flashlack1314.smartschedulecorev2.enums.UserType;
 import io.github.flashlack1314.smartschedulecorev2.model.vo.AutoScheduleVO;
+import io.github.flashlack1314.smartschedulecorev2.service.ActivityLogService;
 import io.github.flashlack1314.smartschedulecorev2.service.AutoScheduleService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,6 +26,7 @@ import org.springframework.web.bind.annotation.*;
 public class AutoScheduleController {
 
     private final AutoScheduleService autoScheduleService;
+    private final ActivityLogService activityLogService;
 
     /**
      * 执行自动排课
@@ -40,6 +43,8 @@ public class AutoScheduleController {
     ) {
         log.info("执行自动排课，请求参数: {}", autoScheduleVO);
         AutoScheduleResult result = autoScheduleService.execute(autoScheduleVO);
+        // 记录活动日志
+        activityLogService.logActivity(token, ActionType.AUTO_SCHEDULE);
         return ResultUtil.success("自动排课执行成功", result);
     }
 

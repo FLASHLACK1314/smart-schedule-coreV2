@@ -3,10 +3,12 @@ package io.github.flashlack1314.smartschedulecorev2.controller;
 import com.xlf.utility.BaseResponse;
 import com.xlf.utility.ResultUtil;
 import io.github.flashlack1314.smartschedulecorev2.annotation.RequireRole;
+import io.github.flashlack1314.smartschedulecorev2.enums.ActionType;
 import io.github.flashlack1314.smartschedulecorev2.enums.UserType;
 import io.github.flashlack1314.smartschedulecorev2.model.dto.PageDTO;
 import io.github.flashlack1314.smartschedulecorev2.model.dto.base.ScheduleInfoDTO;
 import io.github.flashlack1314.smartschedulecorev2.model.vo.AddScheduleVO;
+import io.github.flashlack1314.smartschedulecorev2.service.ActivityLogService;
 import io.github.flashlack1314.smartschedulecorev2.service.ScheduleService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,6 +28,7 @@ import java.util.List;
 @RequestMapping("/v1/schedule")
 public class ScheduleController {
     private final ScheduleService scheduleService;
+    private final ActivityLogService activityLogService;
 
     // ===== 基础CRUD =====
 
@@ -43,6 +46,8 @@ public class ScheduleController {
             @RequestBody AddScheduleVO getData
     ) {
         String scheduleUuid = scheduleService.addSchedule(getData);
+        // 记录活动日志
+        activityLogService.logActivity(token, ActionType.MANUAL_SCHEDULE);
         return ResultUtil.success("添加排课成功", scheduleUuid);
     }
 
@@ -110,6 +115,8 @@ public class ScheduleController {
             @RequestBody AddScheduleVO getData
     ) {
         scheduleService.updateSchedule(getData);
+        // 记录活动日志
+        activityLogService.logActivity(token, ActionType.UPDATE_SCHEDULE);
         return ResultUtil.success("更新排课信息成功");
     }
 
@@ -127,6 +134,8 @@ public class ScheduleController {
             @RequestParam("schedule_uuid") String scheduleUuid
     ) {
         scheduleService.deleteSchedule(scheduleUuid);
+        // 记录活动日志
+        activityLogService.logActivity(token, ActionType.DELETE_SCHEDULE);
         return ResultUtil.success("删除排课成功");
     }
 
