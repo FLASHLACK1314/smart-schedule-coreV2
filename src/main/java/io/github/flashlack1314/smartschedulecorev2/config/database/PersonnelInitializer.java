@@ -550,6 +550,35 @@ public class PersonnelInitializer {
                 .setTeacherUuid(teachers.get(7).getTeacherUuid());
         qualifications.add(qual20);
 
+        // ===== 张教授新增资格（让他能教更多课程）=====
+        // 数据库系统 -> 张教授（新增，之前李讲师在教）
+        CourseQualificationDO qual22 = new CourseQualificationDO();
+        qual22.setCourseQualificationUuid(UuidUtil.generateUuidNoDash())
+                .setCourseUuid(courses.get(5).getCourseUuid())
+                .setTeacherUuid(teachers.get(0).getTeacherUuid());
+        qualifications.add(qual22);
+
+        // 计算机网络 -> 张教授（新增，之前刘教授在教）
+        CourseQualificationDO qual23 = new CourseQualificationDO();
+        qual23.setCourseQualificationUuid(UuidUtil.generateUuidNoDash())
+                .setCourseUuid(courses.get(6).getCourseUuid())
+                .setTeacherUuid(teachers.get(0).getTeacherUuid());
+        qualifications.add(qual23);
+
+        // 软件工程 -> 张教授（新增，之前刘教授在教）
+        CourseQualificationDO qual24 = new CourseQualificationDO();
+        qual24.setCourseQualificationUuid(UuidUtil.generateUuidNoDash())
+                .setCourseUuid(courses.get(8).getCourseUuid())
+                .setTeacherUuid(teachers.get(0).getTeacherUuid());
+        qualifications.add(qual24);
+
+        // 编译原理 -> 张教授（新增，之前周讲师在教）
+        CourseQualificationDO qual25 = new CourseQualificationDO();
+        qual25.setCourseQualificationUuid(UuidUtil.generateUuidNoDash())
+                .setCourseUuid(courses.get(7).getCourseUuid())
+                .setTeacherUuid(teachers.get(0).getTeacherUuid());
+        qualifications.add(qual25);
+
         courseQualificationDAO.saveBatch(qualifications);
         log.info("课程教师资格关联数据初始化完成，共 {} 条记录", qualifications.size());
     }

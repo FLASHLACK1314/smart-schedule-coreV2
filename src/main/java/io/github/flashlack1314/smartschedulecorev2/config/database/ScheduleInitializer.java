@@ -29,7 +29,7 @@ public class ScheduleInitializer {
 
     /**
      * 初始化排课记录数据
-     * 扩充到50条排课记录
+     * 扩充到70条排课记录
      */
     public void initializeSchedules(
             List<TeachingClassDO> teachingClasses,
@@ -70,8 +70,8 @@ public class ScheduleInitializer {
 
         String[] weeksArray = {fullWeeks, weeks1to8, weeks1to16, weeks9to16};
 
-        // 为前30个教学班生成排课记录（每个教学班1-2条）
-        for (int tcIndex = 0; tcIndex < Math.min(30, teachingClasses.size()); tcIndex++) {
+        // 为前40个教学班生成排课记录（每个教学班1-2条）
+        for (int tcIndex = 0; tcIndex < Math.min(40, teachingClasses.size()); tcIndex++) {
             TeachingClassDO tc = teachingClasses.get(tcIndex);
 
             // 每个教学班生成1-2条排课记录
@@ -112,9 +112,9 @@ public class ScheduleInitializer {
             }
         }
 
-        // 为剩余的教学班（如果有）添加额外的排课记录以达到50条
+        // 为剩余的教学班（如果有）添加额外的排课记录以达到70条
         int currentIndex = schedules.size();
-        for (int i = currentIndex; i < 50; i++) {
+        for (int i = currentIndex; i < 70; i++) {
             int tcIndex = i % teachingClasses.size();
             TeachingClassDO tc = teachingClasses.get(tcIndex);
             int templateIndex = i % scheduleTemplates.length;

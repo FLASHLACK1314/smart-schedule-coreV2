@@ -136,35 +136,63 @@ public class TeachingClassInitializer {
             teachingClasses.add(tc);
         }
 
-        // 编译原理-周讲师 (tc29)
-        TeachingClassDO tc29 = new TeachingClassDO();
-        tc29.setTeachingClassUuid(UuidUtil.generateUuidNoDash())
-                .setCourseUuid(courses.get(7).getCourseUuid()) // 编译原理
-                .setTeacherUuid(teachers.get(6).getTeacherUuid()) // 周讲师
-                .setSemesterUuid(semester1)
-                .setTeachingClassName("编译原理-周讲师-计科2104班")
-                .setTeachingClassHours(0);
-        teachingClasses.add(tc29);
+        // 编译原理-张教授 (tc29-tc31) - 新增3个教学班
+        for (int i = 1; i <= 3; i++) {
+            TeachingClassDO tc = new TeachingClassDO();
+            tc.setTeachingClassUuid(UuidUtil.generateUuidNoDash())
+                    .setCourseUuid(courses.get(7).getCourseUuid()) // 编译原理
+                    .setTeacherUuid(teachers.get(0).getTeacherUuid()) // 张教授
+                    .setSemesterUuid(semester1)
+                    .setTeachingClassName("编译原理-张教授-计科210" + i + "班")
+                    .setTeachingClassHours(0);
+            teachingClasses.add(tc);
+        }
 
-        // 软件工程-刘教授 (tc30)
-        TeachingClassDO tc30 = new TeachingClassDO();
-        tc30.setTeachingClassUuid(UuidUtil.generateUuidNoDash())
-                .setCourseUuid(courses.get(8).getCourseUuid()) // 软件工程
-                .setTeacherUuid(teachers.get(4).getTeacherUuid()) // 刘教授
-                .setSemesterUuid(semester1)
-                .setTeachingClassName("软件工程-刘教授-软件2103班")
-                .setTeachingClassHours(0);
-        teachingClasses.add(tc30);
+        // 软件工程-张教授 (tc32-tc34) - 新增3个教学班
+        for (int i = 1; i <= 3; i++) {
+            TeachingClassDO tc = new TeachingClassDO();
+            tc.setTeachingClassUuid(UuidUtil.generateUuidNoDash())
+                    .setCourseUuid(courses.get(8).getCourseUuid()) // 软件工程
+                    .setTeacherUuid(teachers.get(0).getTeacherUuid()) // 张教授
+                    .setSemesterUuid(semester1)
+                    .setTeachingClassName("软件工程-张教授-软件210" + i + "班")
+                    .setTeachingClassHours(0);
+            teachingClasses.add(tc);
+        }
 
-        // 通信原理-孙教授 (tc31) - 新增以补足30个教学班
-        TeachingClassDO tc31 = new TeachingClassDO();
-        tc31.setTeachingClassUuid(UuidUtil.generateUuidNoDash())
+        // 数据库系统-张教授 (tc35-tc37) - 新增3个教学班
+        for (int i = 1; i <= 3; i++) {
+            TeachingClassDO tc = new TeachingClassDO();
+            tc.setTeachingClassUuid(UuidUtil.generateUuidNoDash())
+                    .setCourseUuid(courses.get(5).getCourseUuid()) // 数据库系统
+                    .setTeacherUuid(teachers.get(0).getTeacherUuid()) // 张教授
+                    .setSemesterUuid(semester1)
+                    .setTeachingClassName("数据库系统-张教授-计科210" + i + "班")
+                    .setTeachingClassHours(0);
+            teachingClasses.add(tc);
+        }
+
+        // 计算机网络-张教授 (tc38-tc40) - 新增3个教学班
+        for (int i = 1; i <= 3; i++) {
+            TeachingClassDO tc = new TeachingClassDO();
+            tc.setTeachingClassUuid(UuidUtil.generateUuidNoDash())
+                    .setCourseUuid(courses.get(6).getCourseUuid()) // 计算机网络
+                    .setTeacherUuid(teachers.get(0).getTeacherUuid()) // 张教授
+                    .setSemesterUuid(semester1)
+                    .setTeachingClassName("计算机网络-张教授-网络210" + i + "班")
+                    .setTeachingClassHours(0);
+            teachingClasses.add(tc);
+        }
+
+        // 通信原理-孙教授 (tc41) - 新增以补足40个教学班
+        TeachingClassDO tc41 = new TeachingClassDO();
+        tc41.setTeachingClassUuid(UuidUtil.generateUuidNoDash())
                 .setCourseUuid(courses.get(9).getCourseUuid()) // 通信原理
                 .setTeacherUuid(teachers.get(7).getTeacherUuid()) // 孙教授
                 .setSemesterUuid(semester1)
                 .setTeachingClassName("通信原理-孙教授-通信2101班")
                 .setTeachingClassHours(0);
-        teachingClasses.add(tc31);
+        teachingClasses.add(tc41);
 
         // 先保存教学班（学时暂时为0，待排课初始化完成后更新）
         teachingClassDAO.saveBatch(teachingClasses);
@@ -174,9 +202,9 @@ public class TeachingClassInitializer {
 
     /**
      * 初始化教学班-行政班关联数据
-     * 扩充到匹配30个教学班
+     * 扩充到匹配40个教学班
      *
-     * 教学班索引分布（共30个，索引0-29）：
+     * 教学班索引分布（共40个，索引0-39）：
      * 0-2: 数据结构-张教授（3个）
      * 3-4: 操作系统-张教授（2个）
      * 5-7: 操作系统-王副教授（3个）
@@ -185,9 +213,11 @@ public class TeachingClassInitializer {
      * 15-20: 大学体育-赵助教（6个）
      * 21-23: 数据库系统-李讲师（3个）
      * 24-26: 计算机网络-刘教授（3个）
-     * 27: 编译原理-周讲师（1个）
-     * 28: 软件工程-刘教授（1个）
-     * 29: 通信原理-孙教授（1个）
+     * 27-29: 编译原理-张教授（3个）
+     * 30-32: 软件工程-张教授（3个）
+     * 33-35: 数据库系统-张教授（3个）
+     * 36-38: 计算机网络-张教授（3个）
+     * 39: 通信原理-孙教授（1个）
      */
     public void initializeTeachingClassClasses(
             List<TeachingClassDO> teachingClasses,
@@ -282,26 +312,48 @@ public class TeachingClassInitializer {
                 .setClassUuid(classes.get(15).getClassUuid()); // 通信2101
         relations.add(rel26);
 
-        // 索引27: 编译原理-周讲师 -> 计科2104班
-        TeachingClassClassDO rel27 = new TeachingClassClassDO();
-        rel27.setTeachingClassClassUuid(UuidUtil.generateUuidNoDash())
-                .setTeachingClassUuid(teachingClasses.get(27).getTeachingClassUuid())
-                .setClassUuid(classes.get(3).getClassUuid()); // 计科2104
-        relations.add(rel27);
+        // 索引27-29: 编译原理-张教授 -> 计科2101-2103班
+        for (int i = 0; i < 3; i++) {
+            TeachingClassClassDO rel = new TeachingClassClassDO();
+            rel.setTeachingClassClassUuid(UuidUtil.generateUuidNoDash())
+                    .setTeachingClassUuid(teachingClasses.get(27 + i).getTeachingClassUuid())
+                    .setClassUuid(classes.get(i).getClassUuid()); // 计科2101-2103
+            relations.add(rel);
+        }
 
-        // 索引28: 软件工程-刘教授 -> 软件2103班
-        TeachingClassClassDO rel28 = new TeachingClassClassDO();
-        rel28.setTeachingClassClassUuid(UuidUtil.generateUuidNoDash())
-                .setTeachingClassUuid(teachingClasses.get(28).getTeachingClassUuid())
-                .setClassUuid(classes.get(7).getClassUuid()); // 软件2103
-        relations.add(rel28);
+        // 索引30-32: 软件工程-张教授 -> 软件2101-2103班
+        for (int i = 0; i < 3; i++) {
+            TeachingClassClassDO rel = new TeachingClassClassDO();
+            rel.setTeachingClassClassUuid(UuidUtil.generateUuidNoDash())
+                    .setTeachingClassUuid(teachingClasses.get(30 + i).getTeachingClassUuid())
+                    .setClassUuid(classes.get(5 + i).getClassUuid()); // 软件2101-2103
+            relations.add(rel);
+        }
 
-        // 索引29: 通信原理-孙教授 -> 通信2101班
-        TeachingClassClassDO rel29 = new TeachingClassClassDO();
-        rel29.setTeachingClassClassUuid(UuidUtil.generateUuidNoDash())
-                .setTeachingClassUuid(teachingClasses.get(29).getTeachingClassUuid())
+        // 索引33-35: 数据库系统-张教授 -> 计科2101-2103班
+        for (int i = 0; i < 3; i++) {
+            TeachingClassClassDO rel = new TeachingClassClassDO();
+            rel.setTeachingClassClassUuid(UuidUtil.generateUuidNoDash())
+                    .setTeachingClassUuid(teachingClasses.get(33 + i).getTeachingClassUuid())
+                    .setClassUuid(classes.get(i).getClassUuid()); // 计科2101-2103
+            relations.add(rel);
+        }
+
+        // 索引36-38: 计算机网络-张教授 -> 网络2101-2103班
+        for (int i = 0; i < 3; i++) {
+            TeachingClassClassDO rel = new TeachingClassClassDO();
+            rel.setTeachingClassClassUuid(UuidUtil.generateUuidNoDash())
+                    .setTeachingClassUuid(teachingClasses.get(36 + i).getTeachingClassUuid())
+                    .setClassUuid(classes.get(13 + i).getClassUuid()); // 网络2101-2103
+            relations.add(rel);
+        }
+
+        // 索引39: 通信原理-孙教授 -> 通信2101班
+        TeachingClassClassDO rel39 = new TeachingClassClassDO();
+        rel39.setTeachingClassClassUuid(UuidUtil.generateUuidNoDash())
+                .setTeachingClassUuid(teachingClasses.get(39).getTeachingClassUuid())
                 .setClassUuid(classes.get(15).getClassUuid()); // 通信2101
-        relations.add(rel29);
+        relations.add(rel39);
 
         teachingClassClassDAO.saveBatch(relations);
         log.info("教学班-行政班关联数据初始化完成，共 {} 条记录", relations.size());
