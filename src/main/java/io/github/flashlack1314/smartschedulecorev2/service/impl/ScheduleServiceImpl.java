@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.exception.BusinessException;
 import com.xlf.utility.util.UuidUtil;
+import io.github.flashlack1314.smartschedulecorev2.config.database.ScheduleConflictInitializer;
 import io.github.flashlack1314.smartschedulecorev2.dao.*;
 import io.github.flashlack1314.smartschedulecorev2.model.dto.PageDTO;
 import io.github.flashlack1314.smartschedulecorev2.model.dto.base.ScheduleInfoDTO;
@@ -39,6 +40,7 @@ public class ScheduleServiceImpl implements ScheduleService {
     private final TeacherDAO teacherDAO;
     private final StudentDAO studentDAO;
     private final TeachingClassClassDAO teachingClassClassDAO;
+    private final ScheduleConflictInitializer scheduleConflictInitializer;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -144,6 +146,9 @@ public class ScheduleServiceImpl implements ScheduleService {
 
         // 更新教学班学时
         updateTeachingClassHours(getData.getTeachingClassUuid());
+
+        // 重新检测冲突
+        scheduleConflictInitializer.reDetectConflictsForSchedule(scheduleDO.getScheduleUuid());
 
         log.info("排课添加成功 - UUID: {}", scheduleDO.getScheduleUuid());
         return scheduleDO.getScheduleUuid();
@@ -290,6 +295,9 @@ public class ScheduleServiceImpl implements ScheduleService {
             updateTeachingClassHours(oldTeachingClassUuid);
         }
 
+        // 重新检测冲突
+        scheduleConflictInitializer.reDetectConflictsForSchedule(getData.getScheduleUuid());
+
         log.info("排课更新成功 - UUID: {}", getData.getScheduleUuid());
     }
 
@@ -308,6 +316,9 @@ public class ScheduleServiceImpl implements ScheduleService {
         if (!deleted) {
             throw new BusinessException("删除排课失败", ErrorCode.OPERATION_FAILED);
         }
+
+        // 删除与该排课相关的冲突记录
+        scheduleConflictInitializer.removeConflictsForSchedule(scheduleUuid);
 
         // 更新教学班学时
         updateTeachingClassHours(schedule.getTeachingClassUuid());

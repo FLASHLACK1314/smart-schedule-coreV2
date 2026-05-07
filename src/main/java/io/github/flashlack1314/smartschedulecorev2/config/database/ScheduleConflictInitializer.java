@@ -34,6 +34,88 @@ public class ScheduleConflictInitializer {
     private final ObjectMapper objectMapper;
 
     /**
+     * 删除与指定排课相关的所有冲突记录
+     *
+     * @param scheduleUuid 排课UUID
+     */
+    public void removeConflictsForSchedule(String scheduleUuid) {
+        log.info("删除排课相关冲突 - UUID: {}", scheduleUuid);
+
+        scheduleConflictDAO.lambdaUpdate()
+                .eq(ScheduleConflictDO::getScheduleUuidA, scheduleUuid)
+                .or()
+                .eq(ScheduleConflictDO::getScheduleUuidB, scheduleUuid)
+                .remove();
+
+        log.info("排课相关冲突删除完成 - UUID: {}", scheduleUuid);
+    }
+
+    /**
+     * 重新检测并更新指定排课的冲突
+     * 删除与该排课相关的旧冲突记录，然后重新检测
+     *
+     * @param scheduleUuid 排课UUID
+     */
+    public void reDetectConflictsForSchedule(String scheduleUuid) {
+        log.info("重新检测排课冲突 - UUID: {}", scheduleUuid);
+
+        ScheduleDO schedule = scheduleDAO.getById(scheduleUuid);
+        if (schedule == null) {
+            log.warn("排课记录不存在，跳过冲突检测 - UUID: {}", scheduleUuid);
+            return;
+        }
+
+        // 1. 删除与该排课相关的所有旧冲突记录
+        scheduleConflictDAO.lambdaUpdate()
+                .eq(ScheduleConflictDO::getScheduleUuidA, scheduleUuid)
+                .or()
+                .eq(ScheduleConflictDO::getScheduleUuidB, scheduleUuid)
+                .remove();
+
+        // 2. 获取同一学期的所有排课，重新检测冲突
+        List<ScheduleDO> allSchedules = scheduleDAO.lambdaQuery()
+                .eq(ScheduleDO::getSemesterUuid, schedule.getSemesterUuid())
+                .list();
+
+        if (allSchedules.isEmpty()) {
+            log.info("学期内无排课记录");
+            return;
+        }
+
+        // 构建辅助映射
+        Map<String, ClassroomDO> classroomMap = classroomDAO.list().stream()
+                .collect(Collectors.toMap(ClassroomDO::getClassroomUuid, c -> c));
+        Map<String, CourseDO> courseMap = courseDAO.list().stream()
+                .collect(Collectors.toMap(CourseDO::getCourseUuid, c -> c));
+        Map<String, TeacherDO> teacherMap = teacherDAO.list().stream()
+                .collect(Collectors.toMap(TeacherDO::getTeacherUuid, t -> t));
+
+        // 获取教学班-行政班级关联
+        List<TeachingClassClassDO> teachingClassClasses = teachingClassClassDAO.list();
+        Map<String, List<String>> teachingClassToClassMap = new HashMap<>();
+        for (TeachingClassClassDO tcc : teachingClassClasses) {
+            teachingClassToClassMap.computeIfAbsent(tcc.getTeachingClassUuid(), k -> new ArrayList<>())
+                    .add(tcc.getClassUuid());
+        }
+
+        // 统计每个班级的学生数量
+        Map<String, Long> classStudentCountMap = new HashMap<>();
+        for (ClassDO classDO : classDAO.list()) {
+            classStudentCountMap.put(classDO.getClassUuid(), studentDAO.countByClassUuid(classDO.getClassUuid()));
+        }
+
+        // 3. 针对该排课单独检测各类冲突
+        int teacherConflicts = detectTeacherTimeConflictsForSchedule(schedule, allSchedules, courseMap, teacherMap);
+        int classroomConflicts = detectClassroomTimeConflictsForSchedule(schedule, allSchedules, courseMap, classroomMap);
+        int classConflicts = detectClassTimeConflictsForSchedule(schedule, allSchedules, teachingClassToClassMap, courseMap);
+        int capacityConflicts = detectCapacityConflictsForSchedule(schedule, classroomMap, teachingClassToClassMap, classStudentCountMap, courseMap);
+        int preferenceConflicts = detectTeacherPreferenceConflictsForSchedule(schedule, teacherMap, courseMap);
+
+        log.info("排课冲突重新检测完成 - UUID: {}, 教师冲突: {}, 教室冲突: {}, 班级冲突: {}, 容量冲突: {}, 偏好冲突: {}",
+                scheduleUuid, teacherConflicts, classroomConflicts, classConflicts, capacityConflicts, preferenceConflicts);
+    }
+
+    /**
      * 初始化排课冲突数据
      * 检测现有排课中的冲突并记录
      *
@@ -539,5 +621,220 @@ public class ScheduleConflictInitializer {
         if (dayOfWeek == null) return "未知";
         String[] days = {"", "一", "二", "三", "四", "五", "六", "日"};
         return dayOfWeek >= 1 && dayOfWeek <= 7 ? days[dayOfWeek] : "未知";
+    }
+
+    /**
+     * 针对单个排课检测教师时间冲突
+     */
+    private int detectTeacherTimeConflictsForSchedule(
+            ScheduleDO targetSchedule,
+            List<ScheduleDO> allSchedules,
+            Map<String, CourseDO> courseMap,
+            Map<String, TeacherDO> teacherMap) {
+
+        List<ScheduleConflictDO> conflicts = new ArrayList<>();
+        String teacherUuid = targetSchedule.getTeacherUuid();
+        if (teacherUuid == null) return 0;
+
+        List<ScheduleDO> teacherSchedules = allSchedules.stream()
+                .filter(s -> teacherUuid.equals(s.getTeacherUuid()))
+                .toList();
+
+        for (ScheduleDO other : teacherSchedules) {
+            if (other.getScheduleUuid().equals(targetSchedule.getScheduleUuid())) continue;
+            if (isTimeOverlap(targetSchedule, other)) {
+                TeacherDO teacher = teacherMap.get(teacherUuid);
+                CourseDO courseA = courseMap.get(targetSchedule.getCourseUuid());
+                CourseDO courseB = courseMap.get(other.getCourseUuid());
+
+                conflicts.add(createConflict(
+                        targetSchedule, other,
+                        "TEACHER_TIME_CONFLICT",
+                        1,
+                        String.format("教师[%s]在周%s第%d-%d节同时有课程[%s]和[%s]",
+                                teacher != null ? teacher.getTeacherName() : "未知教师",
+                                getDayName(targetSchedule.getDayOfWeek()),
+                                targetSchedule.getSectionStart(),
+                                targetSchedule.getSectionEnd(),
+                                courseA != null ? courseA.getCourseName() : "未知课程",
+                                courseB != null ? courseB.getCourseName() : "未知课程")
+                ));
+            }
+        }
+
+        if (!conflicts.isEmpty()) {
+            scheduleConflictDAO.saveBatch(conflicts);
+        }
+        return conflicts.size();
+    }
+
+    /**
+     * 针对单个排课检测教室时间冲突
+     */
+    private int detectClassroomTimeConflictsForSchedule(
+            ScheduleDO targetSchedule,
+            List<ScheduleDO> allSchedules,
+            Map<String, CourseDO> courseMap,
+            Map<String, ClassroomDO> classroomMap) {
+
+        List<ScheduleConflictDO> conflicts = new ArrayList<>();
+        String classroomUuid = targetSchedule.getClassroomUuid();
+        if (classroomUuid == null) return 0;
+
+        List<ScheduleDO> classroomSchedules = allSchedules.stream()
+                .filter(s -> classroomUuid.equals(s.getClassroomUuid()))
+                .toList();
+
+        for (ScheduleDO other : classroomSchedules) {
+            if (other.getScheduleUuid().equals(targetSchedule.getScheduleUuid())) continue;
+            if (isTimeOverlap(targetSchedule, other)) {
+                ClassroomDO classroom = classroomMap.get(classroomUuid);
+                CourseDO courseA = courseMap.get(targetSchedule.getCourseUuid());
+                CourseDO courseB = courseMap.get(other.getCourseUuid());
+
+                conflicts.add(createConflict(
+                        targetSchedule, other,
+                        "CLASSROOM_TIME_CONFLICT",
+                        1,
+                        String.format("教室[%s]在周%s第%d-%d节被重复安排了课程[%s]和[%s]",
+                                classroom != null ? classroom.getClassroomName() : "未知教室",
+                                getDayName(targetSchedule.getDayOfWeek()),
+                                targetSchedule.getSectionStart(),
+                                targetSchedule.getSectionEnd(),
+                                courseA != null ? courseA.getCourseName() : "未知课程",
+                                courseB != null ? courseB.getCourseName() : "未知课程")
+                ));
+            }
+        }
+
+        if (!conflicts.isEmpty()) {
+            scheduleConflictDAO.saveBatch(conflicts);
+        }
+        return conflicts.size();
+    }
+
+    /**
+     * 针对单个排课检测班级时间冲突
+     */
+    private int detectClassTimeConflictsForSchedule(
+            ScheduleDO targetSchedule,
+            List<ScheduleDO> allSchedules,
+            Map<String, List<String>> teachingClassToClassMap,
+            Map<String, CourseDO> courseMap) {
+
+        List<ScheduleConflictDO> conflicts = new ArrayList<>();
+        List<String> classUuids = teachingClassToClassMap.get(targetSchedule.getTeachingClassUuid());
+        if (classUuids == null || classUuids.isEmpty()) return 0;
+
+        for (String classUuid : classUuids) {
+            List<ScheduleDO> classSchedules = new ArrayList<>();
+            for (ScheduleDO schedule : allSchedules) {
+                List<String> scheduleClassUuids = teachingClassToClassMap.get(schedule.getTeachingClassUuid());
+                if (scheduleClassUuids != null && scheduleClassUuids.contains(classUuid)) {
+                    classSchedules.add(schedule);
+                }
+            }
+
+            for (ScheduleDO other : classSchedules) {
+                if (other.getScheduleUuid().equals(targetSchedule.getScheduleUuid())) continue;
+                if (other.getTeachingClassUuid().equals(targetSchedule.getTeachingClassUuid())) continue;
+                if (isTimeOverlap(targetSchedule, other)) {
+                    CourseDO courseA = courseMap.get(targetSchedule.getCourseUuid());
+                    CourseDO courseB = courseMap.get(other.getCourseUuid());
+
+                    conflicts.add(createConflict(
+                            targetSchedule, other,
+                            "CLASS_TIME_CONFLICT",
+                            1,
+                            String.format("班级在周%s第%d-%d节同时有课程[%s]和[%s]",
+                                    getDayName(targetSchedule.getDayOfWeek()),
+                                    targetSchedule.getSectionStart(),
+                                    targetSchedule.getSectionEnd(),
+                                    courseA != null ? courseA.getCourseName() : "未知课程",
+                                    courseB != null ? courseB.getCourseName() : "未知课程")
+                    ));
+                }
+            }
+        }
+
+        if (!conflicts.isEmpty()) {
+            scheduleConflictDAO.saveBatch(conflicts);
+        }
+        return conflicts.size();
+    }
+
+    /**
+     * 针对单个排课检测教室容量不足冲突
+     */
+    private int detectCapacityConflictsForSchedule(
+            ScheduleDO targetSchedule,
+            Map<String, ClassroomDO> classroomMap,
+            Map<String, List<String>> teachingClassToClassMap,
+            Map<String, Long> classStudentCountMap,
+            Map<String, CourseDO> courseMap) {
+
+        ClassroomDO classroom = classroomMap.get(targetSchedule.getClassroomUuid());
+        if (classroom == null || classroom.getClassroomCapacity() == null) return 0;
+
+        List<String> classUuids = teachingClassToClassMap.get(targetSchedule.getTeachingClassUuid());
+        if (classUuids == null || classUuids.isEmpty()) return 0;
+
+        int totalStudents = 0;
+        for (String classUuid : classUuids) {
+            Long studentCount = classStudentCountMap.get(classUuid);
+            if (studentCount != null) {
+                totalStudents += studentCount.intValue();
+            }
+        }
+
+        if (totalStudents > classroom.getClassroomCapacity()) {
+            CourseDO course = courseMap.get(targetSchedule.getCourseUuid());
+            ScheduleConflictDO conflict = createCapacityConflict(
+                    targetSchedule,
+                    "CAPACITY_INSUFFICIENT",
+                    1,
+                    String.format("教室[%s]容量%d人，无法容纳课程[%s]的总学生数%d人",
+                            classroom.getClassroomName(),
+                            classroom.getClassroomCapacity(),
+                            course != null ? course.getCourseName() : "未知课程",
+                            totalStudents)
+            );
+            scheduleConflictDAO.save(conflict);
+            return 1;
+        }
+        return 0;
+    }
+
+    /**
+     * 针对单个排课检测教师时间偏好未满足冲突
+     */
+    private int detectTeacherPreferenceConflictsForSchedule(
+            ScheduleDO targetSchedule,
+            Map<String, TeacherDO> teacherMap,
+            Map<String, CourseDO> courseMap) {
+
+        TeacherDO teacher = teacherMap.get(targetSchedule.getTeacherUuid());
+        if (teacher == null || teacher.getLikeTime() == null || teacher.getLikeTime().isEmpty()) {
+            return 0;
+        }
+
+        if (!isPreferredTime(targetSchedule, teacher.getLikeTime())) {
+            CourseDO course = courseMap.get(targetSchedule.getCourseUuid());
+            ScheduleConflictDO conflict = createPreferenceConflict(
+                    targetSchedule,
+                    "TEACHER_PREFERENCE_NOT_MET",
+                    0,
+                    String.format("教师[%s]的时间偏好[%s]未满足，课程[%s]被安排在周%s第%d-%d节",
+                            teacher.getTeacherName(),
+                            teacher.getLikeTime(),
+                            course != null ? course.getCourseName() : "未知课程",
+                            getDayName(targetSchedule.getDayOfWeek()),
+                            targetSchedule.getSectionStart(),
+                            targetSchedule.getSectionEnd())
+            );
+            scheduleConflictDAO.save(conflict);
+            return 1;
+        }
+        return 0;
     }
 }
