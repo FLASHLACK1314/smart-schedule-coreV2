@@ -227,12 +227,47 @@ public class ConflictDetector {
 
     /**
      * 检测教师资格约束
+     * 硬约束：教师必须具有教授该课程的资格
      *
+     * @param appointments 课程安排列表
      * @param context 排课上下文，包含课程-教师资质映射
+     * @param report 冲突报告
      */
     private void detectQualificationConflicts(List<CourseAppointment> appointments, ScheduleContext context, ConflictReport report) {
-        // 此方法需要额外的课程-教师资质映射数据
-        // 当前简化实现，后续可以从context获取资质关系进行检测
+        Map<String, List<String>> courseTeacherQualifications = context.getCourseTeacherQualifications();
+        if (courseTeacherQualifications == null || courseTeacherQualifications.isEmpty()) {
+            // 没有资格映射数据，跳过检测
+            log.debug("没有课程-教师资格映射数据，跳过资格约束检测");
+            return;
+        }
+
+        for (CourseAppointment appt : appointments) {
+            String courseUuid = appt.getCourseUuid();
+            String teacherUuid = appt.getTeacherUuid();
+
+            if (courseUuid == null || teacherUuid == null) {
+                continue;
+            }
+
+            // 获取该课程的有资格教师列表
+            List<String> qualifiedTeachers = courseTeacherQualifications.get(courseUuid);
+
+            if (qualifiedTeachers == null || qualifiedTeachers.isEmpty()) {
+                // 该课程没有任何有资格教师，视为冲突（不应该被安排）
+                report.addHardConflict(createConflict(
+                        Conflict.ConflictType.TEACHER_QUALIFICATION_MISMATCH,
+                        "课程[" + appt.getCourseName() + "]没有任何有资格教师，却安排了教师[" + appt.getTeacherName() + "]",
+                        appt, Conflict.ConflictSeverity.HARD
+                ));
+            } else if (!qualifiedTeachers.contains(teacherUuid)) {
+                // 授课教师不在资格列表中，违反硬约束
+                report.addHardConflict(createConflict(
+                        Conflict.ConflictType.TEACHER_QUALIFICATION_MISMATCH,
+                        "教师[" + appt.getTeacherName() + "]没有教授课程[" + appt.getCourseName() + "]的资格",
+                        appt, Conflict.ConflictSeverity.HARD
+                ));
+            }
+        }
     }
 
     /**

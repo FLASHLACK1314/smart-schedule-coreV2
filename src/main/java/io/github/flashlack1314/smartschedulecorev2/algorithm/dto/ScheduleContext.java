@@ -93,6 +93,15 @@ public class ScheduleContext {
     private Map<String, List<String>> courseTypeToClassroomTypes;
 
     /**
+     * 课程-教师资格映射
+     * key: 课程UUID (sc_course.course_uuid)
+     * value: 有资格教授该课程的教师UUID列表
+     *
+     * 从 sc_course_qualification 关联表加载，用于检测教师资格约束冲突
+     */
+    private Map<String, List<String>> courseTeacherQualifications;
+
+    /**
      * 已有排课记录信息
      */
     @Data

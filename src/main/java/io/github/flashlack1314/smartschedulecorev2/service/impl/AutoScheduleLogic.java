@@ -280,6 +280,19 @@ public class AutoScheduleLogic implements AutoScheduleService {
         context.setCourseTypeToClassroomTypes(courseTypeToClassroomTypes);
         log.info("加载课程类型-教室类型映射: {} 条", courseClassroomTypes.size());
 
+        // 3.2 查询课程-教师资格映射关系
+        List<CourseQualificationDO> courseQualifications = courseQualificationDAO.list();
+        Map<String, List<String>> courseTeacherQualifications = courseQualifications.stream()
+                .collect(Collectors.groupingBy(
+                        CourseQualificationDO::getCourseUuid,
+                        Collectors.mapping(
+                                CourseQualificationDO::getTeacherUuid,
+                                Collectors.toList()
+                        )
+                ));
+        context.setCourseTeacherQualifications(courseTeacherQualifications);
+        log.info("加载课程-教师资格映射: {} 条", courseQualifications.size());
+
         // 4. 查询教师时间偏好和工作量限制
         Map<String, List<TimeSlot>> teacherTimePreferences = new HashMap<>();
         Map<String, Integer> teacherMaxHours = new HashMap<>();

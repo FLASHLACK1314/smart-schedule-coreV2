@@ -10,9 +10,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -40,9 +38,14 @@ public class FitnessCalculator {
     private static final int TEACHER_PREFERENCE_REWARD = 1000;
     private static final int WORKLOAD_BALANCE_REWARD = 500;
     private static final int COURSE_DISTRIBUTION_REWARD = 300;
+    private static final int CLASSROOM_CONTINUITY_REWARD = 200;
 
     // 未完成排课惩罚
     private static final int INCOMPLETE_SCHEDULE_PENALTY = 2_000_000;
+
+    // 适应度计算权重（论文公式5-1: Fitness = w1·H + w2·S）
+    private static final double HARD_CONSTRAINT_WEIGHT = 0.8;
+    private static final double SOFT_CONSTRAINT_WEIGHT = 0.2;
 
     /**
      * 计算染色体适应度
@@ -84,12 +87,26 @@ public class FitnessCalculator {
         softReward += calculateTeacherPreferenceScore(chromosome, context);
         softReward += calculateWorkloadBalanceScore(chromosome, context);
         softReward += calculateCourseDistributionScore(chromosome, context);
+        softReward += calculateClassroomContinuityScore(chromosome, context);
 
-        // 总适应度 = 奖励 - 惩罚
-        double fitness = softReward - hardPenalty;
+        // 论文公式(5-1): Fitness = w1·H + w2·S
+        // H = 已满足硬约束数 / 总硬约束数（趋近于1才可用）
+        // S = 软约束加权得分
+        double hardConstraintCount = report.getHardConflicts().size();
+        double totalHardConstraints = hardConstraintCount + chromosome.getUnscheduledTeachingClasses().size();
+        // 硬约束满足度 H = 已满足数 / 总数（1表示全部满足，0表示全部违反）
+        double H = totalHardConstraints > 0
+                ? 1.0 - (hardConstraintCount / totalHardConstraints)
+                : 1.0;
+
+        // 软约束满足度 S = 加权得分（归一化到0-1范围）
+        double S = softReward / Math.max(softReward + hardPenalty, 1.0);
+
+        // 总适应度 = w1·H + w2·S
+        double fitness = HARD_CONSTRAINT_WEIGHT * H + SOFT_CONSTRAINT_WEIGHT * S;
 
         chromosome.setFitness(fitness);
-        chromosome.setHardConstraintViolations(report.getHardConflicts().size());
+        chromosome.setHardConstraintViolations((int) hardConstraintCount);
         chromosome.setSoftConstraintViolations(report.getSoftConflicts().size());
     }
 
@@ -225,5 +242,70 @@ public class FitnessCalculator {
         return slot1.getDayOfWeek().equals(slot2.getDayOfWeek()) &&
                 slot1.getSectionStart().equals(slot2.getSectionStart()) &&
                 slot1.getSectionEnd().equals(slot2.getSectionEnd());
+    }
+
+    /**
+     * 计算教室连续使用分数
+     * 软约束：同一教室连续使用（中间不间断）应该得到奖励
+     * 衡量方式：统计每个教室的"连续使用段"数量，连续使用越多分数越高
+     */
+    private double calculateClassroomContinuityScore(Chromosome chromosome, ScheduleContext context) {
+        // 按教室分组的所有课程安排
+        Map<String, List<CourseAppointment>> appointmentsByClassroom = new HashMap<>();
+
+        for (List<CourseAppointment> appointments : chromosome.getGenes().values()) {
+            for (CourseAppointment appt : appointments) {
+                String classroomUuid = appt.getClassroomUuid();
+                if (classroomUuid != null) {
+                    appointmentsByClassroom.computeIfAbsent(classroomUuid, k -> new ArrayList<>()).add(appt);
+                }
+            }
+        }
+
+        double totalScore = 0;
+
+        for (Map.Entry<String, List<CourseAppointment>> entry : appointmentsByClassroom.entrySet()) {
+            List<CourseAppointment> classroomAppts = entry.getValue();
+
+            // 按天分组
+            Map<Integer, List<CourseAppointment>> byDay = classroomAppts.stream()
+                    .collect(Collectors.groupingBy(appt -> appt.getTimeSlot().getDayOfWeek()));
+
+            for (Map.Entry<Integer, List<CourseAppointment>> dayEntry : byDay.entrySet()) {
+                List<CourseAppointment> dayAppts = dayEntry.getValue();
+
+                // 按节次排序
+                dayAppts.sort(Comparator.comparingInt(appt -> appt.getTimeSlot().getSectionStart()));
+
+                // 统计连续使用段
+                int continuitySegments = 0;
+                for (int i = 0; i < dayAppts.size(); i++) {
+                    if (i == 0) {
+                        continuitySegments++;
+                    } else {
+                        int prevEnd = dayAppts.get(i - 1).getTimeSlot().getSectionEnd();
+                        int currStart = dayAppts.get(i).getTimeSlot().getSectionStart();
+                        // 如果当前段的起始节次紧接上一段的结束节次（不间隔），视为连续
+                        if (currStart == prevEnd) {
+                            // 连续，不需要额外加分
+                        } else {
+                            // 不连续，开始新的一段
+                            continuitySegments++;
+                        }
+                    }
+                }
+
+                // 每增加一个连续段，给奖励
+                // 场景：一个教室一天用3次课（1-2节、3-4节、5-6节），全部连续 = 1段，奖励高
+                // 场景：一个教室一天用3次课（1-2节、5-6节、7-8节），中间有间隔 = 3段，奖励低
+                if (continuitySegments > 0) {
+                    // 连续段越少越好，所以用 (1/段数) 作为奖励系数
+                    double segmentReward = (double) dayAppts.size() / continuitySegments;
+                    totalScore += CLASSROOM_CONTINUITY_REWARD * segmentReward;
+                }
+            }
+        }
+
+        return totalScore;
     }
 }

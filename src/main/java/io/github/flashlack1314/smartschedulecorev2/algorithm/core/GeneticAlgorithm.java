@@ -37,6 +37,16 @@ public class GeneticAlgorithm {
     private int eliteSize = 10;
     private double geneProtectionRate = 0.3;
 
+    // 锦标赛选择参数
+    private int tournamentSize = 5;
+    private int tournamentRepeats = 100;
+
+    // 自适应交叉变异参数（论文公式5-2、5-3）
+    private static final double P_CMAX = 0.9;  // 最大交叉概率
+    private static final double P_CMIN = 0.6;  // 最小交叉概率
+    private static final double P_MMAX = 0.1;  // 最大变异概率
+    private static final double P_MMIN = 0.01; // 最小变异概率
+
     // 可用时间槽缓存
     private List<TimeSlot> allTimeSlots;
 
@@ -97,8 +107,8 @@ public class GeneticAlgorithm {
             // 选择
             List<Chromosome> selected = selection(population);
 
-            // 交叉（保护优质基因）
-            List<Chromosome> offspring = crossover(selected, protectedGenes);
+            // 交叉（保护优质基因），传入population用于计算自适应概率
+            List<Chromosome> offspring = crossover(selected, protectedGenes, population);
 
             // 变异
             mutate(offspring);
@@ -126,6 +136,7 @@ public class GeneticAlgorithm {
 
     /**
      * 初始化种群：生成合法的初始解
+     * 论文要求：检查初始解的可行性，过滤掉严重违反硬约束的个体
      */
     private List<Chromosome> initializePopulation() {
         List<Chromosome> population = new ArrayList<>();
@@ -150,7 +161,14 @@ public class GeneticAlgorithm {
                     tc.getTotalStudents(), tc.getWeeklySessions(), tc.getRequiredWeeks());
         }
 
-        for (int i = 0; i < populationSize; i++) {
+        // 硬约束冲突阈值：超过此值则过滤掉该个体
+        int hardConflictThreshold = 0;
+        int maxAttemptsPerChromosome = 20; // 每个染色体最大生成尝试次数
+        int totalAttempts = 0;
+        int maxTotalAttempts = populationSize * maxAttemptsPerChromosome * 2;
+
+        while (population.size() < populationSize && totalAttempts < maxTotalAttempts) {
+            totalAttempts++;
             Chromosome chromosome = new Chromosome();
 
             // 为每个教学班生成排课安排
@@ -203,10 +221,21 @@ public class GeneticAlgorithm {
                 }
             }
 
+            // 【过滤】检查初始解的可行性，过滤掉严重违反硬约束的个体
+            fitnessCalculator.calculateFitness(chromosome, context);
+            int hardViolations = chromosome.getHardConstraintViolations();
+
+            if (hardViolations > hardConflictThreshold) {
+                // 硬约束冲突超过阈值，过滤该个体
+                log.debug("过滤染色体: 硬约束冲突数 {} 超过阈值 {}",
+                        hardViolations, hardConflictThreshold);
+                continue;
+            }
+
             population.add(chromosome);
         }
 
-        log.info("初始化种群完成，种群大小: {}", population.size());
+        log.info("初始化种群完成，种群大小: {}, 总尝试次数: {}", population.size(), totalAttempts);
         return population;
     }
 
@@ -358,49 +387,59 @@ public class GeneticAlgorithm {
     }
 
     /**
-     * 选择算子：轮盘赌选择
+     * 选择算子：锦标赛选择法（论文描述）
+     * ① 随机选择K个个体
+     * ② 选择其中适应度最高的个体进入下一代
+     * ③ 重复M次，得到N个个体
      */
     private List<Chromosome> selection(List<Chromosome> population) {
         List<Chromosome> selected = new ArrayList<>();
-
-        // 计算总适应度（处理负值）
-        double minFitness = population.stream()
-                .mapToDouble(Chromosome::getFitness)
-                .min()
-                .orElse(0);
-
-        double totalFitness = population.stream()
-                .mapToDouble(c -> c.getFitness() - minFitness + 1)
-                .sum();
-
         Random random = new Random();
 
-        // 选择 populationSize - eliteSize 个个体
-        int selectCount = populationSize - eliteSize;
-
-        for (int i = 0; i < selectCount; i++) {
-            double rand = random.nextDouble() * totalFitness;
-            double cumulative = 0;
-
-            for (Chromosome chromosome : population) {
-                cumulative += (chromosome.getFitness() - minFitness + 1);
-                if (cumulative >= rand) {
-                    selected.add(chromosome.copy());
-                    break;
-                }
+        // 重复M次，得到N个个体
+        for (int i = 0; i < tournamentRepeats; i++) {
+            // ① 随机选择K个个体
+            List<Chromosome> tournament = new ArrayList<>();
+            for (int j = 0; j < tournamentSize; j++) {
+                int idx = random.nextInt(population.size());
+                tournament.add(population.get(idx));
             }
+
+            // ② 选择适应度最高的个体
+            Chromosome winner = tournament.stream()
+                    .max(Comparator.comparingDouble(Chromosome::getFitness))
+                    .orElse(tournament.get(0));
+
+            selected.add(winner.copy());
         }
 
         return selected;
     }
 
     /**
-     * 交叉算子：时间点交叉
+     * 交叉算子：顺序交叉（OX）变体（论文描述）
+     * ① 随机选择一个时间点作为交叉点
+     * ② 保留父代1的时间槽分配
+     * ③ 将父代2中未使用的时间槽补充到子代中
+     *
+     * 自适应交叉概率（论文公式5-2）:
+     * Pc = Pcmax - (Pcmax - Pcmin) * (f' - f_avg) / (f_max - f_avg)
      */
     private List<Chromosome> crossover(List<Chromosome> parents,
-                                       Map<String, List<GeneFragment>> protectedGenes) {
+                                       Map<String, List<GeneFragment>> protectedGenes,
+                                       List<Chromosome> population) {
         List<Chromosome> offspring = new ArrayList<>();
         Random random = new Random();
+
+        // 计算自适应交叉概率（论文公式5-2）
+        double fMax = population.stream()
+                .mapToDouble(Chromosome::getFitness)
+                .max()
+                .orElse(1.0);
+        double fAvg = population.stream()
+                .mapToDouble(Chromosome::getFitness)
+                .average()
+                .orElse(0.0);
 
         for (int i = 0; i < parents.size(); i += 2) {
             if (i + 1 >= parents.size()) break;
@@ -408,18 +447,36 @@ public class GeneticAlgorithm {
             Chromosome parent1 = parents.get(i);
             Chromosome parent2 = parents.get(i + 1);
 
-            if (random.nextDouble() < crossoverRate) {
+            // 计算个体适应度用于自适应概率
+            double fPrime = Math.max(parent1.getFitness(), parent2.getFitness());
+
+            // 论文公式(5-2): Pc = Pcmax - (Pcmax - Pcmin) * (f' - f_avg) / (f_max - f_avg)
+            double pc;
+            if (fMax > fAvg) {
+                pc = P_CMAX - (P_CMAX - P_CMIN) * (fPrime - fAvg) / (fMax - fAvg);
+            } else {
+                pc = P_CMAX;
+            }
+            pc = Math.max(P_CMIN, Math.min(P_CMAX, pc)); // 限制在[Pcmin, Pcmax]
+
+            if (random.nextDouble() < pc) {
                 Chromosome child1 = parent1.copy();
                 Chromosome child2 = parent2.copy();
 
-                // 选择交叉点
+                // ① 随机选择一个时间点作为交叉点
                 List<TimeSlot> allSlots = new ArrayList<>(child1.getGenes().keySet());
                 if (!allSlots.isEmpty()) {
                     int crossoverPoint = random.nextInt(allSlots.size());
 
-                    // 执行交叉
-                    for (int j = crossoverPoint; j < allSlots.size(); j++) {
+                    // ② ③ 执行顺序交叉（OX）变体
+                    // 保留父代1的时间槽分配，将父代2中未使用的时间槽补充到子代
+                    for (int j = 0; j < allSlots.size(); j++) {
                         TimeSlot slot = allSlots.get(j);
+                        if (j < crossoverPoint) {
+                            // 交叉点之前的部分保留父代1
+                            continue;
+                        }
+                        // 交叉点之后的部分交换
                         List<CourseAppointment> temp = child1.getGenes().get(slot);
                         child1.getGenes().put(slot, child2.getGenes().getOrDefault(slot, new ArrayList<>()));
                         child2.getGenes().put(slot, temp != null ? temp : new ArrayList<>());
@@ -438,13 +495,45 @@ public class GeneticAlgorithm {
     }
 
     /**
-     * 变异算子：三态变异
+     * 变异算子：三态变异 + 自适应变异概率（论文描述）
+     * ① 时间变异：以一定概率重新分配教学班的时间槽
+     * ② 空间变异：以一定概率更换教室
+     * ③ 组合变异：以一定概率同时变更时间和教室
+     *
+     * 自适应变异概率（论文公式5-3）:
+     * Pm = Pmmax - (Pmmax - Pmmin) * (f - f_avg) / (f_max - f_avg),  f >= f_avg
+     * Pm = Pmmax,  f < f_avg
      */
     private void mutate(List<Chromosome> population) {
         Random random = new Random();
 
+        // 计算自适应变异概率参数（论文公式5-3）
+        double fMax = population.stream()
+                .mapToDouble(Chromosome::getFitness)
+                .max()
+                .orElse(1.0);
+        double fAvg = population.stream()
+                .mapToDouble(Chromosome::getFitness)
+                .average()
+                .orElse(0.0);
+
         for (Chromosome chromosome : population) {
-            if (random.nextDouble() > mutationRate) continue;
+            // 计算当前个体的自适应变异概率
+            double f = chromosome.getFitness();
+            double pm;
+            if (f >= fAvg) {
+                // 论文公式(5-3): Pm = Pmmax - (Pmmax - Pmmin) * (f - f_avg) / (f_max - f_avg)
+                if (fMax > fAvg) {
+                    pm = P_MMAX - (P_MMAX - P_MMIN) * (f - fAvg) / (fMax - fAvg);
+                } else {
+                    pm = P_MMAX;
+                }
+            } else {
+                pm = P_MMAX;
+            }
+            pm = Math.max(P_MMIN, Math.min(P_MMAX, pm)); // 限制在[Pmmin, Pmmax]
+
+            if (random.nextDouble() > pm) continue;
 
             List<TimeSlot> timeSlots = new ArrayList<>(chromosome.getGenes().keySet());
             if (timeSlots.isEmpty()) continue;
@@ -461,7 +550,7 @@ public class GeneticAlgorithm {
             double mutationType = random.nextDouble();
 
             if (mutationType < 0.5) {
-                // 时间槽变异
+                // ① 时间变异：以一定概率重新分配教学班的时间槽
                 TimeSlot newSlot = selectRandomTimeSlot();
                 if (newSlot != null) {
                     appointments.remove(target);
@@ -472,7 +561,7 @@ public class GeneticAlgorithm {
                             .add(newAppointment);
                 }
             } else if (mutationType < 0.8) {
-                // 教室变异
+                // ② 空间变异：以一定概率更换教室
                 ScheduleContext.TeachingClassInfo tcInfo = findTeachingClassInfo(target.getTeachingClassUuid());
                 if (tcInfo != null) {
                     String newClassroom = selectSuitableClassroom(tcInfo, target.getTimeSlot());
@@ -482,8 +571,20 @@ public class GeneticAlgorithm {
                         updateClassroomTypeInfo(target, newClassroom);
                     }
                 }
+            } else {
+                // ③ 组合变异：以一定概率同时变更时间和教室
+                ScheduleContext.TeachingClassInfo tcInfo = findTeachingClassInfo(target.getTeachingClassUuid());
+                if (tcInfo != null) {
+                    TimeSlot newSlot = selectRandomTimeSlot();
+                    String newClassroom = selectSuitableClassroom(tcInfo, newSlot);
+                    if (newSlot != null && newClassroom != null) {
+                        appointments.remove(target);
+                        target.setClassroomUuid(newClassroom);
+                        target.setTimeSlot(newSlot);
+                        updateClassroomTypeInfo(target, newClassroom);
+                    }
+                }
             }
-            // 教师变异暂时不实现（教师通常是固定的）
         }
     }
 
