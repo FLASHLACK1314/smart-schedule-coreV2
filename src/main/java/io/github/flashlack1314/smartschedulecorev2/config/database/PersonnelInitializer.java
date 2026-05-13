@@ -317,6 +317,132 @@ public class PersonnelInitializer {
                 .setIsActive(true);
         teachers.add(t20);
 
+        // ===== 新增教师（21-30）=====
+
+        // 计算机科学与技术学院（+4人：教授1、副教授1、讲师2）
+        TeacherDO t21 = new TeacherDO();
+        t21.setTeacherUuid(UuidUtil.generateUuidNoDash())
+                .setTeacherNum("T1008")
+                .setTeacherName("孙教授")
+                .setTitle("教授")
+                .setDepartmentUuid(csDeptUuid)
+                .setTeacherPassword(PasswordUtil.encrypt("qwer1234"))
+                .setMaxHoursPerWeek(20)
+                .setLikeTime("{\"1\":[5,6],\"3\":[5,6]}")
+                .setIsActive(true);
+        teachers.add(t21);
+
+        TeacherDO t22 = new TeacherDO();
+        t22.setTeacherUuid(UuidUtil.generateUuidNoDash())
+                .setTeacherNum("T1009")
+                .setTeacherName("吴副教授")
+                .setTitle("副教授")
+                .setDepartmentUuid(csDeptUuid)
+                .setTeacherPassword(PasswordUtil.encrypt("qwer1234"))
+                .setMaxHoursPerWeek(18)
+                .setLikeTime("{\"2\":[1,2],\"4\":[1,2]}")
+                .setIsActive(true);
+        teachers.add(t22);
+
+        TeacherDO t23 = new TeacherDO();
+        t23.setTeacherUuid(UuidUtil.generateUuidNoDash())
+                .setTeacherNum("T1010")
+                .setTeacherName("郑讲师")
+                .setTitle("讲师")
+                .setDepartmentUuid(csDeptUuid)
+                .setTeacherPassword(PasswordUtil.encrypt("qwer1234"))
+                .setMaxHoursPerWeek(16)
+                .setLikeTime("{\"1\":[3,4],\"5\":[3,4]}")
+                .setIsActive(true);
+        teachers.add(t23);
+
+        TeacherDO t24 = new TeacherDO();
+        t24.setTeacherUuid(UuidUtil.generateUuidNoDash())
+                .setTeacherNum("T1011")
+                .setTeacherName("冯讲师")
+                .setTitle("讲师")
+                .setDepartmentUuid(csDeptUuid)
+                .setTeacherPassword(PasswordUtil.encrypt("qwer1234"))
+                .setMaxHoursPerWeek(16)
+                .setLikeTime("{\"3\":[1,2],\"4\":[1,2]}")
+                .setIsActive(true);
+        teachers.add(t24);
+
+        // 电子信息工程学院（+3人：教授1、副教授1、讲师1）
+        TeacherDO t25 = new TeacherDO();
+        t25.setTeacherUuid(UuidUtil.generateUuidNoDash())
+                .setTeacherNum("T2006")
+                .setTeacherName("李教授")
+                .setTitle("教授")
+                .setDepartmentUuid(eeDeptUuid)
+                .setTeacherPassword(PasswordUtil.encrypt("qwer1234"))
+                .setMaxHoursPerWeek(20)
+                .setLikeTime("{\"1\":[1,2],\"3\":[1,2]}")
+                .setIsActive(true);
+        teachers.add(t25);
+
+        TeacherDO t26 = new TeacherDO();
+        t26.setTeacherUuid(UuidUtil.generateUuidNoDash())
+                .setTeacherNum("T2007")
+                .setTeacherName("周副教授")
+                .setTitle("副教授")
+                .setDepartmentUuid(eeDeptUuid)
+                .setTeacherPassword(PasswordUtil.encrypt("qwer1234"))
+                .setMaxHoursPerWeek(18)
+                .setLikeTime("{\"2\":[3,4],\"4\":[3,4]}")
+                .setIsActive(true);
+        teachers.add(t26);
+
+        TeacherDO t27 = new TeacherDO();
+        t27.setTeacherUuid(UuidUtil.generateUuidNoDash())
+                .setTeacherNum("T2008")
+                .setTeacherName("梁讲师")
+                .setTitle("讲师")
+                .setDepartmentUuid(eeDeptUuid)
+                .setTeacherPassword(PasswordUtil.encrypt("qwer1234"))
+                .setMaxHoursPerWeek(16)
+                .setLikeTime("{\"1\":[7,8],\"5\":[7,8]}")
+                .setIsActive(true);
+        teachers.add(t27);
+
+        // 机械工程学院（+2人：讲师1、助教1）
+        TeacherDO t28 = new TeacherDO();
+        t28.setTeacherUuid(UuidUtil.generateUuidNoDash())
+                .setTeacherNum("T3004")
+                .setTeacherName("姜讲师")
+                .setTitle("讲师")
+                .setDepartmentUuid(meDeptUuid)
+                .setTeacherPassword(PasswordUtil.encrypt("qwer1234"))
+                .setMaxHoursPerWeek(16)
+                .setLikeTime("{\"2\":[5,6],\"3\":[5,6]}")
+                .setIsActive(true);
+        teachers.add(t28);
+
+        TeacherDO t29 = new TeacherDO();
+        t29.setTeacherUuid(UuidUtil.generateUuidNoDash())
+                .setTeacherNum("T3005")
+                .setTeacherName("沈助教")
+                .setTitle("助教")
+                .setDepartmentUuid(meDeptUuid)
+                .setTeacherPassword(PasswordUtil.encrypt("qwer1234"))
+                .setMaxHoursPerWeek(12)
+                .setLikeTime("{\"4\":[7,8],\"5\":[7,8]}")
+                .setIsActive(true);
+        teachers.add(t29);
+
+        // 经济管理学院（+1人：教授1）
+        TeacherDO t30 = new TeacherDO();
+        t30.setTeacherUuid(UuidUtil.generateUuidNoDash())
+                .setTeacherNum("T4003")
+                .setTeacherName("唐教授")
+                .setTitle("教授")
+                .setDepartmentUuid(baDeptUuid)
+                .setTeacherPassword(PasswordUtil.encrypt("qwer1234"))
+                .setMaxHoursPerWeek(20)
+                .setLikeTime("{\"2\":[1,2],\"4\":[1,2]}")
+                .setIsActive(true);
+        teachers.add(t30);
+
         teacherDAO.saveBatch(teachers);
         log.info("教师数据初始化完成，共 {} 条记录", teachers.size());
         return teachers;
@@ -406,6 +532,10 @@ public class PersonnelInitializer {
         // 机械学院教师(12-14): 吴讲师、钱助教、徐讲师
         // 经管学院教师(15-16): 林教授、曹副教授
         // 体艺部教师(17-19): 何老师、许助教、高老师
+        // 新增教师(20-23): 孙教授、吴副教授、郑讲师、冯讲师(计算机学院)
+        // 新增教师(24-26): 李教授、周副教授、梁讲师(电子信息学院)
+        // 新增教师(27-28): 姜讲师、沈助教(机械学院)
+        // 新增教师(29): 唐教授(经济管理学院)
 
         // 原有课程关联（保留）
         // 课程1(数据结构) -> 张教授(T1001, 索引0)
@@ -578,6 +708,148 @@ public class PersonnelInitializer {
                 .setCourseUuid(courses.get(7).getCourseUuid())
                 .setTeacherUuid(teachers.get(0).getTeacherUuid());
         qualifications.add(qual25);
+
+        // ===== 新增课程资格关联（课程16-20）=====
+        // 课程16(线性代数) -> 吴副教授(T1009, 索引21)
+        CourseQualificationDO qual26 = new CourseQualificationDO();
+        qual26.setCourseQualificationUuid(UuidUtil.generateUuidNoDash())
+                .setCourseUuid(courses.get(15).getCourseUuid())
+                .setTeacherUuid(teachers.get(21).getTeacherUuid());
+        qualifications.add(qual26);
+
+        // 课程16(线性代数) -> 郑讲师(T1010, 索引22)
+        CourseQualificationDO qual27 = new CourseQualificationDO();
+        qual27.setCourseQualificationUuid(UuidUtil.generateUuidNoDash())
+                .setCourseUuid(courses.get(15).getCourseUuid())
+                .setTeacherUuid(teachers.get(22).getTeacherUuid());
+        qualifications.add(qual27);
+
+        // 课程17(离散数学) -> 孙教授(T1008, 索引20)
+        CourseQualificationDO qual28 = new CourseQualificationDO();
+        qual28.setCourseQualificationUuid(UuidUtil.generateUuidNoDash())
+                .setCourseUuid(courses.get(16).getCourseUuid())
+                .setTeacherUuid(teachers.get(20).getTeacherUuid());
+        qualifications.add(qual28);
+
+        // 课程17(离散数学) -> 张教授(T1001, 索引0)
+        CourseQualificationDO qual29 = new CourseQualificationDO();
+        qual29.setCourseQualificationUuid(UuidUtil.generateUuidNoDash())
+                .setCourseUuid(courses.get(16).getCourseUuid())
+                .setTeacherUuid(teachers.get(0).getTeacherUuid());
+        qualifications.add(qual29);
+
+        // 课程18(概率论与数理统计) -> 吴副教授(T1009, 索引21)
+        CourseQualificationDO qual30 = new CourseQualificationDO();
+        qual30.setCourseQualificationUuid(UuidUtil.generateUuidNoDash())
+                .setCourseUuid(courses.get(17).getCourseUuid())
+                .setTeacherUuid(teachers.get(21).getTeacherUuid());
+        qualifications.add(qual30);
+
+        // 课程18(概率论与数理统计) -> 李教授(T2006, 索引24)
+        CourseQualificationDO qual31 = new CourseQualificationDO();
+        qual31.setCourseQualificationUuid(UuidUtil.generateUuidNoDash())
+                .setCourseUuid(courses.get(17).getCourseUuid())
+                .setTeacherUuid(teachers.get(24).getTeacherUuid());
+        qualifications.add(qual31);
+
+        // 课程19(数字电路) -> 马副教授(T2002, 索引8)
+        CourseQualificationDO qual32 = new CourseQualificationDO();
+        qual32.setCourseQualificationUuid(UuidUtil.generateUuidNoDash())
+                .setCourseUuid(courses.get(18).getCourseUuid())
+                .setTeacherUuid(teachers.get(8).getTeacherUuid());
+        qualifications.add(qual32);
+
+        // 课程19(数字电路) -> 周副教授(T2007, 索引25)
+        CourseQualificationDO qual33 = new CourseQualificationDO();
+        qual33.setCourseQualificationUuid(UuidUtil.generateUuidNoDash())
+                .setCourseUuid(courses.get(18).getCourseUuid())
+                .setTeacherUuid(teachers.get(25).getTeacherUuid());
+        qualifications.add(qual33);
+
+        // 课程20(大学物理) -> 李教授(T2006, 索引24)
+        CourseQualificationDO qual34 = new CourseQualificationDO();
+        qual34.setCourseQualificationUuid(UuidUtil.generateUuidNoDash())
+                .setCourseUuid(courses.get(19).getCourseUuid())
+                .setTeacherUuid(teachers.get(24).getTeacherUuid());
+        qualifications.add(qual34);
+
+        // 课程20(大学物理) -> 唐教授(T4003, 索引29)
+        CourseQualificationDO qual35 = new CourseQualificationDO();
+        qual35.setCourseQualificationUuid(UuidUtil.generateUuidNoDash())
+                .setCourseUuid(courses.get(19).getCourseUuid())
+                .setTeacherUuid(teachers.get(29).getTeacherUuid());
+        qualifications.add(qual35);
+
+        // ===== 为热门课程添加更多授课教师，分担负载 =====
+        // 数据结构 -> 孙教授(T1008, 索引20)
+        CourseQualificationDO qual36 = new CourseQualificationDO();
+        qual36.setCourseQualificationUuid(UuidUtil.generateUuidNoDash())
+                .setCourseUuid(courses.get(0).getCourseUuid())
+                .setTeacherUuid(teachers.get(20).getTeacherUuid());
+        qualifications.add(qual36);
+
+        // 操作系统 -> 吴副教授(T1009, 索引21)
+        CourseQualificationDO qual37 = new CourseQualificationDO();
+        qual37.setCourseQualificationUuid(UuidUtil.generateUuidNoDash())
+                .setCourseUuid(courses.get(1).getCourseUuid())
+                .setTeacherUuid(teachers.get(21).getTeacherUuid());
+        qualifications.add(qual37);
+
+        // 数据库系统 -> 吴副教授(T1009, 索引21)
+        CourseQualificationDO qual38 = new CourseQualificationDO();
+        qual38.setCourseQualificationUuid(UuidUtil.generateUuidNoDash())
+                .setCourseUuid(courses.get(5).getCourseUuid())
+                .setTeacherUuid(teachers.get(21).getTeacherUuid());
+        qualifications.add(qual38);
+
+        // 计算机网络 -> 孙教授(T1008, 索引20)
+        CourseQualificationDO qual39 = new CourseQualificationDO();
+        qual39.setCourseQualificationUuid(UuidUtil.generateUuidNoDash())
+                .setCourseUuid(courses.get(6).getCourseUuid())
+                .setTeacherUuid(teachers.get(20).getTeacherUuid());
+        qualifications.add(qual39);
+
+        // 软件工程 -> 孙教授(T1008, 索引20)
+        CourseQualificationDO qual40 = new CourseQualificationDO();
+        qual40.setCourseQualificationUuid(UuidUtil.generateUuidNoDash())
+                .setCourseUuid(courses.get(8).getCourseUuid())
+                .setTeacherUuid(teachers.get(20).getTeacherUuid());
+        qualifications.add(qual40);
+
+        // 编译原理 -> 郑讲师(T1010, 索引22)
+        CourseQualificationDO qual41 = new CourseQualificationDO();
+        qual41.setCourseQualificationUuid(UuidUtil.generateUuidNoDash())
+                .setCourseUuid(courses.get(7).getCourseUuid())
+                .setTeacherUuid(teachers.get(22).getTeacherUuid());
+        qualifications.add(qual41);
+
+        // 通信原理 -> 李教授(T2006, 索引24)
+        CourseQualificationDO qual42 = new CourseQualificationDO();
+        qual42.setCourseQualificationUuid(UuidUtil.generateUuidNoDash())
+                .setCourseUuid(courses.get(9).getCourseUuid())
+                .setTeacherUuid(teachers.get(24).getTeacherUuid());
+        qualifications.add(qual42);
+
+        // 信号与系统 -> 周副教授(T2007, 索引25)
+        CourseQualificationDO qual43 = new CourseQualificationDO();
+        qual43.setCourseQualificationUuid(UuidUtil.generateUuidNoDash())
+                .setCourseUuid(courses.get(10).getCourseUuid())
+                .setTeacherUuid(teachers.get(25).getTeacherUuid());
+        qualifications.add(qual43);
+
+        // 管理学 -> 曹副教授(T4002, 索引16)
+        CourseQualificationDO qual44 = new CourseQualificationDO();
+        qual44.setCourseQualificationUuid(UuidUtil.generateUuidNoDash())
+                .setCourseUuid(courses.get(14).getCourseUuid())
+                .setTeacherUuid(teachers.get(16).getTeacherUuid());
+        qualifications.add(qual44);
+
+        // 管理学 -> 唐教授(T4003, 索引29)
+        CourseQualificationDO qual45 = new CourseQualificationDO();
+        qual45.setCourseQualificationUuid(UuidUtil.generateUuidNoDash())
+                .setCourseUuid(courses.get(14).getCourseUuid())
+                .setTeacherUuid(teachers.get(29).getTeacherUuid());
+        qualifications.add(qual45);
 
         courseQualificationDAO.saveBatch(qualifications);
         log.info("课程教师资格关联数据初始化完成，共 {} 条记录", qualifications.size());

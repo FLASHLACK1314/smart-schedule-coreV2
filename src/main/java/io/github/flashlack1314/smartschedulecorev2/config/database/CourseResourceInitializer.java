@@ -287,6 +287,47 @@ public class CourseResourceInitializer {
                 .setCourseCredit(new BigDecimal("3.0"));
         courses.add(course15);
 
+        // 新增课程（16-20）
+        CourseDO course16 = new CourseDO();
+        course16.setCourseUuid(UuidUtil.generateUuidNoDash())
+                .setCourseNum("MA101")
+                .setCourseName("线性代数")
+                .setCourseTypeUuid(theoryType)
+                .setCourseCredit(new BigDecimal("3.0"));
+        courses.add(course16);
+
+        CourseDO course17 = new CourseDO();
+        course17.setCourseUuid(UuidUtil.generateUuidNoDash())
+                .setCourseNum("CS105")
+                .setCourseName("离散数学")
+                .setCourseTypeUuid(theoryType)
+                .setCourseCredit(new BigDecimal("3.5"));
+        courses.add(course17);
+
+        CourseDO course18 = new CourseDO();
+        course18.setCourseUuid(UuidUtil.generateUuidNoDash())
+                .setCourseNum("MA102")
+                .setCourseName("概率论与数理统计")
+                .setCourseTypeUuid(theoryType)
+                .setCourseCredit(new BigDecimal("3.5"));
+        courses.add(course18);
+
+        CourseDO course19 = new CourseDO();
+        course19.setCourseUuid(UuidUtil.generateUuidNoDash())
+                .setCourseNum("EE104")
+                .setCourseName("数字电路")
+                .setCourseTypeUuid(theoryType)
+                .setCourseCredit(new BigDecimal("3.5"));
+        courses.add(course19);
+
+        CourseDO course20 = new CourseDO();
+        course20.setCourseUuid(UuidUtil.generateUuidNoDash())
+                .setCourseNum("PH101")
+                .setCourseName("大学物理")
+                .setCourseTypeUuid(theoryType)
+                .setCourseCredit(new BigDecimal("4.0"));
+        courses.add(course20);
+
         courseDAO.saveBatch(courses);
         log.info("课程数据初始化完成，共 {} 条记录", courses.size());
         return courses;
