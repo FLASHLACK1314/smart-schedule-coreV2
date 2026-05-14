@@ -9,10 +9,13 @@ import io.github.flashlack1314.smartschedulecorev2.enums.UserType;
 import io.github.flashlack1314.smartschedulecorev2.model.vo.AutoScheduleVO;
 import io.github.flashlack1314.smartschedulecorev2.service.ActivityLogService;
 import io.github.flashlack1314.smartschedulecorev2.service.AutoScheduleService;
+import io.github.flashlack1314.smartschedulecorev2.service.AutoScheduleService.ConfirmResult;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 /**
  * 自动排课控制器
@@ -49,6 +52,49 @@ public class AutoScheduleController {
     }
 
     /**
+     * 执行自动排课（SSE版本，保持连接直到完成）
+     *
+     * @param token          Token
+     * @param autoScheduleVO 排课参数
+     * @return SSE流
+     */
+    @PostMapping(value = "/execute-stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @RequireRole({UserType.SYSTEM_ADMIN, UserType.ACADEMIC_ADMIN})
+    public SseEmitter executeAutoScheduleStream(
+            @RequestHeader("Authorization") String token,
+            @RequestBody AutoScheduleVO autoScheduleVO
+    ) {
+        log.info("SSE自动排课，请求参数: {}", autoScheduleVO);
+
+        // 创建SSE emitter，超时时间10分钟
+        SseEmitter emitter = new SseEmitter(600000L);
+
+        // 异步执行排课
+        new Thread(() -> {
+            try {
+                AutoScheduleResult result = autoScheduleService.executeWithSse(autoScheduleVO, emitter);
+                // 发送最终结果
+                emitter.send(SseEmitter.event()
+                        .name("result")
+                        .data(result));
+            } catch (IllegalStateException e) {
+                // SSE连接可能已关闭，忽略
+                log.warn("SSE连接已关闭");
+            } catch (Exception e) {
+                log.error("SSE排课异常", e);
+            } finally {
+                try {
+                    emitter.complete();
+                } catch (IllegalStateException ignored) {
+                    // 已经complete过了
+                }
+            }
+        }).start();
+
+        return emitter;
+    }
+
+    /**
      * 保存排课方案为预览状态
      *
      * @param token        Token
@@ -77,13 +123,13 @@ public class AutoScheduleController {
      */
     @PostMapping("/confirm")
     @RequireRole({UserType.SYSTEM_ADMIN, UserType.ACADEMIC_ADMIN})
-    public ResponseEntity<BaseResponse<Void>> confirmSchedule(
+    public ResponseEntity<BaseResponse<ConfirmResult>> confirmSchedule(
             @RequestHeader("Authorization") String token,
             @RequestParam("semester_uuid") String semesterUuid
     ) {
         log.info("确认排课方案，学期UUID: {}", semesterUuid);
-        autoScheduleService.confirmSchedule(semesterUuid);
-        return ResultUtil.success("确认排课方案成功");
+        ConfirmResult result = autoScheduleService.confirmSchedule(semesterUuid);
+        return ResultUtil.success(result.getMessage(), result);
     }
 
     /**

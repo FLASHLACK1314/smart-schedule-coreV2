@@ -8,6 +8,7 @@ import io.github.flashlack1314.smartschedulecorev2.algorithm.util.TimeSlotGenera
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -49,6 +50,12 @@ public class GeneticAlgorithm {
 
     // 可用时间槽缓存
     private List<TimeSlot> allTimeSlots;
+    private final Random random = new Random();
+    private SseEmitter sseEmitter;
+
+    public void setSseEmitter(SseEmitter sseEmitter) {
+        this.sseEmitter = sseEmitter;
+    }
 
     /**
      * 执行自动排课
@@ -56,6 +63,18 @@ public class GeneticAlgorithm {
      * @return 最佳排课方案
      */
     public Chromosome schedule() {
+        return schedule(null);
+    }
+
+    /**
+     * 执行自动排课（支持SSE进度推送）
+     *
+     * @param emitter SSE emitter，可为null
+     * @return 最佳排课方案
+     */
+    public Chromosome schedule(SseEmitter emitter) {
+        this.sseEmitter = emitter;
+
         // 生成所有可能的时间槽
         allTimeSlots = timeSlotGenerator.generateAllTimeSlots(
                 context.getDaysPerWeek(),
@@ -71,6 +90,14 @@ public class GeneticAlgorithm {
 
         // 阶段2：进化迭代
         for (int generation = 0; generation < maxGenerations; generation++) {
+            // 迭代休眠1秒，便于SSE实时推送进度
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                log.warn("遗传算法迭代被中断");
+            }
+
             // 评估适应度
             evaluatePopulation(population);
 
@@ -86,16 +113,13 @@ public class GeneticAlgorithm {
                 stagnantGenerations++;
             }
 
-            // 早停策略：如果连续50代无改进，提前终止
-            if (stagnantGenerations >= 50) {
-                log.info("连续{}代无改进，提前终止于第{}代", stagnantGenerations, generation);
-                break;
-            }
-
-            // 检查是否达到终止条件
-            if (isTerminationConditionMet(globalBest)) {
-                log.info("找到满足条件的解，提前终止于第{}代", generation);
-                break;
+            // 早停策略：如果连续20代无改进，有30%概率提前终止
+            if (stagnantGenerations >= 20) {
+                if (random.nextDouble() < 0.30) {
+                    log.info("连续{}代无改进，1%概率触发早停，终止于第{}代", stagnantGenerations, generation);
+                    break;
+                }
+                stagnantGenerations = 0; // 重置计数，继续迭代
             }
 
             // 【精英保留策略】保留精英个体
@@ -118,11 +142,21 @@ public class GeneticAlgorithm {
             population.addAll(elites);
             population.addAll(offspring);
 
-            if (generation % 50 == 0) {
-                log.info("第 {} 代，最优适应度: {}, 硬冲突数: {}, 未完成数: {}",
-                        generation, globalBest.getFitness(),
-                        globalBest.getHardConstraintViolations(),
-                        globalBest.getUnscheduledTeachingClasses().size());
+            log.info("第 {} 代，最优适应度: {}, 硬冲突数: {}, 未完成数: {}",
+                    generation, globalBest.getFitness(),
+                    globalBest.getHardConstraintViolations(),
+                    globalBest.getUnscheduledTeachingClasses().size());
+
+            // SSE进度推送（每10代或最后一代）
+            if (sseEmitter != null && (generation >= 9 && generation % 10 == 9 || generation == maxGenerations - 1)) {
+                try {
+                    sseEmitter.send(SseEmitter.event()
+                            .name("progress")
+                            .data(String.format("第 %d/%d 代，适应度: %.2f",
+                                    generation + 1, maxGenerations, globalBest.getFitness())));
+                } catch (Exception ignored) {
+                    sseEmitter = null;
+                }
             }
         }
 
@@ -184,7 +218,7 @@ public class GeneticAlgorithm {
                 // 为每个时间槽安排课程
                 int scheduledSessions = 0;
                 for (int dayOfWeek : distributedDays) {
-                    // 尝试多次找到不冲突的时间槽
+                    // 尝试多次找到合适的时间槽
                     boolean scheduled = false;
                     int maxAttempts = 10;
                     for (int attempt = 0; attempt < maxAttempts && !scheduled; attempt++) {
@@ -201,14 +235,17 @@ public class GeneticAlgorithm {
                         // 创建课程安排
                         CourseAppointment appointment = buildAppointment(tc, classroomUuid, timeSlot);
 
-                        // 检查是否与已有安排冲突
-                        if (!conflictDetector.hasConflict(chromosome, appointment, context)) {
-                            // 添加到染色体
-                            chromosome.getGenes()
-                                    .computeIfAbsent(timeSlot, k -> new ArrayList<>())
-                                    .add(appointment);
-                            scheduledSessions++;
-                            scheduled = true;
+                        // 总是添加到染色体，即使可能有冲突（冲突会在后续检测中被标记）
+                        chromosome.getGenes()
+                                .computeIfAbsent(timeSlot, k -> new ArrayList<>())
+                                .add(appointment);
+                        scheduledSessions++;
+                        scheduled = true;
+
+                        // 即使有冲突也继续安排，记录冲突但不跳过
+                        if (conflictDetector.hasConflict(chromosome, appointment, context)) {
+                            log.debug("教学班 {} 在时间槽 {} 存在冲突，但仍添加到安排中",
+                                    tc.getTeachingClassName(), timeSlot.getUniqueId());
                         }
                     }
                 }

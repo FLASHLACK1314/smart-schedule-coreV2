@@ -20,6 +20,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -41,6 +42,7 @@ public class AutoScheduleLogic implements AutoScheduleService {
     private final ClassroomDAO classroomDAO;
     private final CourseDAO courseDAO;
     private final ScheduleDAO scheduleDAO;
+    private final ScheduleConflictDAO scheduleConflictDAO;
     private final CourseQualificationDAO courseQualificationDAO;
     private final CourseClassroomTypeDAO courseClassroomTypeDAO;
     private final TeachingClassClassDAO teachingClassClassDAO;
@@ -53,6 +55,28 @@ public class AutoScheduleLogic implements AutoScheduleService {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     /**
+     * 排课记录与课程安排的组合类
+     * 用于在冲突检测时保留ScheduleDO引用以获取scheduleUuid
+     */
+    private static class ScheduleAppointment {
+        private final ScheduleDO scheduleDO;
+        private final CourseAppointment appointment;
+
+        public ScheduleAppointment(ScheduleDO scheduleDO, CourseAppointment appointment) {
+            this.scheduleDO = scheduleDO;
+            this.appointment = appointment;
+        }
+
+        public ScheduleDO getScheduleDO() {
+            return scheduleDO;
+        }
+
+        public CourseAppointment getAppointment() {
+            return appointment;
+        }
+    }
+
+    /**
      * 执行自动排课
      *
      * @param params 排课参数
@@ -61,6 +85,19 @@ public class AutoScheduleLogic implements AutoScheduleService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public AutoScheduleResult execute(AutoScheduleVO params) {
+        return executeWithSse(params, null);
+    }
+
+    /**
+     * 执行自动排课（SSE版本，保持连接直到完成）
+     *
+     * @param params 排课参数
+     * @param emitter SSE emitter
+     * @return 排课结果
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public AutoScheduleResult executeWithSse(AutoScheduleVO params, SseEmitter emitter) {
         // 0. 参数验证
         params.validate();
 
@@ -109,8 +146,8 @@ public class AutoScheduleLogic implements AutoScheduleService {
             geneticAlgorithm.setEliteSize(params.getEliteSize());
         }
 
-        // 5. 执行遗传算法
-        Chromosome bestChromosome = geneticAlgorithm.schedule();
+        // 5. 执行遗传算法（传入SSE emitter）
+        Chromosome bestChromosome = geneticAlgorithm.schedule(emitter);
 
         // 6. 转换结果为 AutoScheduleResult
         AutoScheduleResult result = new AutoScheduleResult();
@@ -496,8 +533,12 @@ public class AutoScheduleLogic implements AutoScheduleService {
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void confirmSchedule(String semesterUuid) {
+    public ConfirmResult confirmSchedule(String semesterUuid) {
         log.info("确认排课方案，学期UUID: {}", semesterUuid);
+
+        // 检测并保存冲突
+        int conflictCount = detectAndSaveConflicts(semesterUuid);
+        log.info("检测到 {} 个冲突记录", conflictCount);
 
         // 将预览记录（status=0）转为正式记录（status=1）
         scheduleDAO.update(
@@ -508,7 +549,409 @@ public class AutoScheduleLogic implements AutoScheduleService {
                         .set("updated_at", LocalDateTime.now())
         );
 
-        log.info("排课方案确认完成");
+        String message = conflictCount > 0
+                ? "确认成功，但检测到 " + conflictCount + " 个冲突"
+                : "确认排课方案成功";
+        log.info("排课方案确认完成: {}", message);
+
+        return new ConfirmResult(conflictCount, message);
+    }
+
+    /**
+     * 检测并保存排课冲突
+     *
+     * @param semesterUuid 学期UUID
+     * @return 检测到的冲突数量
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public int detectAndSaveConflicts(String semesterUuid) {
+        log.info("检测并保存排课冲突，学期UUID: {}", semesterUuid);
+
+        // 1. 删除该学期的旧冲突记录（仅针对预览状态的排课）
+        List<ScheduleDO> previewScheduleList = scheduleDAO.list(
+                new QueryWrapper<ScheduleDO>()
+                        .eq("semester_uuid", semesterUuid)
+                        .eq("status", 0)
+        );
+        List<String> previewScheduleUuids = previewScheduleList.stream()
+                .map(ScheduleDO::getScheduleUuid)
+                .collect(Collectors.toList());
+
+        if (!previewScheduleUuids.isEmpty()) {
+            scheduleConflictDAO.remove(
+                    new QueryWrapper<ScheduleConflictDO>()
+                            .eq("semester_uuid", semesterUuid)
+                            .in("schedule_uuid_a", previewScheduleUuids)
+            );
+        }
+
+        // 2. 查询预览状态的排课记录（status=0）
+        List<ScheduleDO> previewSchedules = scheduleDAO.list(
+                new QueryWrapper<ScheduleDO>()
+                        .eq("semester_uuid", semesterUuid)
+                        .eq("status", 0)
+        );
+
+        if (previewSchedules.isEmpty()) {
+            log.info("没有预览状态的排课记录，无需检测冲突");
+            return 0;
+        }
+
+        // 3. 查询已有正式排课记录（status=1）用于冲突检测
+        List<ScheduleDO> existingSchedules = scheduleDAO.list(
+                new QueryWrapper<ScheduleDO>()
+                        .eq("semester_uuid", semesterUuid)
+                        .eq("status", 1)
+        );
+
+        // 4. 构建教学班信息映射
+        Map<String, TeachingClassDO> teachingClassMap = teachingClassDAO.listByIds(
+                previewSchedules.stream().map(ScheduleDO::getTeachingClassUuid).collect(Collectors.toSet())
+        ).stream().collect(Collectors.toMap(TeachingClassDO::getTeachingClassUuid, tc -> tc));
+
+        Map<String, CourseDO> courseMap = courseDAO.listByIds(
+                previewSchedules.stream().map(ScheduleDO::getCourseUuid).collect(Collectors.toSet())
+        ).stream().collect(Collectors.toMap(CourseDO::getCourseUuid, c -> c));
+
+        Map<String, TeacherDO> teacherMap = teacherDAO.listByIds(
+                previewSchedules.stream().map(ScheduleDO::getTeacherUuid).collect(Collectors.toSet())
+        ).stream().collect(Collectors.toMap(TeacherDO::getTeacherUuid, t -> t));
+
+        Map<String, ClassroomDO> classroomMap = classroomDAO.listByIds(
+                previewSchedules.stream().map(ScheduleDO::getClassroomUuid).collect(Collectors.toSet())
+        ).stream().collect(Collectors.toMap(ClassroomDO::getClassroomUuid, cr -> cr));
+
+        // 5. 构建行政班信息映射
+        Map<String, List<String>> scheduleClassUuidsMap = new HashMap<>();
+        for (ScheduleDO schedule : previewSchedules) {
+            List<TeachingClassClassDO> tccList = teachingClassClassDAO.list(
+                    new QueryWrapper<TeachingClassClassDO>()
+                            .eq("teaching_class_uuid", schedule.getTeachingClassUuid())
+            );
+            scheduleClassUuidsMap.put(schedule.getScheduleUuid(),
+                    tccList.stream().map(TeachingClassClassDO::getClassUuid).collect(Collectors.toList()));
+        }
+
+        // 6. 转换预览记录为 CourseAppointment 格式（同时保留ScheduleDO引用）
+        List<ScheduleAppointment> previewAppointmentList = previewSchedules.stream().map(sc -> {
+            CourseAppointment appt = new CourseAppointment();
+            appt.setTeachingClassUuid(sc.getTeachingClassUuid());
+            appt.setCourseUuid(sc.getCourseUuid());
+            appt.setTeacherUuid(sc.getTeacherUuid());
+            appt.setClassroomUuid(sc.getClassroomUuid());
+
+            TeachingClassDO tc = teachingClassMap.get(sc.getTeachingClassUuid());
+            if (tc != null) {
+                appt.setTeachingClassName(tc.getTeachingClassName());
+            }
+            CourseDO course = courseMap.get(sc.getCourseUuid());
+            if (course != null) {
+                appt.setCourseName(course.getCourseName());
+                appt.setCourseTypeUuid(course.getCourseTypeUuid());
+            }
+            TeacherDO teacher = teacherMap.get(sc.getTeacherUuid());
+            if (teacher != null) {
+                appt.setTeacherName(teacher.getTeacherName());
+            }
+            ClassroomDO classroom = classroomMap.get(sc.getClassroomUuid());
+            if (classroom != null) {
+                appt.setClassroomName(classroom.getClassroomName());
+                appt.setClassroomCapacity(classroom.getClassroomCapacity());
+                appt.setClassroomTypeUuid(classroom.getClassroomTypeUuid());
+            }
+
+            appt.setClassUuids(scheduleClassUuidsMap.get(sc.getScheduleUuid()));
+
+            // 构建时间槽
+            TimeSlot timeSlot = new TimeSlot();
+            timeSlot.setDayOfWeek(sc.getDayOfWeek());
+            timeSlot.setSectionStart(sc.getSectionStart());
+            timeSlot.setSectionEnd(sc.getSectionEnd());
+            timeSlot.setWeeks(parseWeeksJson(sc.getWeeksJson()));
+            appt.setTimeSlot(timeSlot);
+
+            return new ScheduleAppointment(sc, appt);
+        }).collect(Collectors.toList());
+
+        // 提取仅包含CourseAppointment的列表供后续检测使用
+        List<CourseAppointment> previewAppointments = previewAppointmentList.stream()
+                .map(ScheduleAppointment::getAppointment)
+                .collect(Collectors.toList());
+
+        // 7. 转换正式记录为 ExistingSchedule 格式
+        List<ScheduleContext.ExistingSchedule> existingScheduleList = existingSchedules.stream().map(sc -> {
+            ScheduleContext.ExistingSchedule es = new ScheduleContext.ExistingSchedule();
+            es.setScheduleUuid(sc.getScheduleUuid());
+            es.setTeachingClassUuid(sc.getTeachingClassUuid());
+            es.setTeacherUuid(sc.getTeacherUuid());
+            es.setClassroomUuid(sc.getClassroomUuid());
+
+            List<TeachingClassClassDO> tccList = teachingClassClassDAO.list(
+                    new QueryWrapper<TeachingClassClassDO>()
+                            .eq("teaching_class_uuid", sc.getTeachingClassUuid())
+            );
+            es.setClassUuids(tccList.stream().map(TeachingClassClassDO::getClassUuid).collect(Collectors.toList()));
+
+            TimeSlot timeSlot = new TimeSlot();
+            timeSlot.setDayOfWeek(sc.getDayOfWeek());
+            timeSlot.setSectionStart(sc.getSectionStart());
+            timeSlot.setSectionEnd(sc.getSectionEnd());
+            timeSlot.setWeeks(parseWeeksJson(sc.getWeeksJson()));
+            es.setTimeSlot(timeSlot);
+
+            return es;
+        }).collect(Collectors.toList());
+
+        // 8. 构建最小上下文（仅用于冲突检测）
+        ScheduleContext context = new ScheduleContext();
+        context.setSemesterUuid(semesterUuid);
+        context.setExistingSchedules(existingScheduleList);
+
+        // 查询课程类型-教室类型映射关系
+        List<CourseClassroomTypeDO> courseClassroomTypes = courseClassroomTypeDAO.list();
+        Map<String, List<String>> courseTypeToClassroomTypes = courseClassroomTypes.stream()
+                .collect(Collectors.groupingBy(
+                        CourseClassroomTypeDO::getCourseTypeUuid,
+                        Collectors.mapping(CourseClassroomTypeDO::getClassroomTypeUuid, Collectors.toList())
+                ));
+        context.setCourseTypeToClassroomTypes(courseTypeToClassroomTypes);
+
+        // 查询课程-教师资格映射关系
+        List<CourseQualificationDO> courseQualifications = courseQualificationDAO.list();
+        Map<String, List<String>> courseTeacherQualifications = courseQualifications.stream()
+                .collect(Collectors.groupingBy(
+                        CourseQualificationDO::getCourseUuid,
+                        Collectors.mapping(CourseQualificationDO::getTeacherUuid, Collectors.toList())
+                ));
+        context.setCourseTeacherQualifications(courseTeacherQualifications);
+
+        // 9. 检测预览记录之间的冲突（内部冲突）
+        int conflictAdded = 0;
+
+        // 检测两两冲突
+        for (int i = 0; i < previewAppointmentList.size(); i++) {
+            for (int j = i + 1; j < previewAppointmentList.size(); j++) {
+                ScheduleAppointment sa1 = previewAppointmentList.get(i);
+                ScheduleAppointment sa2 = previewAppointmentList.get(j);
+                CourseAppointment appt1 = sa1.getAppointment();
+                CourseAppointment appt2 = sa2.getAppointment();
+
+                // 跳过同一教学班的不同次排课
+                if (appt1.getTeachingClassUuid().equals(appt2.getTeachingClassUuid())) {
+                    continue;
+                }
+
+                TimeSlot slot1 = appt1.getTimeSlot();
+                TimeSlot slot2 = appt2.getTimeSlot();
+
+                if (slot1.isOverlap(slot2)) {
+                    // 教师冲突
+                    if (appt1.getTeacherUuid().equals(appt2.getTeacherUuid())) {
+                        addScheduleConflict(semesterUuid, sa1.getScheduleDO().getScheduleUuid(),
+                                sa2.getScheduleDO().getScheduleUuid(), "TEACHER_TIME_CONFLICT",
+                                "教师[" + appt1.getTeacherName() + "]同一时间有多门课程", 1);
+                        conflictAdded++;
+                    }
+
+                    // 教室冲突
+                    if (appt1.getClassroomUuid().equals(appt2.getClassroomUuid())) {
+                        addScheduleConflict(semesterUuid, sa1.getScheduleDO().getScheduleUuid(),
+                                sa2.getScheduleDO().getScheduleUuid(), "CLASSROOM_TIME_CONFLICT",
+                                "教室[" + appt1.getClassroomName() + "]同一时间被多个课程占用", 1);
+                        conflictAdded++;
+                    }
+
+                    // 班级冲突
+                    if (appt1.getClassUuids() != null && appt2.getClassUuids() != null) {
+                        Set<String> classes1 = new HashSet<>(appt1.getClassUuids());
+                        Set<String> classes2 = new HashSet<>(appt2.getClassUuids());
+                        classes1.retainAll(classes2);
+
+                        if (!classes1.isEmpty()) {
+                            addScheduleConflict(semesterUuid, sa1.getScheduleDO().getScheduleUuid(),
+                                    sa2.getScheduleDO().getScheduleUuid(), "CLASS_TIME_CONFLICT",
+                                    "班级同一时间有多门课程", 1);
+                            conflictAdded++;
+                        }
+                    }
+                }
+            }
+        }
+
+        // 10. 检测预览记录与已有正式记录的冲突
+        for (ScheduleAppointment sa : previewAppointmentList) {
+            CourseAppointment newAppt = sa.getAppointment();
+            String newScheduleUuid = sa.getScheduleDO().getScheduleUuid();
+            for (ScheduleContext.ExistingSchedule existing : existingScheduleList) {
+                if (newAppt.getTimeSlot().isOverlap(existing.getTimeSlot())) {
+                    // 教师冲突
+                    if (newAppt.getTeacherUuid().equals(existing.getTeacherUuid())) {
+                        ScheduleDO existingSchedule = existingSchedules.stream()
+                                .filter(sc -> sc.getScheduleUuid().equals(existing.getScheduleUuid()))
+                                .findFirst().orElse(null);
+                        if (existingSchedule != null) {
+                            addScheduleConflictWithExisting(semesterUuid, newScheduleUuid,
+                                    existingSchedule.getScheduleUuid(), "EXISTING_SCHEDULE_CONFLICT",
+                                    "教师[" + newAppt.getTeacherName() + "]在已有排课中该时间段有课", 1);
+                            conflictAdded++;
+                        }
+                    }
+
+                    // 教室冲突
+                    if (newAppt.getClassroomUuid().equals(existing.getClassroomUuid())) {
+                        ScheduleDO existingSchedule = existingSchedules.stream()
+                                .filter(sc -> sc.getScheduleUuid().equals(existing.getScheduleUuid()))
+                                .findFirst().orElse(null);
+                        if (existingSchedule != null) {
+                            addScheduleConflictWithExisting(semesterUuid, newScheduleUuid,
+                                    existingSchedule.getScheduleUuid(), "EXISTING_SCHEDULE_CONFLICT",
+                                    "教室[" + newAppt.getClassroomName() + "]在已有排课中该时间段已被占用", 1);
+                            conflictAdded++;
+                        }
+                    }
+
+                    // 班级冲突
+                    if (newAppt.getClassUuids() != null && existing.getClassUuids() != null) {
+                        Set<String> newClasses = new HashSet<>(newAppt.getClassUuids());
+                        Set<String> existingClasses = new HashSet<>(existing.getClassUuids());
+                        newClasses.retainAll(existingClasses);
+
+                        if (!newClasses.isEmpty()) {
+                            ScheduleDO existingSchedule = existingSchedules.stream()
+                                    .filter(sc -> sc.getScheduleUuid().equals(existing.getScheduleUuid()))
+                                    .findFirst().orElse(null);
+                            if (existingSchedule != null) {
+                                addScheduleConflictWithExisting(semesterUuid, newScheduleUuid,
+                                        existingSchedule.getScheduleUuid(), "EXISTING_SCHEDULE_CONFLICT",
+                                        "班级在已有排课中该时间段有课", 1);
+                                conflictAdded++;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // 11. 检测容量约束
+        for (ScheduleAppointment sa : previewAppointmentList) {
+            CourseAppointment appt = sa.getAppointment();
+            if (appt.getClassroomCapacity() != null && appt.getTotalStudents() != null) {
+                if (appt.getClassroomCapacity() < appt.getTotalStudents()) {
+                    // 容量不足的冲突也需要记录，但这种是单个排课的问题
+                    ScheduleConflictDO conflict = new ScheduleConflictDO();
+                    conflict.setConflictUuid(UUID.randomUUID().toString().replace("-", ""));
+                    conflict.setSemesterUuid(semesterUuid);
+                    conflict.setScheduleUuidA(sa.getScheduleDO().getScheduleUuid());
+                    conflict.setScheduleUuidB(null);
+                    conflict.setConflictType("CAPACITY_INSUFFICIENT");
+                    conflict.setSeverity(1);
+                    conflict.setDescription("教室[" + appt.getClassroomName() + "]容量不足，需要" + appt.getTotalStudents() + "个座位，实际只有" + appt.getClassroomCapacity() + "个");
+                    scheduleConflictDAO.save(conflict);
+                    conflictAdded++;
+                }
+            }
+        }
+
+        // 12. 检测教室类型匹配约束
+        Map<String, List<String>> courseTypeClassroomMap = context.getCourseTypeToClassroomTypes();
+        if (courseTypeClassroomMap != null && !courseTypeClassroomMap.isEmpty()) {
+            for (ScheduleAppointment sa : previewAppointmentList) {
+                CourseAppointment appt = sa.getAppointment();
+                String courseTypeUuid = appt.getCourseTypeUuid();
+                String classroomTypeUuid = appt.getClassroomTypeUuid();
+
+                if (courseTypeUuid != null && classroomTypeUuid != null) {
+                    List<String> allowedTypes = courseTypeClassroomMap.get(courseTypeUuid);
+                    if (allowedTypes != null && !allowedTypes.isEmpty() && !allowedTypes.contains(classroomTypeUuid)) {
+                        ScheduleConflictDO conflict = new ScheduleConflictDO();
+                        conflict.setConflictUuid(UUID.randomUUID().toString().replace("-", ""));
+                        conflict.setSemesterUuid(semesterUuid);
+                        conflict.setScheduleUuidA(sa.getScheduleDO().getScheduleUuid());
+                        conflict.setScheduleUuidB(null);
+                        conflict.setConflictType("CLASSROOM_TYPE_MISMATCH");
+                        conflict.setSeverity(1);
+                        conflict.setDescription("课程[" + appt.getCourseName() + "]需要类型为" + allowedTypes + "的教室，但被安排到了类型不匹配的教室[" + appt.getClassroomName() + "]");
+                        scheduleConflictDAO.save(conflict);
+                        conflictAdded++;
+                    }
+                }
+            }
+        }
+
+        // 13. 检测教师资格约束
+        Map<String, List<String>> courseTeacherQualMap = context.getCourseTeacherQualifications();
+        if (courseTeacherQualMap != null && !courseTeacherQualMap.isEmpty()) {
+            for (ScheduleAppointment sa : previewAppointmentList) {
+                CourseAppointment appt = sa.getAppointment();
+                String courseUuid = appt.getCourseUuid();
+                String teacherUuid = appt.getTeacherUuid();
+
+                if (courseUuid != null && teacherUuid != null) {
+                    List<String> qualifiedTeachers = courseTeacherQualMap.get(courseUuid);
+
+                    if (qualifiedTeachers == null || qualifiedTeachers.isEmpty()) {
+                        ScheduleConflictDO conflict = new ScheduleConflictDO();
+                        conflict.setConflictUuid(UUID.randomUUID().toString().replace("-", ""));
+                        conflict.setSemesterUuid(semesterUuid);
+                        conflict.setScheduleUuidA(sa.getScheduleDO().getScheduleUuid());
+                        conflict.setScheduleUuidB(null);
+                        conflict.setConflictType("TEACHER_QUALIFICATION_MISMATCH");
+                        conflict.setSeverity(1);
+                        conflict.setDescription("课程[" + appt.getCourseName() + "]没有任何有资格教师，却安排了教师[" + appt.getTeacherName() + "]");
+                        scheduleConflictDAO.save(conflict);
+                        conflictAdded++;
+                    } else if (!qualifiedTeachers.contains(teacherUuid)) {
+                        ScheduleConflictDO conflict = new ScheduleConflictDO();
+                        conflict.setConflictUuid(UUID.randomUUID().toString().replace("-", ""));
+                        conflict.setSemesterUuid(semesterUuid);
+                        conflict.setScheduleUuidA(sa.getScheduleDO().getScheduleUuid());
+                        conflict.setScheduleUuidB(null);
+                        conflict.setConflictType("TEACHER_QUALIFICATION_MISMATCH");
+                        conflict.setSeverity(1);
+                        conflict.setDescription("教师[" + appt.getTeacherName() + "]没有教授课程[" + appt.getCourseName() + "]的资格");
+                        scheduleConflictDAO.save(conflict);
+                        conflictAdded++;
+                    }
+                }
+            }
+        }
+
+        log.info("检测并保存排课冲突完成，共添加 {} 条冲突记录", conflictAdded);
+        return conflictAdded;
+    }
+
+    /**
+     * 添加排课冲突记录（两个新排课之间的冲突）
+     */
+    private void addScheduleConflict(String semesterUuid, String scheduleUuidA, String scheduleUuidB,
+                                      String conflictType, String description, Integer severity) {
+        ScheduleConflictDO conflict = new ScheduleConflictDO();
+        conflict.setConflictUuid(UUID.randomUUID().toString().replace("-", ""));
+        conflict.setSemesterUuid(semesterUuid);
+        conflict.setScheduleUuidA(scheduleUuidA);
+        conflict.setScheduleUuidB(scheduleUuidB);
+        conflict.setConflictType(conflictType);
+        conflict.setSeverity(severity);
+        conflict.setDescription(description);
+        scheduleConflictDAO.save(conflict);
+    }
+
+    /**
+     * 添加排课冲突记录（预览排课与已有正式排课的冲突）
+     */
+    private void addScheduleConflictWithExisting(String semesterUuid, String newScheduleUuid,
+                                                  String existingScheduleUuid, String conflictType,
+                                                  String description, Integer severity) {
+        ScheduleConflictDO conflict = new ScheduleConflictDO();
+        conflict.setConflictUuid(UUID.randomUUID().toString().replace("-", ""));
+        conflict.setSemesterUuid(semesterUuid);
+        conflict.setScheduleUuidA(newScheduleUuid);
+        conflict.setScheduleUuidB(existingScheduleUuid);
+        conflict.setConflictType(conflictType);
+        conflict.setSeverity(severity);
+        conflict.setDescription(description);
+        scheduleConflictDAO.save(conflict);
     }
 
     /**
@@ -577,7 +1020,12 @@ public class AutoScheduleLogic implements AutoScheduleService {
     // ==================== 按行政班级排课新方法 ====================
 
     /**
-     * 解析并创建教学班（按行政班级排课模式）
+     * 教学班最大容量（默认50人）
+     */
+    private static final int MAX_TEACHING_CLASS_CAPACITY = 50;
+
+    /**
+     * 解析并创建教学班（按行政班级排课模式，按容量自动拆分）
      *
      * @param params 排课参数
      * @return 教学班UUID列表
@@ -585,6 +1033,8 @@ public class AutoScheduleLogic implements AutoScheduleService {
     private List<String> parseAndCreateTeachingClasses(AutoScheduleVO params) {
         List<String> teachingClassUuids = new ArrayList<>();
         String semesterUuid = params.getSemesterUuid();
+
+        log.info("开始解析并创建教学班，courseClassMapping: {}", params.getCourseClassMapping());
 
         for (Map.Entry<String, List<String>> entry : params.getCourseClassMapping().entrySet()) {
             String courseUuid = entry.getKey();
@@ -597,15 +1047,104 @@ public class AutoScheduleLogic implements AutoScheduleService {
                 throw new IllegalArgumentException("课程 " + courseUuid + " 没有可用的有资格教师");
             }
 
-            // 2. 查找或创建教学班
-            String teachingClassUuid = findOrBuildTeachingClass(courseUuid, teacherUuid, semesterUuid, classUuids);
-            teachingClassUuids.add(teachingClassUuid);
+            // 2. 按容量拆分行政班，获取拆分后的分组
+            List<List<String>> splitClassGroups = splitClassesByCapacity(classUuids);
 
-            log.info("课程: {}, 教师: {}, 行政班: {} -> 教学班: {}",
-                    courseUuid, teacherUuid, classUuids, teachingClassUuid);
+            log.info("课程 {} 拆分后得到 {} 个分组", courseUuid, splitClassGroups.size());
+
+            // 3. 为每个分组创建教学班
+            for (int i = 0; i < splitClassGroups.size(); i++) {
+                List<String> group = splitClassGroups.get(i);
+                String groupSuffix = splitClassGroups.size() > 1 ? "-" + (i + 1) + "组" : "";
+
+                log.info("处理分组 {}: 行政班UUID列表 = {}", i, group);
+
+                // 为分组创建独立的教学班
+                String teachingClassUuid = findOrBuildTeachingClass(
+                        courseUuid, teacherUuid, semesterUuid, group, groupSuffix);
+                teachingClassUuids.add(teachingClassUuid);
+
+                log.info("课程: {}, 教师: {}, 行政班: {} -> 教学班: {}",
+                        courseUuid, teacherUuid, group, teachingClassUuid);
+            }
         }
 
+        log.info("最终创建/复用的教学班UUID数量: {}", teachingClassUuids.size());
+
         return teachingClassUuids;
+    }
+
+    /**
+     * 按容量拆分行政班
+     * 贪心算法：尽量让每个教学班接近容量上限
+     *
+     * @param classUuids 行政班UUID列表
+     * @return 拆分后的行政班分组列表
+     */
+    private List<List<String>> splitClassesByCapacity(List<String> classUuids) {
+        List<List<String>> groups = new ArrayList<>();
+
+        // 计算每个行政班的学生人数
+        Map<String, Integer> classStudentCount = new HashMap<>();
+        for (String classUuid : classUuids) {
+            List<StudentDO> students = studentDAO.list(
+                    new QueryWrapper<StudentDO>().eq("class_uuid", classUuid)
+            );
+            int count = students.size();
+            classStudentCount.put(classUuid, count);
+            log.debug("行政班 {} 学生人数: {}", classUuid, count);
+        }
+
+        log.info("行政班数量: {}, 学生人数分布: {}", classUuids.size(), classStudentCount.toString());
+
+        // 按班级人数降序排序，优先处理大班
+        List<String> sortedClassUuids = new ArrayList<>(classUuids);
+        sortedClassUuids.sort((a, b) -> Integer.compare(
+                classStudentCount.getOrDefault(b, 0),
+                classStudentCount.getOrDefault(a, 0)
+        ));
+
+        // 贪心分配：每个班尽量装满到容量上限
+        List<String> currentGroup = new ArrayList<>();
+        int currentGroupCapacity = 0;
+
+        for (String classUuid : sortedClassUuids) {
+            int studentCount = classStudentCount.getOrDefault(classUuid, 0);
+
+            // 如果单个行政班就超过容量，直接作为一个组
+            if (studentCount > MAX_TEACHING_CLASS_CAPACITY) {
+                // 先把当前的组保存
+                if (!currentGroup.isEmpty()) {
+                    groups.add(new ArrayList<>(currentGroup));
+                    currentGroup.clear();
+                    currentGroupCapacity = 0;
+                }
+                // 这个班单独成一组
+                groups.add(Collections.singletonList(classUuid));
+                continue;
+            }
+
+            // 尝试加入当前组
+            if (currentGroupCapacity + studentCount <= MAX_TEACHING_CLASS_CAPACITY) {
+                currentGroup.add(classUuid);
+                currentGroupCapacity += studentCount;
+            } else {
+                // 当前组已满，保存并创建新组
+                if (!currentGroup.isEmpty()) {
+                    groups.add(new ArrayList<>(currentGroup));
+                }
+                currentGroup = new ArrayList<>();
+                currentGroup.add(classUuid);
+                currentGroupCapacity = studentCount;
+            }
+        }
+
+        // 保存最后一个组
+        if (!currentGroup.isEmpty()) {
+            groups.add(new ArrayList<>(currentGroup));
+        }
+
+        return groups;
     }
 
     /**
@@ -706,10 +1245,11 @@ public class AutoScheduleLogic implements AutoScheduleService {
      * @param teacherUuid 教师UUID
      * @param semesterUuid 学期UUID
      * @param classUuids 行政班UUID列表
+     * @param groupSuffix 分组后缀（如"-1组"，为空则不添加）
      * @return 教学班UUID
      */
     private String findOrBuildTeachingClass(String courseUuid, String teacherUuid,
-                                              String semesterUuid, List<String> classUuids) {
+                                              String semesterUuid, List<String> classUuids, String groupSuffix) {
         // 1. 排序行政班UUID列表，便于比较
         List<String> sortedClassUuids = new ArrayList<>(classUuids);
         Collections.sort(sortedClassUuids);
@@ -742,7 +1282,7 @@ public class AutoScheduleLogic implements AutoScheduleService {
         }
 
         // 4. 未找到匹配的教学班，创建新的
-        return createNewTeachingClass(courseUuid, teacherUuid, semesterUuid, classUuids);
+        return createNewTeachingClass(courseUuid, teacherUuid, semesterUuid, classUuids, groupSuffix);
     }
 
     /**
@@ -752,10 +1292,11 @@ public class AutoScheduleLogic implements AutoScheduleService {
      * @param teacherUuid 教师UUID
      * @param semesterUuid 学期UUID
      * @param classUuids 行政班UUID列表
+     * @param groupSuffix 分组后缀（如"-1组"，为空则不添加）
      * @return 教学班UUID
      */
     private String createNewTeachingClass(String courseUuid, String teacherUuid,
-                                          String semesterUuid, List<String> classUuids) {
+                                          String semesterUuid, List<String> classUuids, String groupSuffix) {
         // 1. 查询课程信息
         CourseDO course = courseDAO.getById(courseUuid);
         if (course == null) {
@@ -774,9 +1315,8 @@ public class AutoScheduleLogic implements AutoScheduleService {
             throw new IllegalArgumentException("部分行政班不存在");
         }
 
-        // 4. 构建教学班名称：课程名-教师名-行政班数量
-        // 注意：数据库字段限制为64字符，简化命名避免超长
-        String classCountInfo = classUuids.size() + "班";
+        // 4. 构建教学班名称：课程名-教师名-班级数+后缀
+        String classCountInfo = classUuids.size() + "班" + groupSuffix;
         String teachingClassName = course.getCourseName() + "-" + teacher.getTeacherName() + "-" + classCountInfo;
 
         // 限制名称长度不超过64字符

@@ -351,13 +351,13 @@ public class CourseResourceInitializer {
 
         // A栋（第一教学楼）- 20个教室
         String buildingA = buildings.get(0).getBuildingUuid();
-        // 普通教室 A101-A115（15个，60人容量）
+        // 普通教室 A101-A115（15个，70人容量）
         for (int i = 1; i <= 15; i++) {
             ClassroomDO room = new ClassroomDO();
             room.setClassroomUuid(UuidUtil.generateUuidNoDash())
                     .setBuildingUuid(buildingA)
                     .setClassroomName("A" + String.format("%02d", 100 + i))
-                    .setClassroomCapacity(60)
+                    .setClassroomCapacity(70)
                     .setClassroomTypeUuid(normalRoomType);
             classrooms.add(room);
         }
@@ -374,13 +374,13 @@ public class CourseResourceInitializer {
 
         // B栋（第二教学楼）- 20个教室
         String buildingB = buildings.get(1).getBuildingUuid();
-        // 普通教室 B101-B115（15个，50人容量）
+        // 普通教室 B101-B115（15个，75人容量）
         for (int i = 1; i <= 15; i++) {
             ClassroomDO room = new ClassroomDO();
             room.setClassroomUuid(UuidUtil.generateUuidNoDash())
                     .setBuildingUuid(buildingB)
                     .setClassroomName("B" + String.format("%02d", 100 + i))
-                    .setClassroomCapacity(50)
+                    .setClassroomCapacity(75)
                     .setClassroomTypeUuid(normalRoomType);
             classrooms.add(room);
         }
@@ -397,23 +397,23 @@ public class CourseResourceInitializer {
 
         // C栋（实验楼）- 20个教室
         String buildingC = buildings.get(2).getBuildingUuid();
-        // 机房 C101-C108（8个，40人容量）
+        // 机房 C101-C108（8个，70人容量）
         for (int i = 1; i <= 8; i++) {
             ClassroomDO room = new ClassroomDO();
             room.setClassroomUuid(UuidUtil.generateUuidNoDash())
                     .setBuildingUuid(buildingC)
                     .setClassroomName("C" + String.format("%02d", 100 + i))
-                    .setClassroomCapacity(40)
+                    .setClassroomCapacity(70)
                     .setClassroomTypeUuid(computerRoomType);
             classrooms.add(room);
         }
-        // 实验室 C109-C120（12个，30人容量）
+        // 实验室 C109-C120（12个，70人容量）
         for (int i = 9; i <= 20; i++) {
             ClassroomDO room = new ClassroomDO();
             room.setClassroomUuid(UuidUtil.generateUuidNoDash())
                     .setBuildingUuid(buildingC)
                     .setClassroomName("C" + String.format("%02d", 100 + i))
-                    .setClassroomCapacity(30)
+                    .setClassroomCapacity(70)
                     .setClassroomTypeUuid(labRoomType);
             classrooms.add(room);
         }
@@ -438,13 +438,13 @@ public class CourseResourceInitializer {
 
         // E栋（第三教学楼）- 20个教室
         String buildingE = buildings.get(4).getBuildingUuid();
-        // 普通教室 E101-E115（15个，60人容量）
+        // 普通教室 E101-E115（15个，70人容量）
         for (int i = 1; i <= 15; i++) {
             ClassroomDO room = new ClassroomDO();
             room.setClassroomUuid(UuidUtil.generateUuidNoDash())
                     .setBuildingUuid(buildingE)
                     .setClassroomName("E" + String.format("%02d", 100 + i))
-                    .setClassroomCapacity(60)
+                    .setClassroomCapacity(70)
                     .setClassroomTypeUuid(normalRoomType);
             classrooms.add(room);
         }
@@ -461,13 +461,13 @@ public class CourseResourceInitializer {
 
         // F栋（第四教学楼）- 20个教室
         String buildingF = buildings.get(5).getBuildingUuid();
-        // 普通教室 F101-F115（15个，50人容量）
+        // 普通教室 F101-F115（15个，75人容量）
         for (int i = 1; i <= 15; i++) {
             ClassroomDO room = new ClassroomDO();
             room.setClassroomUuid(UuidUtil.generateUuidNoDash())
                     .setBuildingUuid(buildingF)
                     .setClassroomName("F" + String.format("%02d", 100 + i))
-                    .setClassroomCapacity(50)
+                    .setClassroomCapacity(75)
                     .setClassroomTypeUuid(normalRoomType);
             classrooms.add(room);
         }
@@ -484,46 +484,46 @@ public class CourseResourceInitializer {
 
         // G栋（艺术楼）- 20个教室
         String buildingG = buildings.get(6).getBuildingUuid();
-        // 音乐教室 G101-G105（5个，40人容量）
+        // 音乐教室 G101-G105（5个，70人容量）
         for (int i = 1; i <= 5; i++) {
             ClassroomDO room = new ClassroomDO();
             room.setClassroomUuid(UuidUtil.generateUuidNoDash())
                     .setBuildingUuid(buildingG)
                     .setClassroomName("G" + String.format("%02d", 100 + i))
-                    .setClassroomCapacity(40)
+                    .setClassroomCapacity(70)
                     .setClassroomTypeUuid(normalRoomType);
             classrooms.add(room);
         }
-        // 美术教室 G106-G110（5个，40人容量）
+        // 美术教室 G106-G110（5个，70人容量）
         for (int i = 6; i <= 10; i++) {
             ClassroomDO room = new ClassroomDO();
             room.setClassroomUuid(UuidUtil.generateUuidNoDash())
                     .setBuildingUuid(buildingG)
                     .setClassroomName("G" + String.format("%02d", 100 + i))
-                    .setClassroomCapacity(40)
+                    .setClassroomCapacity(70)
                     .setClassroomTypeUuid(normalRoomType);
             classrooms.add(room);
         }
-        // 多媒体教室 G111-G120（10个，50人容量）
+        // 多媒体教室 G111-G120（10个，75人容量）
         for (int i = 11; i <= 20; i++) {
             ClassroomDO room = new ClassroomDO();
             room.setClassroomUuid(UuidUtil.generateUuidNoDash())
                     .setBuildingUuid(buildingG)
                     .setClassroomName("G" + String.format("%02d", 100 + i))
-                    .setClassroomCapacity(50)
+                    .setClassroomCapacity(75)
                     .setClassroomTypeUuid(computerRoomType);
             classrooms.add(room);
         }
 
         // H栋（综合楼）- 20个教室
         String buildingH = buildings.get(7).getBuildingUuid();
-        // 普通教室 H101-H115（15个，60人容量）
+        // 普通教室 H101-H115（15个，70人容量）
         for (int i = 1; i <= 15; i++) {
             ClassroomDO room = new ClassroomDO();
             room.setClassroomUuid(UuidUtil.generateUuidNoDash())
                     .setBuildingUuid(buildingH)
                     .setClassroomName("H" + String.format("%02d", 100 + i))
-                    .setClassroomCapacity(60)
+                    .setClassroomCapacity(70)
                     .setClassroomTypeUuid(normalRoomType);
             classrooms.add(room);
         }
