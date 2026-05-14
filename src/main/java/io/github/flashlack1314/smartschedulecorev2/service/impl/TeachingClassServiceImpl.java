@@ -271,19 +271,22 @@ public class TeachingClassServiceImpl implements TeachingClassService {
         dto.setWeeklySessions(teachingClassDO.getWeeklySessions());
         dto.setSectionsPerSession(teachingClassDO.getSectionsPerSession());
 
-        // 获取课程名称
+        // 设置课程UUID和名称
+        dto.setCourseUuid(teachingClassDO.getCourseUuid());
         CourseDO courseDO = courseDAO.getById(teachingClassDO.getCourseUuid());
         if (courseDO != null) {
             dto.setCourseName(courseDO.getCourseName());
         }
 
-        // 获取教师名称
+        // 设置教师UUID和名称
+        dto.setTeacherUuid(teachingClassDO.getTeacherUuid());
         TeacherDO teacherDO = teacherDAO.getById(teachingClassDO.getTeacherUuid());
         if (teacherDO != null) {
             dto.setTeacherName(teacherDO.getTeacherName());
         }
 
-        // 获取学期名称
+        // 设置学期UUID和名称
+        dto.setSemesterUuid(teachingClassDO.getSemesterUuid());
         SemesterDO semesterDO = semesterDAO.getById(teachingClassDO.getSemesterUuid());
         if (semesterDO != null) {
             dto.setSemesterName(semesterDO.getSemesterName());

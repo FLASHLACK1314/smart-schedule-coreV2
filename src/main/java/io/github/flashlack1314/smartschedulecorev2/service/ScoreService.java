@@ -101,4 +101,14 @@ public interface ScoreService {
      * @return 平均绩点
      */
     BigDecimal calculateGPA(String studentUuid, String semesterUuid);
+
+    /**
+     * 自动初始化教学班的学生成绩（成绩预设为0）
+     * 当教学班创建或确认排课后，自动为所有关联行政班的学生创建成绩记录
+     *
+     * @param teachingClassUuid 教学班UUID
+     * @param semesterUuid      学期UUID
+     * @return 初始化成绩的学生数量
+     */
+    int initScoresForTeachingClass(String teachingClassUuid, String semesterUuid);
 }

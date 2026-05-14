@@ -16,6 +16,7 @@ import io.github.flashlack1314.smartschedulecorev2.dao.*;
 import io.github.flashlack1314.smartschedulecorev2.model.entity.*;
 import io.github.flashlack1314.smartschedulecorev2.model.vo.AutoScheduleVO;
 import io.github.flashlack1314.smartschedulecorev2.service.AutoScheduleService;
+import io.github.flashlack1314.smartschedulecorev2.service.ScoreService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -51,6 +52,7 @@ public class AutoScheduleLogic implements AutoScheduleService {
     private final ConflictDetector conflictDetector;
     private final FitnessCalculator fitnessCalculator;
     private final HoursCalculator hoursCalculator;
+    private final ScoreService scoreService;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -549,12 +551,55 @@ public class AutoScheduleLogic implements AutoScheduleService {
                         .set("updated_at", LocalDateTime.now())
         );
 
+        // 自动初始化成绩：为所有已确认排课的教学班创建学生成绩记录（成绩预设0）
+        initScoresForConfirmedSchedules(semesterUuid);
+
         String message = conflictCount > 0
                 ? "确认成功，但检测到 " + conflictCount + " 个冲突"
                 : "确认排课方案成功";
         log.info("排课方案确认完成: {}", message);
 
         return new ConfirmResult(conflictCount, message);
+    }
+
+    /**
+     * 为已确认排课的教学班自动初始化学生成绩
+     *
+     * @param semesterUuid 学期UUID
+     */
+    private void initScoresForConfirmedSchedules(String semesterUuid) {
+        log.info("自动初始化已确认排课教学班的学生成绩，学期UUID: {}", semesterUuid);
+
+        // 查询该学期所有正式排课的教学班UUID（去重）
+        List<ScheduleDO> confirmedSchedules = scheduleDAO.list(
+                new QueryWrapper<ScheduleDO>()
+                        .eq("semester_uuid", semesterUuid)
+                        .eq("status", 1)
+        );
+
+        if (confirmedSchedules.isEmpty()) {
+            log.info("没有正式排课记录，无需初始化成绩");
+            return;
+        }
+
+        Set<String> teachingClassUuids = confirmedSchedules.stream()
+                .map(ScheduleDO::getTeachingClassUuid)
+                .collect(Collectors.toSet());
+
+        log.info("发现 {} 个教学班需要进行成绩初始化", teachingClassUuids.size());
+
+        int totalInitCount = 0;
+        for (String teachingClassUuid : teachingClassUuids) {
+            try {
+                int count = scoreService.initScoresForTeachingClass(teachingClassUuid, semesterUuid);
+                totalInitCount += count;
+                log.info("教学班 {} 初始化了 {} 个学生成绩", teachingClassUuid, count);
+            } catch (Exception e) {
+                log.warn("教学班 {} 初始化成绩失败: {}", teachingClassUuid, e.getMessage());
+            }
+        }
+
+        log.info("成绩自动初始化完成，共初始化 {} 条成绩记录", totalInitCount);
     }
 
     /**

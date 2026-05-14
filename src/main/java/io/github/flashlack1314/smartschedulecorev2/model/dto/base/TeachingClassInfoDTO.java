@@ -16,13 +16,25 @@ public class TeachingClassInfoDTO {
      */
     private String teachingClassUuid;
     /**
+     * 课程UUID
+     */
+    private String courseUuid;
+    /**
      * 课程名称
      */
     private String courseName;
     /**
+     * 教师UUID
+     */
+    private String teacherUuid;
+    /**
      * 教师名称
      */
     private String teacherName;
+    /**
+     * 学期UUID
+     */
+    private String semesterUuid;
     /**
      * 学期名称
      */

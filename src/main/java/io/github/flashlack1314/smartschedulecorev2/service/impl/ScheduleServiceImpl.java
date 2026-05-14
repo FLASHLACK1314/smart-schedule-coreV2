@@ -14,6 +14,7 @@ import io.github.flashlack1314.smartschedulecorev2.model.dto.base.ScheduleInfoDT
 import io.github.flashlack1314.smartschedulecorev2.model.entity.*;
 import io.github.flashlack1314.smartschedulecorev2.model.vo.AddScheduleVO;
 import io.github.flashlack1314.smartschedulecorev2.service.ScheduleService;
+import io.github.flashlack1314.smartschedulecorev2.service.ScoreService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -41,6 +42,7 @@ public class ScheduleServiceImpl implements ScheduleService {
     private final StudentDAO studentDAO;
     private final TeachingClassClassDAO teachingClassClassDAO;
     private final ScheduleConflictInitializer scheduleConflictInitializer;
+    private final ScoreService scoreService;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -149,6 +151,17 @@ public class ScheduleServiceImpl implements ScheduleService {
 
         // 重新检测冲突
         scheduleConflictInitializer.reDetectConflictsForSchedule(scheduleDO.getScheduleUuid());
+
+        // 如果是正式排课(status=1)，自动初始化该教学班的学生成绩
+        if (getData.getStatus() != null && getData.getStatus() == 1) {
+            try {
+                int initCount = scoreService.initScoresForTeachingClass(
+                        getData.getTeachingClassUuid(), getData.getSemesterUuid());
+                log.info("排课添加后自动初始化成绩 {} 条", initCount);
+            } catch (Exception e) {
+                log.warn("自动初始化成绩失败: {}", e.getMessage());
+            }
+        }
 
         log.info("排课添加成功 - UUID: {}", scheduleDO.getScheduleUuid());
         return scheduleDO.getScheduleUuid();
@@ -297,6 +310,17 @@ public class ScheduleServiceImpl implements ScheduleService {
 
         // 重新检测冲突
         scheduleConflictInitializer.reDetectConflictsForSchedule(getData.getScheduleUuid());
+
+        // 如果是正式排课(status=1)，自动初始化该教学班的学生成绩
+        if (getData.getStatus() != null && getData.getStatus() == 1) {
+            try {
+                int initCount = scoreService.initScoresForTeachingClass(
+                        getData.getTeachingClassUuid(), getData.getSemesterUuid());
+                log.info("排课更新后自动初始化成绩 {} 条", initCount);
+            } catch (Exception e) {
+                log.warn("自动初始化成绩失败: {}", e.getMessage());
+            }
+        }
 
         log.info("排课更新成功 - UUID: {}", getData.getScheduleUuid());
     }

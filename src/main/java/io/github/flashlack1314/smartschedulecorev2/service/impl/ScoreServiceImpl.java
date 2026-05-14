@@ -446,6 +446,78 @@ public class ScoreServiceImpl implements ScoreService {
         return totalWeightedGP.divide(totalCredits, 2, RoundingMode.HALF_UP);
     }
 
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public int initScoresForTeachingClass(String teachingClassUuid, String semesterUuid) {
+        log.info("自动初始化教学班学生成绩 - teachingClassUuid: {}, semesterUuid: {}", teachingClassUuid, semesterUuid);
+
+        // 验证教学班是否存在
+        TeachingClassDO teachingClass = teachingClassDAO.getById(teachingClassUuid);
+        if (teachingClass == null) {
+            throw new BusinessException("教学班不存在: " + teachingClassUuid, ErrorCode.OPERATION_FAILED);
+        }
+
+        // 获取教学班关联的所有行政班
+        LambdaQueryWrapper<TeachingClassClassDO> tccQueryWrapper = new LambdaQueryWrapper<>();
+        tccQueryWrapper.eq(TeachingClassClassDO::getTeachingClassUuid, teachingClassUuid);
+        List<TeachingClassClassDO> classRelations = teachingClassClassDAO.list(tccQueryWrapper);
+
+        if (classRelations.isEmpty()) {
+            log.warn("教学班 {} 没有任何关联的行政班，无法初始化成绩", teachingClassUuid);
+            return 0;
+        }
+
+        // 收集所有学生UUID
+        List<String> studentUuids = new ArrayList<>();
+        for (TeachingClassClassDO relation : classRelations) {
+            LambdaQueryWrapper<StudentDO> studentQueryWrapper = new LambdaQueryWrapper<>();
+            studentQueryWrapper.eq(StudentDO::getClassUuid, relation.getClassUuid());
+            List<StudentDO> students = studentDAO.list(studentQueryWrapper);
+            students.forEach(s -> {
+                if (!studentUuids.contains(s.getStudentUuid())) {
+                    studentUuids.add(s.getStudentUuid());
+                }
+            });
+        }
+
+        if (studentUuids.isEmpty()) {
+            log.warn("教学班 {} 关联的行政班中没有学生，无法初始化成绩", teachingClassUuid);
+            return 0;
+        }
+
+        log.info("教学班 {} 关联学生数量: {}", teachingClassUuid, studentUuids.size());
+
+        // 为每个学生创建或检查成绩记录
+        int initCount = 0;
+        for (String studentUuid : studentUuids) {
+            // 检查成绩是否已存在
+            if (!scoreDAO.existsByStudentAndTeachingClass(studentUuid, teachingClassUuid)) {
+                // 创建成绩记录，成绩全部预设为0
+                ScoreDO scoreDO = new ScoreDO();
+                scoreDO.setScoreUuid(UuidUtil.generateUuidNoDash());
+                scoreDO.setStudentUuid(studentUuid);
+                scoreDO.setTeachingClassUuid(teachingClassUuid);
+                scoreDO.setSemesterUuid(semesterUuid);
+                // 所有成绩预设为0
+                scoreDO.setUsualScore(BigDecimal.ZERO);
+                scoreDO.setMidtermScore(BigDecimal.ZERO);
+                scoreDO.setFinalScore(BigDecimal.ZERO);
+                scoreDO.setTotalScore(BigDecimal.ZERO);
+                scoreDO.setGradePoint(BigDecimal.ZERO);
+                scoreDO.setRemark("系统自动初始化");
+                scoreDO.setCreateTime(LocalDateTime.now());
+                scoreDO.setUpdateTime(LocalDateTime.now());
+
+                scoreDAO.save(scoreDO);
+                initCount++;
+                log.debug("为学生 {} 初始化成绩记录", studentUuid);
+            }
+        }
+
+        log.info("教学班 {} 成绩初始化完成，共初始化 {} 条记录", teachingClassUuid, initCount);
+        return initCount;
+    }
+
     /**
      * 验证成绩范围
      */
