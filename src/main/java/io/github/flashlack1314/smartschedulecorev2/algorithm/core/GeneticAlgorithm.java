@@ -90,12 +90,21 @@ public class GeneticAlgorithm {
 
         // 阶段2：进化迭代
         for (int generation = 0; generation < maxGenerations; generation++) {
-            // 迭代休眠1秒，便于SSE实时推送进度
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                log.warn("遗传算法迭代被中断");
+            // 计算教学班和行政班总数，用于决定休眠时间
+            int totalTeachingClasses = context.getTeachingClassList() != null ? context.getTeachingClassList().size() : 0;
+            int totalAdminClasses = context.getTeachingClassList() != null
+                    ? context.getTeachingClassList().stream().mapToInt(tc -> tc.getClassUuids() != null ? tc.getClassUuids().size() : 0).sum()
+                    : 0;
+
+            // 如果课程数和行政班级数量少于10个，休眠0.3秒；否则休眠1秒
+            int sleepTime = (totalTeachingClasses + totalAdminClasses) < 10 ? 300 : 1000;
+            if (sleepTime > 0) {
+                try {
+                    Thread.sleep(sleepTime);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    log.warn("遗传算法迭代被中断");
+                }
             }
 
             // 评估适应度
