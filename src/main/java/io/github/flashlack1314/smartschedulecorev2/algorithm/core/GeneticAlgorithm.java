@@ -42,7 +42,7 @@ public class GeneticAlgorithm {
     private int tournamentSize = 5;
     private int tournamentRepeats = 100;
 
-    // 自适应交叉变异参数（论文公式5-2、5-3）
+    // 自适应交叉变异参数
     private static final double P_CMAX = 0.9;  // 最大交叉概率
     private static final double P_CMIN = 0.6;  // 最小交叉概率
     private static final double P_MMAX = 0.1;  // 最大变异概率
@@ -52,10 +52,6 @@ public class GeneticAlgorithm {
     private List<TimeSlot> allTimeSlots;
     private final Random random = new Random();
     private SseEmitter sseEmitter;
-
-    public void setSseEmitter(SseEmitter sseEmitter) {
-        this.sseEmitter = sseEmitter;
-    }
 
     /**
      * 执行自动排课
@@ -90,13 +86,11 @@ public class GeneticAlgorithm {
 
         // 阶段2：进化迭代
         for (int generation = 0; generation < maxGenerations; generation++) {
-            // 计算教学班和行政班总数，用于决定休眠时间
             int totalTeachingClasses = context.getTeachingClassList() != null ? context.getTeachingClassList().size() : 0;
             int totalAdminClasses = context.getTeachingClassList() != null
-                    ? context.getTeachingClassList().stream().mapToInt(tc -> tc.getClassUuids() != null ? tc.getClassUuids().size() : 0).sum()
+                    ? context.getTeachingClassList().stream().mapToInt(
+                            tc -> tc.getClassUuids() != null ? tc.getClassUuids().size() : 0).sum()
                     : 0;
-
-            // 如果课程数和行政班级数量少于10个，休眠0.3秒；否则休眠1秒
             int sleepTime = (totalTeachingClasses + totalAdminClasses) < 10 ? 300 : 1000;
             if (sleepTime > 0) {
                 try {
@@ -108,12 +102,10 @@ public class GeneticAlgorithm {
             }
 
             // 评估适应度
-            evaluatePopulation(population);
-
+            this.evaluatePopulation(population);
             // 排序并记录当前代最优解
             population.sort(Collections.reverseOrder());
             Chromosome currentBest = population.get(0).copy();
-
             // 更新全局最优
             if (globalBest == null || currentBest.getFitness() > globalBest.getFitness()) {
                 globalBest = currentBest;
@@ -121,11 +113,9 @@ public class GeneticAlgorithm {
             } else {
                 stagnantGenerations++;
             }
-
-            // 早停策略：如果连续20代无改进，有30%概率提前终止
             if (stagnantGenerations >= 20) {
                 if (random.nextDouble() < 0.30) {
-                    log.info("连续{}代无改进，1%概率触发早停，终止于第{}代", stagnantGenerations, generation);
+                    log.info("连续{}代无改进，触发早停，终止于第{}代", stagnantGenerations, generation);
                     break;
                 }
                 stagnantGenerations = 0; // 重置计数，继续迭代
@@ -433,7 +423,7 @@ public class GeneticAlgorithm {
     }
 
     /**
-     * 选择算子：锦标赛选择法（论文描述）
+     * 选择算子：锦标赛选择法
      * ① 随机选择K个个体
      * ② 选择其中适应度最高的个体进入下一代
      * ③ 重复M次，得到N个个体

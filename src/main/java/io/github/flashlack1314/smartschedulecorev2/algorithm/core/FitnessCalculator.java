@@ -43,7 +43,7 @@ public class FitnessCalculator {
     // 未完成排课惩罚
     private static final int INCOMPLETE_SCHEDULE_PENALTY = 2_000_000;
 
-    // 适应度计算权重（论文公式5-1: Fitness = w1·H + w2·S）
+    // 适应度计算权重
     private static final double HARD_CONSTRAINT_WEIGHT = 0.8;
     private static final double SOFT_CONSTRAINT_WEIGHT = 0.2;
 
@@ -89,7 +89,6 @@ public class FitnessCalculator {
         softReward += calculateCourseDistributionScore(chromosome, context);
         softReward += calculateClassroomContinuityScore(chromosome, context);
 
-        // 论文公式(5-1): Fitness = w1·H + w2·S
         // H = 已满足硬约束数 / 总硬约束数（趋近于1才可用）
         // S = 软约束加权得分
         double hardConstraintCount = report.getHardConflicts().size();
